@@ -1,3 +1,4 @@
+import { PENALTIES } from '../config.js';
 import { gameState } from '../state/gameState.js';
 import { controlState } from '../systems/input.js';
 import { chassisBody, playerMesh } from '../entities/player.js';
@@ -5,9 +6,6 @@ import { inSchoolZone } from '../world/schoolZone.js';
 import { updateIndicatorSound } from '../systems/audio.js';
 
 const speedValEl = document.getElementById('speedVal');
-const scoreValEl = document.getElementById('scoreVal');
-const scoreBarEl = document.getElementById('scoreBar');
-const damageBarEl = document.getElementById('damageBar');
 const zoneTagEl = document.getElementById('zoneTag');
 const handbrakeTagEl = document.getElementById('handbrakeTag');
 const indLEl = document.getElementById('indL');
@@ -28,14 +26,6 @@ function formatMMSS(totalSeconds) {
 }
 
 export function refreshHud() {
-  scoreValEl.textContent = Math.round(gameState.score);
-  scoreBarEl.style.width = `${gameState.score}%`;
-  scoreBarEl.style.background = gameState.score > 50
-    ? 'linear-gradient(90deg,#4caf50,#8bc34a)'
-    : gameState.score > 20
-      ? 'linear-gradient(90deg,#ff9800,#ffc107)'
-      : 'linear-gradient(90deg,#e53935,#ff5252)';
-  damageBarEl.style.width = `${gameState.damage}%`;
   timerValEl.textContent = formatMMSS(gameState.timeLeft);
 }
 
@@ -80,9 +70,32 @@ export function showToast(title, sub) {
   setTimeout(() => el.remove(), 3200);
 }
 
+// End-of-run results: every rule broken this run, its per-instance fine, a subtotal, and a
+// grand total — built from gameState.infractionCounts rather than a running score/damage tally.
 export function showResults() {
-  document.getElementById('resultScore').textContent = Math.round(gameState.score);
-  document.getElementById('resultDamage').textContent = `${Math.round(gameState.damage)}%`;
-  document.getElementById('resultTime').textContent = formatMMSS(gameState.duration);
+  const listEl = document.getElementById('resultsInfractions');
+  listEl.innerHTML = '';
+
+  const codes = Object.keys(gameState.infractionCounts).filter(code => gameState.infractionCounts[code] > 0);
+  let total = 0;
+
+  if (codes.length === 0) {
+    listEl.innerHTML = '<div class="resultRow"><span>Sin infracciones — ¡buen manejo!</span><b>S/ 0</b></div>';
+  } else {
+    codes.forEach(code => {
+      const count = gameState.infractionCounts[code];
+      const p = PENALTIES[code];
+      const subtotal = p.fine * count;
+      total += subtotal;
+      const row = document.createElement('div');
+      row.className = 'resultRow';
+      row.innerHTML = `<span>${p.label}${count > 1 ? ` &times;${count}` : ''}</span><b>S/ ${subtotal}</b>`;
+      listEl.appendChild(row);
+    });
+  }
+
+  document.getElementById('resultTotal').textContent = `S/ ${total}`;
+  const elapsed = gameState.duration - Math.max(0, gameState.timeLeft);
+  document.getElementById('resultTime').textContent = formatMMSS(elapsed);
   document.getElementById('gameOverScreen').style.display = 'flex';
 }

@@ -1,4 +1,3 @@
-import * as THREE from 'three';
 import { CONFIG, PENALTIES } from '../config.js';
 import { gameState } from '../state/gameState.js';
 import { chassisBody } from '../entities/player.js';
@@ -7,23 +6,22 @@ import { INTERSECTIONS } from '../world/intersections.js';
 import { inSchoolZone } from '../world/schoolZone.js';
 import { SPEED_BUMPS } from '../world/speedBumps.js';
 import { controlState } from './input.js';
-import { showToast, refreshHud } from '../ui/hud.js';
+import { showToast } from '../ui/hud.js';
 import { playCrash } from './audio.js';
 
 const lastInfractionTime = {};
 
-// The driver score is a performance grade shown in the end-of-run results, not a "life" —
-// running it down no longer ends the match (see main.js's timer-based end instead).
-export function triggerInfraction(code, customDamage) {
+// Each broken rule is tallied (not scored) — the end-of-run results dialog turns the tally
+// into an itemized fine per rule plus a total (see ui/hud.js's showResults()). Running up
+// fines no longer ends the match; only the timer (or the finish button) does.
+export function triggerInfraction(code) {
   const now = performance.now() / 1000;
   if (lastInfractionTime[code] !== undefined && now - lastInfractionTime[code] < CONFIG.INFRACTION_COOLDOWN) return;
   lastInfractionTime[code] = now;
 
   const p = PENALTIES[code];
-  gameState.score = THREE.MathUtils.clamp(gameState.score + p.score, 0, 100);
-  if (p.damage || customDamage) gameState.damage = THREE.MathUtils.clamp(gameState.damage + (customDamage ?? p.damage), 0, 100);
-  showToast(p.label, `${p.score} pts${p.damage ? `, +${p.damage}% daño` : ''}`);
-  refreshHud();
+  gameState.infractionCounts[code] = (gameState.infractionCounts[code] || 0) + 1;
+  showToast(p.label, `Multa: S/ ${p.fine}`);
 }
 
 // ---- Lane-change (G10) tracking ----

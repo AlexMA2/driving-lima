@@ -20,8 +20,10 @@ export function buildIntersections() {
     scene.add(cross);
 
     // stop line for player's lanes (approaching from +Z toward -Z, own lanes on +x)
+    // y sits just above the asphalt's actual top face (y=0.10, see world/road.js) so it
+    // doesn't get buried inside the opaque road mesh.
     const stopLine = box(ROAD_HALF_WIDTH, 0.02, 0.35, 0xffffff);
-    stopLine.position.set(ROAD_HALF_WIDTH / 2, 0.01, inter.z + 6);
+    stopLine.position.set(ROAD_HALF_WIDTH / 2, 0.115, inter.z + 6);
     scene.add(stopLine);
 
     const pole = buildTrafficLightPole();
@@ -34,7 +36,7 @@ export function buildIntersections() {
     const crosswalkGroup = new THREE.Group();
     for (let i = -ROAD_HALF_WIDTH; i < ROAD_HALF_WIDTH; i += 0.9) {
       const stripe = box(0.5, 0.015, 1.6, 0xffffff);
-      stripe.position.set(i + 0.25, 0.008, inter.z + 4.5);
+      stripe.position.set(i + 0.25, 0.12, inter.z + 4.5);
       crosswalkGroup.add(stripe);
     }
     scene.add(crosswalkGroup);

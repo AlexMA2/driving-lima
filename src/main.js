@@ -76,6 +76,12 @@ function buildWorld(scenarioId) {
   }
 }
 
+function endGame() {
+  if (gameState.gameOver) return;
+  gameState.gameOver = true;
+  showResults();
+}
+
 function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.05);
@@ -83,8 +89,7 @@ function animate() {
 
   gameState.timeLeft = Math.max(0, gameState.timeLeft - dt);
   if (gameState.timeLeft <= 0) {
-    gameState.gameOver = true;
-    showResults();
+    endGame();
     renderer.render(scene, camera);
     return;
   }
@@ -177,6 +182,7 @@ function restartGame() {
 document.getElementById('startBtn').addEventListener('click', () => startGame(selectedScenario, selectedDuration));
 document.getElementById('restartBtn').addEventListener('click', restartGame);
 document.getElementById('homeBtn').addEventListener('click', goHome);
+document.getElementById('finishBtn').addEventListener('click', () => { if (started) endGame(); });
 
 window.addEventListener('keydown', (e) => {
   if (!started) return;

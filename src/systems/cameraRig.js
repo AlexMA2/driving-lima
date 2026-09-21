@@ -8,9 +8,12 @@ import { chassisBody } from '../entities/player.js';
 const eyeOffset = new THREE.Vector3(-0.38, 1.18, -0.25);
 const eyePitch = -0.035; // a hair downward so the dashboard/road read naturally
 
-const rearMirrorOffset = new THREE.Vector3(0, 1.62, -0.55);
-const leftMirrorOffset = new THREE.Vector3(-0.98, 1.05, -0.5);
-const rightMirrorOffset = new THREE.Vector3(0.98, 1.05, -0.5);
+// Real-car-ish mounting points: the rearview sits at the top-center of the windshield near
+// the A-pillar/roofline, and the wing mirrors sit at the front of each door, projecting out
+// past the body — not tucked in near the driver's shoulder.
+const rearMirrorOffset = new THREE.Vector3(0, 1.68, -0.95);
+const leftMirrorOffset = new THREE.Vector3(-1.15, 1.0, -1.0);
+const rightMirrorOffset = new THREE.Vector3(1.15, 1.0, -1.0);
 const backwardLocal = new THREE.Vector3(0, 0, 1);
 const backLeftLocal = new THREE.Vector3(-0.6, -0.05, 0.8).normalize();
 const backRightLocal = new THREE.Vector3(0.6, -0.05, 0.8).normalize();

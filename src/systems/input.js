@@ -10,8 +10,12 @@ const WHEEL_MAX_RAD = THREE.MathUtils.degToRad(CONFIG.WHEEL_MAX_ANGLE_DEG);
 export const controlState = {
   // raw press state — set on keydown/keyup or pointerdown/pointerup, never inferred from
   // OS auto-repeat, so the ramps below are the only source of "how much" pedal is applied.
-  throttleHeld: false, brakeHeld: false, handbrake: false,
-  throttle: 0, brake: 0, // ramped 0..1 — this is what physics actually reads
+  brakeHeld: false, handbrake: false,
+
+  // The accelerator is the mouse scroll wheel, like a hand-throttle: each notch nudges
+  // throttleTarget up/down and it stays there (no key to hold) — `throttle` glides toward it
+  // so a big jump still isn't instant. Speed naturally "holds" once the wheel stops moving.
+  throttleTarget: 0, throttle: 0, brake: 0, // ramped 0..1 — this is what physics actually reads
 
   wheelAngle: 0, wheelTarget: 0, wheelDragging: false,
 
@@ -41,10 +45,18 @@ function normalizeDelta(a) {
   return Math.atan2(Math.sin(a), Math.cos(a));
 }
 
+// The scroll-wheel accelerator would otherwise fight normal page scrolling inside the
+// start/results screens and dialogs (e.g. a long infractions list) — only steal the wheel
+// once the driving HUD is actually the thing on screen.
+function isOverlayOpen() {
+  return document.getElementById('startScreen').style.display !== 'none'
+    || document.getElementById('gameOverScreen').style.display === 'flex'
+    || document.getElementById('instructionsDialog').classList.contains('show');
+}
+
 export function initInput() {
   window.addEventListener('keydown', (e) => {
     switch (e.key.toLowerCase()) {
-      case 'w': case 'arrowup': controlState.throttleHeld = true; break;
       case 's': case 'arrowdown': controlState.brakeHeld = true; break;
       case 'a': case 'arrowleft': controlState.wheelTarget = -WHEEL_MAX_RAD; break;
       case 'd': case 'arrowright': controlState.wheelTarget = WHEEL_MAX_RAD; break;
@@ -58,13 +70,22 @@ export function initInput() {
 
   window.addEventListener('keyup', (e) => {
     switch (e.key.toLowerCase()) {
-      case 'w': case 'arrowup': controlState.throttleHeld = false; break;
       case 's': case 'arrowdown': controlState.brakeHeld = false; break;
       case 'a': case 'arrowleft': if (controlState.wheelTarget < 0) controlState.wheelTarget = 0; break;
       case 'd': case 'arrowright': if (controlState.wheelTarget > 0) controlState.wheelTarget = 0; break;
       case ' ': controlState.handbrake = false; break;
     }
   });
+
+  // Accelerator: scroll up nudges the throttle position up, scroll down nudges it down, and
+  // it just sits there between scrolls — like a hand-throttle, not a spring-loaded pedal.
+  // Skipped while a menu/dialog is on screen so those can still be scrolled normally.
+  window.addEventListener('wheel', (e) => {
+    if (isOverlayOpen()) return;
+    const delta = e.deltaY < 0 ? CONFIG.THROTTLE_WHEEL_STEP : -CONFIG.THROTTLE_WHEEL_STEP;
+    controlState.throttleTarget = THREE.MathUtils.clamp(controlState.throttleTarget + delta, 0, 1);
+    e.preventDefault();
+  }, { passive: false });
 
   // Mouse-drag steering wheel: grab anywhere, rotate around the wheel's on-screen center —
   // a real hydraulic wheel doesn't snap, so the actual angle is smoothed toward this target
@@ -102,9 +123,9 @@ export function updateWheelAndPedals(dt) {
   const followRate = isSteering ? CONFIG.WHEEL_FOLLOW_RATE : CONFIG.WHEEL_RETURN_RATE;
   controlState.wheelAngle = approach(controlState.wheelAngle, controlState.wheelTarget, followRate, dt);
 
-  controlState.throttle = controlState.throttleHeld
-    ? Math.min(1, controlState.throttle + dt / CONFIG.THROTTLE_RAMP_UP)
-    : Math.max(0, controlState.throttle - dt / CONFIG.THROTTLE_RAMP_DOWN);
+  controlState.throttle = controlState.throttle < controlState.throttleTarget
+    ? Math.min(controlState.throttleTarget, controlState.throttle + dt / CONFIG.THROTTLE_RAMP_UP)
+    : Math.max(controlState.throttleTarget, controlState.throttle - dt / CONFIG.THROTTLE_RAMP_DOWN);
 
   controlState.brake = controlState.brakeHeld
     ? Math.min(1, controlState.brake + dt / CONFIG.BRAKE_RAMP_UP)
@@ -149,7 +170,7 @@ export function applyVehicleControls(dt) {
   vehicle.applyEngineForce(engineForce, 2);
   vehicle.applyEngineForce(engineForce, 3);
 
-  if (!controlState.throttleHeld && !controlState.brakeHeld && !controlState.handbrake) brakeForce = Math.max(brakeForce, CONFIG.BRAKE_FORCE * 0.15);
+  if (controlState.throttleTarget <= 0 && !controlState.brakeHeld && !controlState.handbrake) brakeForce = Math.max(brakeForce, CONFIG.BRAKE_FORCE * 0.15);
 
   const handbrakeForce = controlState.handbrake ? CONFIG.HANDBRAKE_FORCE : 0;
   vehicle.setBrake(brakeForce, 0);

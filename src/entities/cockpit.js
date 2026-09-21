@@ -30,18 +30,17 @@ export function buildCockpit() {
   dash.position.set(0, -0.56, -0.78);
   g.add(dash);
 
-  // A-pillars + windshield header + door sills frame the glass area
-  const pillarL = part(new THREE.BoxGeometry(0.1, 0.95, 0.1), trim);
-  pillarL.position.set(-0.88, -0.1, -0.92); pillarL.rotation.z = 0.14;
-  const pillarR = part(new THREE.BoxGeometry(0.1, 0.95, 0.1), trim);
-  pillarR.position.set(0.88, -0.1, -0.92); pillarR.rotation.z = -0.14;
-  const visor = part(new THREE.BoxGeometry(1.75, 0.08, 0.22), trim);
-  visor.position.set(0, 0.42, -0.9);
+  // A-pillars + door sills frame the glass area. No windshield header bar — the pillars run
+  // straight up past the top of the frustum instead, so the view up top is open glass.
+  const pillarL = part(new THREE.BoxGeometry(0.1, 2.2, 0.1), trim);
+  pillarL.position.set(-0.88, 0.52, -0.92); pillarL.rotation.z = 0.14;
+  const pillarR = part(new THREE.BoxGeometry(0.1, 2.2, 0.1), trim);
+  pillarR.position.set(0.88, 0.52, -0.92); pillarR.rotation.z = -0.14;
   const doorL = part(new THREE.BoxGeometry(0.07, 0.7, 1.5), trim);
   doorL.position.set(-0.98, -0.28, 0.15);
   const doorR = part(new THREE.BoxGeometry(0.07, 0.7, 1.5), trim);
   doorR.position.set(0.98, -0.28, 0.15);
-  g.add(pillarL, pillarR, visor, doorL, doorR);
+  g.add(pillarL, pillarR, doorL, doorR);
 
   // Steering wheel: tilt lives on the mount, spin lives on the child so it rotates on its own axis
   const wheelMount = new THREE.Group();
@@ -74,18 +73,20 @@ export function buildCockpit() {
   rightIndicatorLamp.position.set(-0.31, -0.29, -0.635);
   g.add(leftIndicatorLamp, rightIndicatorLamp);
 
-  // Rearview mirror housing (the reflection itself is rendered into #mirrorViewport)
-  const mirrorArm = part(new THREE.CylinderGeometry(0.015, 0.015, 0.12, 6), trim);
-  mirrorArm.rotation.x = Math.PI / 2; mirrorArm.position.set(0, 0.35, -0.68);
+  // Rearview mirror: mounted from the roofline at the top-center of the windshield, close to
+  // the glass — like a real interior mirror, not floating out over the dashboard.
+  const mirrorArm = part(new THREE.CylinderGeometry(0.015, 0.015, 0.14, 6), trim);
+  mirrorArm.rotation.x = Math.PI / 2; mirrorArm.position.set(0, 0.46, -0.85);
   const mirrorHousing = part(new THREE.BoxGeometry(0.34, 0.09, 0.03), trim);
-  mirrorHousing.position.set(0, 0.41, -0.7);
+  mirrorHousing.position.set(0, 0.53, -0.88);
   g.add(mirrorArm, mirrorHousing);
 
-  // Side mirror housings, just inside the door frame at each window
-  const sideMirrorL = part(new THREE.BoxGeometry(0.1, 0.09, 0.06), trim);
-  sideMirrorL.position.set(-1.0, 0.06, -0.5);
-  const sideMirrorR = part(new THREE.BoxGeometry(0.1, 0.09, 0.06), trim);
-  sideMirrorR.position.set(1.0, 0.06, -0.5);
+  // Side mirrors: mounted at the front of the door, by the A-pillar, and projecting outward
+  // past the door skin (real wing mirrors sit outside the body, not flush with the window).
+  const sideMirrorL = part(new THREE.BoxGeometry(0.12, 0.09, 0.08), trim);
+  sideMirrorL.position.set(-1.1, -0.05, -0.82);
+  const sideMirrorR = part(new THREE.BoxGeometry(0.12, 0.09, 0.08), trim);
+  sideMirrorR.position.set(1.1, -0.05, -0.82);
   g.add(sideMirrorL, sideMirrorR);
 
   camera.add(g);

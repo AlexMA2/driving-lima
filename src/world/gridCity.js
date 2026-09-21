@@ -35,11 +35,17 @@ function subSpans(lo, hi, crossings, gapHalf) {
   return spans;
 }
 
+// Markings sit just above the asphalt's actual top face — asphalt is a 0.3-tall box, so its
+// top face sits 0.15 above whatever y its center is placed at (asphaltY below). Drawing a
+// marking below that buries it inside the opaque asphalt block, where it never renders.
+const MARK_CLEARANCE = 0.005;
+
 function buildStreet(orientation, fixed, lo, hi, laneCountPerSide, crossings) {
   const halfWidth = laneCountPerSide * CONFIG.LANE_WIDTH;
   const gapHalf = ROAD_HALF_WIDTH_GRID + CONFIG.SIDEWALK_WIDTH;
   const spans = subSpans(lo, hi, crossings, gapHalf);
   const asphaltY = orientation === 'z' ? -0.05 : -0.045; // cross streets draw slightly above avenues at overlaps
+  const markY = asphaltY + 0.15 + MARK_CLEARANCE;
 
   if (orientation === 'z') {
     const asphalt = box(halfWidth * 2, 0.3, hi - lo, 0x3a3a3f, { roughness: 1 });
@@ -59,12 +65,12 @@ function buildStreet(orientation, fixed, lo, hi, laneCountPerSide, crossings) {
       const m = orientation === 'z'
         ? box(0.12, 0.02, len, 0xffcc00, { emissive: 0x554400, emissiveIntensity: 0.2 })
         : box(len, 0.02, 0.12, 0xffcc00, { emissive: 0x554400, emissiveIntensity: 0.2 });
-      if (orientation === 'z') m.position.set(fixed + oy, 0.007, mid); else m.position.set(mid, 0.007, fixed + oy);
+      if (orientation === 'z') m.position.set(fixed + oy, markY, mid); else m.position.set(mid, markY, fixed + oy);
       scene.add(m);
     });
     [-halfWidth, halfWidth].forEach(edge => {
       const m = orientation === 'z' ? box(0.14, 0.02, len, 0xf2f2f2) : box(len, 0.02, 0.14, 0xf2f2f2);
-      if (orientation === 'z') m.position.set(fixed + edge, 0.007, mid); else m.position.set(mid, 0.007, fixed + edge);
+      if (orientation === 'z') m.position.set(fixed + edge, markY, mid); else m.position.set(mid, markY, fixed + edge);
       scene.add(m);
     });
 
@@ -103,11 +109,13 @@ function updateLightMesh(L, state) {
 function buildIntersection(x, z) {
   const gapHalf = ROAD_HALF_WIDTH_GRID + CONFIG.SIDEWALK_WIDTH;
 
-  // Stop lines, one per approach
-  const nsStop1 = box(ROAD_HALF_WIDTH_GRID, 0.02, 0.3, 0xffffff); nsStop1.position.set(x + ROAD_HALF_WIDTH_GRID / 2, 0.012, z + gapHalf - 0.5); scene.add(nsStop1);
-  const nsStop2 = box(ROAD_HALF_WIDTH_GRID, 0.02, 0.3, 0xffffff); nsStop2.position.set(x - ROAD_HALF_WIDTH_GRID / 2, 0.012, z - gapHalf + 0.5); scene.add(nsStop2);
-  const ewStop1 = box(0.3, 0.02, ROAD_HALF_WIDTH_GRID, 0xffffff); ewStop1.position.set(x - gapHalf + 0.5, 0.012, z + ROAD_HALF_WIDTH_GRID / 2); scene.add(ewStop1);
-  const ewStop2 = box(0.3, 0.02, ROAD_HALF_WIDTH_GRID, 0xffffff); ewStop2.position.set(x + gapHalf - 0.5, 0.012, z - ROAD_HALF_WIDTH_GRID / 2); scene.add(ewStop2);
+  // Stop lines, one per approach (0.115 sits just above the lane markings at markY≈0.105/0.11
+  // so they don't z-fight where a stop line crosses a dashed divider or edge line)
+  const stopY = 0.115;
+  const nsStop1 = box(ROAD_HALF_WIDTH_GRID, 0.02, 0.3, 0xffffff); nsStop1.position.set(x + ROAD_HALF_WIDTH_GRID / 2, stopY, z + gapHalf - 0.5); scene.add(nsStop1);
+  const nsStop2 = box(ROAD_HALF_WIDTH_GRID, 0.02, 0.3, 0xffffff); nsStop2.position.set(x - ROAD_HALF_WIDTH_GRID / 2, stopY, z - gapHalf + 0.5); scene.add(nsStop2);
+  const ewStop1 = box(0.3, 0.02, ROAD_HALF_WIDTH_GRID, 0xffffff); ewStop1.position.set(x - gapHalf + 0.5, stopY, z + ROAD_HALF_WIDTH_GRID / 2); scene.add(ewStop1);
+  const ewStop2 = box(0.3, 0.02, ROAD_HALF_WIDTH_GRID, 0xffffff); ewStop2.position.set(x + gapHalf - 0.5, stopY, z - ROAD_HALF_WIDTH_GRID / 2); scene.add(ewStop2);
 
   const poleNS = buildTrafficLightPole();
   poleNS.position.set(x + gapHalf - 0.3, 0, z + gapHalf - 0.3);

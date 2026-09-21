@@ -21,6 +21,11 @@ export function laneDir(x) { return x > 0 ? -1 : 1; }
 // Builds the shared lane-marking set (dashed dividers + solid edge lines) for a straight
 // stretch of road between [zStart, zEnd] with `laneCountPerSide` lanes each direction.
 // Reused by the single-corridor scenarios and, per-street, by the grid city.
+// Markings sit just above the asphalt's actual top face (asphalt is a 0.3-tall box centered
+// 0.05 below y=0, so its top face is at y=0.10) — anything drawn below that is buried inside
+// the opaque asphalt block and never rendered.
+const MARK_Y = 0.105;
+
 export function buildLaneMarkings(centerX, laneCountPerSide, zStart, zEnd, laneWidth = CONFIG.LANE_WIDTH) {
   const halfWidth = laneCountPerSide * laneWidth;
   const length = Math.abs(zStart - zEnd);
@@ -29,14 +34,14 @@ export function buildLaneMarkings(centerX, laneCountPerSide, zStart, zEnd, laneW
   // Center double-yellow line
   [-0.15, 0.15].forEach(ox => {
     const line = box(0.12, 0.02, length, 0xffcc00, { emissive: 0x554400, emissiveIntensity: 0.2 });
-    line.position.set(centerX + ox, 0.006, zMid);
+    line.position.set(centerX + ox, MARK_Y, zMid);
     scene.add(line);
   });
 
   // Solid white edge lines at the outer curb of each side
   [-halfWidth, halfWidth].forEach(ox => {
     const line = box(0.14, 0.02, length, 0xf2f2f2);
-    line.position.set(centerX + ox, 0.006, zMid);
+    line.position.set(centerX + ox, MARK_Y, zMid);
     scene.add(line);
   });
 
@@ -51,7 +56,7 @@ export function buildLaneMarkings(centerX, laneCountPerSide, zStart, zEnd, laneW
       const dummy = new THREE.Object3D();
       const zTop = Math.max(zStart, zEnd);
       for (let d = 0; d < count; d++) {
-        dummy.position.set(x, 0.006, zTop - d * 6 - 2);
+        dummy.position.set(x, MARK_Y, zTop - d * 6 - 2);
         dummy.updateMatrix();
         inst.setMatrixAt(d, dummy.matrix);
       }
