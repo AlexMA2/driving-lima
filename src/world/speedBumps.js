@@ -23,7 +23,7 @@ export function buildSpeedBumps() {
     world.addBody(body);
 
     const sign = buildSign('DESPACIO\nROMPEMUELAS', 0xffcc00, 'rect');
-    sign.position.set(-ROAD_HALF_WIDTH - 0.6, 0, bump.z + 14);
+    sign.position.set(ROAD_HALF_WIDTH + 0.6, 0, bump.z + 14);
     scene.add(sign);
   });
 }

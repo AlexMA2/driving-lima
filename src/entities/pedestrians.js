@@ -9,6 +9,7 @@ import { INTERSECTIONS } from '../world/intersections.js';
 import { buildPedestrian } from '../assets/props.js';
 import { chassisBody } from './player.js';
 import { triggerInfraction } from '../systems/rules.js';
+import { playPedestrianChatter } from '../systems/audio.js';
 
 // Jaywalking pedestrians: spawn/despawn relative to the player, some cross near a marked
 // crosswalk (feeding the G57 "did not yield" check), most cross wherever, forcing braking.
@@ -46,6 +47,9 @@ export function updatePedestrians(dt) {
     p.mesh.position.copy(newPos);
     p.mesh.rotation.y = p.dirX > 0 ? Math.PI / 2 : -Math.PI / 2;
     p.prevPos.copy(newPos);
+
+    // A passerby close to the car calls out / chats — small ambience, not a rule check.
+    if (chassisBody.position.distanceTo(newPos) < 6) playPedestrianChatter();
 
     // G57 check: player driving through the crosswalk while pedestrian actively occupies it, not yielding
     if (p.nearCrosswalk && !p.yieldChecked && Math.abs(newX) < ROAD_HALF_WIDTH) {

@@ -8,6 +8,7 @@ import { inSchoolZone } from '../world/schoolZone.js';
 import { SPEED_BUMPS } from '../world/speedBumps.js';
 import { controlState } from './input.js';
 import { showToast, refreshHud, showGameOver } from '../ui/hud.js';
+import { playCrash } from './audio.js';
 
 const lastInfractionTime = {};
 
@@ -37,11 +38,13 @@ function nearestLaneIndex(x) {
 
 let prevLaneIndex = -1;
 let prevPlayerZ = 0;
+let urbanSpeedLimit = CONFIG.URBAN_SPEED_LIMIT;
 
 // Must run once after the player body exists (main.js calls this right after createPlayer()).
-export function initRules() {
+export function initRules(scenario) {
   prevLaneIndex = nearestLaneIndex(chassisBody.position.x);
   prevPlayerZ = chassisBody.position.z;
+  urbanSpeedLimit = scenario?.speedLimit ?? CONFIG.URBAN_SPEED_LIMIT;
 }
 
 export function checkLaneChangeRule() {
@@ -57,7 +60,7 @@ export function checkLaneChangeRule() {
 // ---- Speed limit (M20) ----
 export function checkSpeedRule() {
   const speedKmh = chassisBody.velocity.length() * 3.6;
-  const limit = inSchoolZone(chassisBody.position.z) ? CONFIG.SCHOOL_SPEED_LIMIT : CONFIG.URBAN_SPEED_LIMIT;
+  const limit = inSchoolZone(chassisBody.position.z) ? CONFIG.SCHOOL_SPEED_LIMIT : urbanSpeedLimit;
   if (speedKmh > limit + 6) triggerInfraction('M20');
 }
 
@@ -93,7 +96,7 @@ export function setupCollisionListener() {
     const other = e.body;
     if (other.userData && other.userData.isPenalized) {
       const relSpeed = e.contact.getImpactVelocityAlongNormal ? Math.abs(e.contact.getImpactVelocityAlongNormal()) : 1;
-      if (relSpeed > 0.8) triggerInfraction('COLLISION');
+      if (relSpeed > 0.8) { triggerInfraction('COLLISION'); playCrash(relSpeed); }
     }
   });
 }

@@ -5,12 +5,12 @@ import { scene } from '../core/scene.js';
 import { ROAD_HALF_WIDTH } from './road.js';
 
 // Low-poly colored-box skyline lining both sidewalks, drawn as one InstancedMesh per side pair.
-export function buildBuildings() {
+export function buildBuildings(scenario) {
   const buildingPalette = [0xd9c79e, 0xc8896b, 0xdfe3e6, 0x9fb6c9, 0xe8d5a0, 0xb98d6f, 0xcbb4d1];
   const geo = new THREE.BoxGeometry(1, 1, 1);
   const mat = new THREE.MeshStandardMaterial({ roughness: 0.85 });
   const spacing = 14;
-  const perSide = Math.floor(CONFIG.ROAD_LENGTH / spacing);
+  const perSide = Math.floor(scenario.roadLength / spacing);
   const inst = new THREE.InstancedMesh(geo, mat, perSide * 2);
   const dummy = new THREE.Object3D();
   const color = new THREE.Color();

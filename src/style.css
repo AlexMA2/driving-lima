@@ -1,6 +1,6 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body { width: 100%; height: 100%; overflow: hidden; background: #87CEEB; font-family: 'Segoe UI', Arial, sans-serif; }
-canvas { display: block; }
+canvas { display: block; touch-action: none; }
 
 #hud {
   position: fixed; inset: 0; pointer-events: none; color: #fff; user-select: none;
@@ -10,11 +10,13 @@ canvas { display: block; }
 #speedo {
   position: absolute; left: 20px; bottom: 20px;
   background: rgba(10,12,20,0.55); border: 2px solid rgba(255,255,255,0.2);
-  border-radius: 14px; padding: 14px 20px; text-align: center; min-width: 140px;
+  border-radius: 14px; padding: 8px 20px 14px; text-align: center; min-width: 160px;
   backdrop-filter: blur(3px);
 }
-#speedVal { font-size: 42px; font-weight: 800; line-height: 1; }
-#speedUnit { font-size: 13px; opacity: .8; letter-spacing: 1px; }
+#gaugeSvg { display:block; margin: 0 auto -14px; }
+#needle { transition: transform .08s linear; }
+#speedVal { font-size: 38px; font-weight: 800; line-height: 1; }
+#speedUnit { font-size: 12px; opacity: .8; letter-spacing: 1px; }
 #gearRow { margin-top: 6px; font-size: 12px; display:flex; gap:10px; justify-content:center; }
 .indicatorDot { width:10px; height:10px; border-radius:50%; display:inline-block; background:#444; margin-right:4px; vertical-align:middle; }
 .indicatorDot.on { background:#ffb300; box-shadow:0 0 8px #ffb300; }
@@ -22,7 +24,7 @@ canvas { display: block; }
 #handbrakeTag.show { opacity:1; }
 
 #scorePanel {
-  position: absolute; right: 20px; top: 20px; width: 260px;
+  position: absolute; right: 20px; top: 128px; width: 260px;
   background: rgba(10,12,20,0.55); border: 2px solid rgba(255,255,255,0.2);
   border-radius: 14px; padding: 14px 18px; backdrop-filter: blur(3px);
 }
@@ -48,12 +50,6 @@ canvas { display: block; }
 @keyframes toastIn { from { opacity:0; transform: translateY(-15px);} to {opacity:1; transform:translateY(0);} }
 @keyframes toastOut { to { opacity:0; transform: translateY(-10px); } }
 
-#crosshairHelp {
-  position:absolute; bottom: 20px; right: 20px; background: rgba(10,12,20,0.5);
-  border-radius: 10px; padding: 10px 14px; font-size: 12px; line-height:1.6; opacity:.85;
-}
-#crosshairHelp b { color: #ffca28; }
-
 #mirrorViewport {
   position:absolute; top: 20px; left: 50%; transform: translateX(-50%);
   width: 260px; height: 90px; border: 3px solid rgba(255,255,255,0.35); border-radius: 8px;
@@ -61,13 +57,56 @@ canvas { display: block; }
 }
 #mirrorLabel { position:absolute; top:2px; left:50%; transform:translateX(-50%); font-size:10px; opacity:.7; letter-spacing:1px;}
 
+#leftMirrorViewport, #rightMirrorViewport {
+  position:absolute; top: 18px; width: 150px; height: 100px;
+  border: 3px solid rgba(255,255,255,0.3); border-radius: 10px 10px 4px 4px;
+  overflow:hidden; background:transparent; box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+#leftMirrorViewport { left: 14px; }
+#rightMirrorViewport { right: 14px; }
+
+#helpBtn {
+  position: absolute; right: 20px; bottom: 20px; pointer-events: auto;
+  width: 42px; height: 42px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4);
+  background: rgba(10,12,20,0.6); color: #fff; font-size: 18px; font-weight: 800; cursor: pointer;
+}
+#helpBtn:hover { background: rgba(30,34,48,0.8); }
+
+.dialogOverlay {
+  position: fixed; inset: 0; background: rgba(5,8,15,0.75); z-index: 70;
+  display: none; align-items: center; justify-content: center;
+}
+.dialogOverlay.show { display: flex; }
+.dialogBox {
+  background: #14161f; border: 1px solid rgba(255,255,255,0.15); border-radius: 14px;
+  padding: 26px 30px; max-width: 460px; color: #fff; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+.dialogBox h2 { margin-bottom: 14px; }
+.dialogBox .rules { text-align:left; background:rgba(255,255,255,0.06); padding:16px 20px; border-radius:10px; font-size:13px; line-height:1.9; margin-bottom: 18px; }
+.dialogBox button {
+  background: linear-gradient(135deg,#2196f3,#1565c0); border:none; color:#fff; font-weight:700;
+  padding: 10px 26px; border-radius: 24px; font-size: 14px; cursor:pointer;
+}
+
 #startScreen {
   position: fixed; inset: 0; background: rgba(5,8,15,0.92); color:#fff; z-index: 50;
-  display:flex; align-items:center; justify-content:center; flex-direction:column; text-align:center; gap: 18px;
+  display:flex; align-items:center; justify-content:center; flex-direction:column; text-align:center; gap: 16px;
+  overflow-y: auto; padding: 30px 16px;
 }
 #startScreen h1 { font-size: 32px; }
 #startScreen p { max-width: 560px; opacity:.85; line-height:1.6; font-size:14px; }
 #startScreen .rules { text-align:left; background:rgba(255,255,255,0.06); padding:16px 22px; border-radius:10px; font-size:13px; line-height:1.8; }
+
+#scenarioSelector { display:flex; gap:14px; flex-wrap: wrap; justify-content:center; max-width: 720px; }
+.scenarioCard {
+  cursor: pointer; width: 210px; text-align:left; padding: 14px 16px; border-radius: 12px;
+  background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.14); transition: all .15s;
+}
+.scenarioCard:hover { background: rgba(255,255,255,0.1); }
+.scenarioCard.selected { border-color: #ff9800; background: rgba(255,152,0,0.14); }
+.scenarioCard h3 { font-size: 15px; margin-bottom: 6px; }
+.scenarioCard p { font-size: 12px; opacity: .8; line-height: 1.5; max-width: none; }
+
 #startBtn {
   background: linear-gradient(135deg,#ff9800,#f44336); border:none; color:#fff; font-weight:700;
   padding: 14px 38px; border-radius: 30px; font-size: 17px; cursor:pointer; letter-spacing:1px;

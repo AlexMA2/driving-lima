@@ -11,11 +11,11 @@ export function buildSchoolZone() {
   scene.add(tint);
 
   const signStart = buildSign('ZONA ESCOLAR\nMAX 30 KM/H', 0xffffff, 'rect');
-  signStart.position.set(-ROAD_HALF_WIDTH - 0.6, 0, SCHOOL_ZONE.start + 8);
+  signStart.position.set(ROAD_HALF_WIDTH + 0.6, 0, SCHOOL_ZONE.start + 8);
   scene.add(signStart);
 
   const signEnd = buildSign('FIN ZONA\nESCOLAR', 0xffffff, 'rect');
-  signEnd.position.set(-ROAD_HALF_WIDTH - 0.6, 0, SCHOOL_ZONE.end - 8);
+  signEnd.position.set(ROAD_HALF_WIDTH + 0.6, 0, SCHOOL_ZONE.end - 8);
   signEnd.rotation.y = Math.PI;
   scene.add(signEnd);
 }

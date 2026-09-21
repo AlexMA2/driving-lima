@@ -19,9 +19,9 @@ export function buildIntersections() {
     cross.position.set(0, -0.045, inter.z);
     scene.add(cross);
 
-    // stop line for player's lanes (approaching from +Z toward -Z)
+    // stop line for player's lanes (approaching from +Z toward -Z, own lanes on +x)
     const stopLine = box(ROAD_HALF_WIDTH, 0.02, 0.35, 0xffffff);
-    stopLine.position.set(-ROAD_HALF_WIDTH / 2, 0.01, inter.z + 6);
+    stopLine.position.set(ROAD_HALF_WIDTH / 2, 0.01, inter.z + 6);
     scene.add(stopLine);
 
     const pole = buildTrafficLightPole();

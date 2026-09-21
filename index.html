@@ -11,6 +11,12 @@
 
 <div id="hud">
   <div id="speedo">
+    <svg id="gaugeSvg" viewBox="0 0 200 116">
+      <path d="M14,106 A86,86 0 0,1 186,106" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="10" stroke-linecap="round"/>
+      <path id="gaugeArc" d="M14,106 A86,86 0 0,1 186,106" fill="none" stroke="#4caf50" stroke-width="10" stroke-linecap="round" stroke-dasharray="270" stroke-dashoffset="270"/>
+      <line id="needle" x1="100" y1="106" x2="100" y2="30" stroke="#fff" stroke-width="3" stroke-linecap="round" style="transform-origin:100px 106px;"/>
+      <circle cx="100" cy="106" r="6" fill="#eee"/>
+    </svg>
     <div id="speedVal">0</div>
     <div id="speedUnit">km/h</div>
     <div id="gearRow">
@@ -33,13 +39,27 @@
 
   <div id="toastContainer"></div>
 
-  <div id="mirrorViewport"><div id="mirrorLabel">ESPEJO RETROVISOR</div></div>
+  <div id="mirrorViewport"><div id="mirrorLabel">RETROVISOR</div></div>
+  <div id="leftMirrorViewport"></div>
+  <div id="rightMirrorViewport"></div>
 
-  <div id="crosshairHelp">
-    <div><b>W/↑</b> Acelerar &nbsp; <b>S/↓</b> Frenar/Reversa</div>
-    <div><b>A/D</b> Girar &nbsp; <b>ESPACIO</b> Freno de mano</div>
-    <div><b>Q</b> Direccional Izq &nbsp; <b>E</b> Direccional Der</div>
-    <div><b>C</b> Cambiar cámara &nbsp; <b>L</b> Luces</div>
+  <button id="helpBtn" title="Instrucciones">?</button>
+</div>
+
+<div id="instructionsDialog" class="dialogOverlay">
+  <div class="dialogBox">
+    <h2>Controles</h2>
+    <div class="rules">
+      <div><b>Mouse (arrastrar)</b> — Girar el volante (dirección hidráulica, se auto-centra al soltar)</div>
+      <div><b>A / D</b> o Flechas — Girar el volante con teclado</div>
+      <div><b>W / ↑</b> — Acelerador (mantener presionado, aceleración progresiva)</div>
+      <div><b>S / ↓</b> — Freno (mantener; casi detenido, sigue presionando para retroceder)</div>
+      <div><b>ESPACIO</b> — Freno de mano</div>
+      <div><b>Q / E</b> — Direccionales (izquierda / derecha)</div>
+      <div><b>L</b> — Apagar direccionales</div>
+      <div><b>H</b> — Bocina</div>
+    </div>
+    <button id="closeInstructions">Cerrar</button>
   </div>
 </div>
 
@@ -48,11 +68,27 @@
   <p>Conduce con precaución por las calles de Lima. Evita choques, respeta los semáforos, los límites
      de velocidad y cede el paso en cruces peatonales. Cada infracción sigue el Reglamento Nacional
      de Tránsito (D.S. N° 016-2009-MTC).</p>
+
+  <div id="scenarioSelector">
+    <div class="scenarioCard selected" data-scenario="straight">
+      <h3>Recta Directa</h3>
+      <p>Avenida larga y recta. Ideal para practicar velocidad, señalización y frenado.</p>
+    </div>
+    <div class="scenarioCard" data-scenario="highway">
+      <h3>Autopista Densa</h3>
+      <p>Tres carriles por sentido, tráfico denso y conductores imprudentes.</p>
+    </div>
+    <div class="scenarioCard" data-scenario="grid">
+      <h3>Ciudad con Giros</h3>
+      <p>Cuadrícula urbana con cruces reales y semáforos en cada esquina.</p>
+    </div>
+  </div>
+
   <div class="rules">
-    <div><b>W/A/S/D</b> o Flechas — Manejar</div>
-    <div><b>ESPACIO</b> — Freno de mano</div>
+    <div><b>Mouse</b> — Arrastra el volante para girar (se auto-centra al soltar)</div>
+    <div><b>W/A/S/D</b> o Flechas — Acelerar / Frenar / Girar</div>
+    <div><b>ESPACIO</b> — Freno de mano &nbsp; <b>H</b> — Bocina</div>
     <div><b>Q / E</b> — Direccionales (izquierda / derecha)</div>
-    <div><b>C</b> — Cambiar cámara (3ra persona / capó)</div>
   </div>
   <button id="startBtn">EMPEZAR A MANEJAR</button>
 </div>

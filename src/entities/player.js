@@ -1,7 +1,6 @@
 import * as CANNON from 'cannon-es';
 import { scene } from '../core/scene.js';
 import { world, vehicleMaterial } from '../core/physics.js';
-import { LANE_X, WORLD_Z_START } from '../world/road.js';
 import { buildSedan } from '../assets/vehicles.js';
 
 // Populated by createPlayer(); other modules import these as live bindings and only
@@ -11,11 +10,13 @@ export let vehicle;
 export let playerMesh;
 export let playerWheelMeshes;
 
-export function createPlayer() {
+// spawn: { x, z, rotY } — each scenario builder computes where the player starts.
+export function createPlayer(spawn) {
   const chassisShape = new CANNON.Box(new CANNON.Vec3(0.95, 0.4, 2.2));
   chassisBody = new CANNON.Body({ mass: 155, material: vehicleMaterial });
   chassisBody.addShape(chassisShape);
-  chassisBody.position.set(LANE_X[1], 1.2, WORLD_Z_START - 30);
+  chassisBody.position.set(spawn.x, 1.2, spawn.z);
+  chassisBody.quaternion.setFromEuler(0, spawn.rotY || 0, 0);
   chassisBody.angularVelocity.set(0, 0, 0);
   chassisBody.angularDamping = 0.6; // keeps the chassis from tumbling/spinning out at high speed
   chassisBody.linearDamping = 0.02;
@@ -54,6 +55,10 @@ export function createPlayer() {
 
   playerMesh = buildSedan(0x1565c0);
   playerMesh.castShadow = true;
+  // First-person cockpit camera sits inside this mesh's solid cabin geometry — put the whole
+  // car on layer 1 so the driver's own camera (layer 0 only) doesn't see it from the inside;
+  // the mirror cameras explicitly opt into layer 1 so the car still shows up behind/beside you.
+  playerMesh.traverse(o => o.layers.set(1));
   scene.add(playerMesh);
   playerWheelMeshes = playerMesh.userData.wheels; // [FL, FR, RL, RR] matches wheelInfos order above
 }

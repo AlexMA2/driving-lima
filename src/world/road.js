@@ -5,73 +5,115 @@ import { scene } from '../core/scene.js';
 import { world, groundMaterial, propMaterial } from '../core/physics.js';
 import { box } from '../assets/primitives.js';
 
-export const LANE_X = [-1.5 * CONFIG.LANE_WIDTH, -0.5 * CONFIG.LANE_WIDTH, 0.5 * CONFIG.LANE_WIDTH, 1.5 * CONFIG.LANE_WIDTH];
-export const ROAD_HALF_WIDTH = CONFIG.LANE_WIDTH * 2;
-export const WORLD_Z_START = 0;
-export const WORLD_Z_END = -CONFIG.ROAD_LENGTH;
+// Peru drives on the right-hand side of the road: your own lanes sit on the side that
+// keeps the curb/sidewalk next to the car's right (passenger) side, oncoming traffic
+// passes on your left across the centerline. Positive-x lanes are "your" lanes (moving -Z);
+// negative-x lanes are oncoming (moving +Z). See laneDir() below.
+export let ROAD_HALF_WIDTH = CONFIG.LANE_WIDTH * 2;
+export let LANE_X = [];          // all lane centers, sorted ascending (oncoming first, own last)
+export let PLAYER_LANES = [];    // own-direction lane centers (positive x), inner-most first
+export let ONCOMING_LANES = [];  // oncoming lane centers (negative x), inner-most first
+export let WORLD_Z_START = 0;
+export let WORLD_Z_END = 0;
 
-// Negative-x lanes travel -Z (player's direction), positive-x lanes travel +Z (oncoming).
-export function laneDir(x) { return x < 0 ? -1 : 1; }
+export function laneDir(x) { return x > 0 ? -1 : 1; }
 
-export function buildRoad() {
+// Builds the shared lane-marking set (dashed dividers + solid edge lines) for a straight
+// stretch of road between [zStart, zEnd] with `laneCountPerSide` lanes each direction.
+// Reused by the single-corridor scenarios and, per-street, by the grid city.
+export function buildLaneMarkings(centerX, laneCountPerSide, zStart, zEnd, laneWidth = CONFIG.LANE_WIDTH) {
+  const halfWidth = laneCountPerSide * laneWidth;
+  const length = Math.abs(zStart - zEnd);
+  const zMid = (zStart + zEnd) / 2;
+
+  // Center double-yellow line
+  [-0.15, 0.15].forEach(ox => {
+    const line = box(0.12, 0.02, length, 0xffcc00, { emissive: 0x554400, emissiveIntensity: 0.2 });
+    line.position.set(centerX + ox, 0.006, zMid);
+    scene.add(line);
+  });
+
+  // Solid white edge lines at the outer curb of each side
+  [-halfWidth, halfWidth].forEach(ox => {
+    const line = box(0.14, 0.02, length, 0xf2f2f2);
+    line.position.set(centerX + ox, 0.006, zMid);
+    scene.add(line);
+  });
+
+  // Dashed white dividers between same-direction lanes
+  const dashGeo = new THREE.BoxGeometry(0.14, 0.02, 3);
+  const dashMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+  for (let i = 1; i < laneCountPerSide; i++) {
+    [1, -1].forEach(sign => {
+      const x = centerX + sign * i * laneWidth;
+      const count = Math.max(1, Math.floor(length / 6));
+      const inst = new THREE.InstancedMesh(dashGeo, dashMat, count);
+      const dummy = new THREE.Object3D();
+      const zTop = Math.max(zStart, zEnd);
+      for (let d = 0; d < count; d++) {
+        dummy.position.set(x, 0.006, zTop - d * 6 - 2);
+        dummy.updateMatrix();
+        inst.setMatrixAt(d, dummy.matrix);
+      }
+      inst.instanceMatrix.needsUpdate = true;
+      scene.add(inst);
+    });
+  }
+}
+
+export function buildRoad(scenario) {
+  const laneCountPerSide = scenario.laneCountPerSide;
+  const roadLength = scenario.roadLength;
+  ROAD_HALF_WIDTH = laneCountPerSide * CONFIG.LANE_WIDTH;
+  WORLD_Z_START = 0;
+  WORLD_Z_END = -roadLength;
+
+  LANE_X = []; PLAYER_LANES = []; ONCOMING_LANES = [];
+  for (let i = 0; i < laneCountPerSide; i++) {
+    const own = (i + 0.5) * CONFIG.LANE_WIDTH;
+    const onc = -(i + 0.5) * CONFIG.LANE_WIDTH;
+    PLAYER_LANES.push(own);
+    ONCOMING_LANES.push(onc);
+  }
+  LANE_X = [...ONCOMING_LANES].reverse().concat(PLAYER_LANES).sort((a, b) => a - b);
+
   // Large static ground plane (also what RaycastVehicle wheels raycast against)
   const groundBody = new CANNON.Body({ mass: 0, material: groundMaterial });
   groundBody.addShape(new CANNON.Plane());
   groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
-  groundBody.position.set(0, 0, -CONFIG.ROAD_LENGTH / 2);
+  groundBody.position.set(0, 0, -roadLength / 2);
   world.addBody(groundBody);
 
   const groundMesh = new THREE.Mesh(
-    new THREE.PlaneGeometry(400, CONFIG.ROAD_LENGTH + 400),
+    new THREE.PlaneGeometry(400, roadLength + 400),
     new THREE.MeshStandardMaterial({ color: 0x4a5d3a, roughness: 1 })
   );
   groundMesh.rotation.x = -Math.PI / 2;
-  groundMesh.position.set(0, -0.01, -CONFIG.ROAD_LENGTH / 2);
+  groundMesh.position.set(0, -0.01, -roadLength / 2);
   groundMesh.receiveShadow = true;
   scene.add(groundMesh);
 
   // Asphalt strip. Kept a healthy ~10cm above the ground plane (not just a millimeter or two)
-  // so the two coplanar-ish surfaces don't z-fight at the long view distances the chase
-  // camera sees down a 3km straight road.
-  const asphalt = box(ROAD_HALF_WIDTH * 2, 0.3, CONFIG.ROAD_LENGTH, 0x3a3a3f, { roughness: 1 });
-  asphalt.position.set(0, -0.05, -CONFIG.ROAD_LENGTH / 2);
+  // so the two coplanar-ish surfaces don't z-fight at the long view distances the cockpit
+  // camera sees down a long straight road.
+  const asphalt = box(ROAD_HALF_WIDTH * 2, 0.3, roadLength, 0x3a3a3f, { roughness: 1 });
+  asphalt.position.set(0, -0.05, -roadLength / 2);
   asphalt.receiveShadow = true;
   scene.add(asphalt);
 
   // Sidewalks (+ curb collision so the player can't drive onto them, but isn't penalized for it)
   [-1, 1].forEach(side => {
-    const sw = box(CONFIG.SIDEWALK_WIDTH, 0.18, CONFIG.ROAD_LENGTH, 0xb9b6ad);
-    sw.position.set(side * (ROAD_HALF_WIDTH + CONFIG.SIDEWALK_WIDTH / 2), 0.05, -CONFIG.ROAD_LENGTH / 2);
+    const sw = box(CONFIG.SIDEWALK_WIDTH, 0.18, roadLength, 0xb9b6ad);
+    sw.position.set(side * (ROAD_HALF_WIDTH + CONFIG.SIDEWALK_WIDTH / 2), 0.05, -roadLength / 2);
     sw.receiveShadow = true;
     scene.add(sw);
 
     const curbBody = new CANNON.Body({ mass: 0, material: propMaterial });
-    curbBody.addShape(new CANNON.Box(new CANNON.Vec3(CONFIG.SIDEWALK_WIDTH / 2, 0.2, CONFIG.ROAD_LENGTH / 2)));
-    curbBody.position.set(side * (ROAD_HALF_WIDTH + CONFIG.SIDEWALK_WIDTH / 2), 0.05, -CONFIG.ROAD_LENGTH / 2);
+    curbBody.addShape(new CANNON.Box(new CANNON.Vec3(CONFIG.SIDEWALK_WIDTH / 2, 0.2, roadLength / 2)));
+    curbBody.position.set(side * (ROAD_HALF_WIDTH + CONFIG.SIDEWALK_WIDTH / 2), 0.05, -roadLength / 2);
     curbBody.userData = { isPenalized: false, isStatic: true };
     world.addBody(curbBody);
   });
 
-  // Center double-yellow line
-  [-0.15, 0.15].forEach(ox => {
-    const line = box(0.12, 0.02, CONFIG.ROAD_LENGTH, 0xffcc00, { emissive: 0x554400, emissiveIntensity: 0.2 });
-    line.position.set(ox, 0.005, -CONFIG.ROAD_LENGTH / 2);
-    scene.add(line);
-  });
-
-  // Dashed white lane dividers (instanced for the ~500 dashes per side)
-  const dashGeo = new THREE.BoxGeometry(0.14, 0.02, 3);
-  const dashMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-  [-CONFIG.LANE_WIDTH, CONFIG.LANE_WIDTH].forEach(x => {
-    const count = Math.floor(CONFIG.ROAD_LENGTH / 6);
-    const inst = new THREE.InstancedMesh(dashGeo, dashMat, count);
-    const dummy = new THREE.Object3D();
-    for (let i = 0; i < count; i++) {
-      dummy.position.set(x, 0.005, -i * 6 - 2);
-      dummy.updateMatrix();
-      inst.setMatrixAt(i, dummy.matrix);
-    }
-    inst.instanceMatrix.needsUpdate = true;
-    scene.add(inst);
-  });
+  buildLaneMarkings(0, laneCountPerSide, 0, -roadLength);
 }

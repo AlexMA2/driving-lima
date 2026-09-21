@@ -4,7 +4,7 @@ import { scene } from '../core/scene.js';
 import { world, propMaterial } from '../core/physics.js';
 import { buildSedan } from '../assets/vehicles.js';
 import { buildCone } from '../assets/props.js';
-import { LANE_X, laneDir } from '../world/road.js';
+import { PLAYER_LANES, laneDir } from '../world/road.js';
 
 // "Carro malogrado" scenario: fixed stalled-vehicle spots with hazard lights + cone markers,
 // forcing the player to evaluate oncoming traffic and change lanes.
@@ -14,7 +14,7 @@ export const breakdownHazards = [];
 
 export function buildBreakdowns() {
   BREAKDOWN_POSITIONS.forEach(z => {
-    const lane = choice([LANE_X[0], LANE_X[1]]);
+    const lane = choice(PLAYER_LANES);
     const mesh = buildSedan(0x6b6b6b);
     mesh.position.set(lane, 0, z);
     mesh.rotation.y = laneDir(lane) < 0 ? 0 : Math.PI;
