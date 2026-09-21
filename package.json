@@ -1,0 +1,18 @@
+{
+  "name": "driving-lima-simulator",
+  "version": "1.0.0",
+  "description": "Simulador de manejo 3D ambientado en el transito urbano de Lima, Peru. Three.js + cannon-es.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "cannon-es": "^0.20.0",
+    "three": "^0.160.0"
+  },
+  "devDependencies": {
+    "vite": "^5.4.11"
+  }
+}

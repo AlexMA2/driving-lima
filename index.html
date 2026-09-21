@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Simulador de Manejo - Tránsito Limeño</title>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div id="hud">
+  <div id="speedo">
+    <div id="speedVal">0</div>
+    <div id="speedUnit">km/h</div>
+    <div id="gearRow">
+      <span><span class="indicatorDot" id="indL"></span>IZQ</span>
+      <span>DER<span class="indicatorDot" id="indR"></span></span>
+    </div>
+    <div id="handbrakeTag">FRENO DE MANO</div>
+  </div>
+
+  <div id="scorePanel">
+    <h3>PUNTAJE DEL CONDUCTOR</h3>
+    <div id="scoreVal">100</div>
+    <div class="barTrack"><div id="scoreBar"></div></div>
+    <div id="damageRow">
+      <h3 style="margin-top:10px;">DAÑO DEL VEHÍCULO</h3>
+      <div class="barTrack"><div id="damageBar"></div></div>
+    </div>
+    <div id="zoneTag">⚠ ZONA ESCOLAR - MÁX 30 KM/H</div>
+  </div>
+
+  <div id="toastContainer"></div>
+
+  <div id="mirrorViewport"><div id="mirrorLabel">ESPEJO RETROVISOR</div></div>
+
+  <div id="crosshairHelp">
+    <div><b>W/↑</b> Acelerar &nbsp; <b>S/↓</b> Frenar/Reversa</div>
+    <div><b>A/D</b> Girar &nbsp; <b>ESPACIO</b> Freno de mano</div>
+    <div><b>Q</b> Direccional Izq &nbsp; <b>E</b> Direccional Der</div>
+    <div><b>C</b> Cambiar cámara &nbsp; <b>L</b> Luces</div>
+  </div>
+</div>
+
+<div id="startScreen">
+  <h1>🚗 Simulador de Manejo - Tránsito Limeño 🇵🇪</h1>
+  <p>Conduce con precaución por las calles de Lima. Evita choques, respeta los semáforos, los límites
+     de velocidad y cede el paso en cruces peatonales. Cada infracción sigue el Reglamento Nacional
+     de Tránsito (D.S. N° 016-2009-MTC).</p>
+  <div class="rules">
+    <div><b>W/A/S/D</b> o Flechas — Manejar</div>
+    <div><b>ESPACIO</b> — Freno de mano</div>
+    <div><b>Q / E</b> — Direccionales (izquierda / derecha)</div>
+    <div><b>C</b> — Cambiar cámara (3ra persona / capó)</div>
+  </div>
+  <button id="startBtn">EMPEZAR A MANEJAR</button>
+</div>
+
+<div id="gameOverScreen">
+  <h1>LICENCIA SUSPENDIDA</h1>
+  <p>Tu puntaje llegó a cero por excesivas infracciones de tránsito.</p>
+  <button id="restartBtn" style="background:#2196f3;border:none;color:#fff;padding:12px 30px;border-radius:24px;font-weight:700;cursor:pointer;">REINTENTAR</button>
+</div>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
