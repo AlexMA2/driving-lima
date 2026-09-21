@@ -14,9 +14,18 @@ const indLEl = document.getElementById('indL');
 const indREl = document.getElementById('indR');
 const needleEl = document.getElementById('needle');
 const gaugeArcEl = document.getElementById('gaugeArc');
+const timerValEl = document.getElementById('timerVal');
+const timerRowEl = document.getElementById('timerRow');
 
 const GAUGE_MAX_KMH = 140;
 const GAUGE_ARC_LEN = 270; // matches the SVG path's approximate arc length (stroke-dasharray)
+
+function formatMMSS(totalSeconds) {
+  const s = Math.max(0, Math.round(totalSeconds));
+  const mm = Math.floor(s / 60).toString().padStart(2, '0');
+  const ss = (s % 60).toString().padStart(2, '0');
+  return `${mm}:${ss}`;
+}
 
 export function refreshHud() {
   scoreValEl.textContent = Math.round(gameState.score);
@@ -27,6 +36,7 @@ export function refreshHud() {
       ? 'linear-gradient(90deg,#ff9800,#ffc107)'
       : 'linear-gradient(90deg,#e53935,#ff5252)';
   damageBarEl.style.width = `${gameState.damage}%`;
+  timerValEl.textContent = formatMMSS(gameState.timeLeft);
 }
 
 export function initDialogs() {
@@ -56,6 +66,9 @@ export function updateHudPerFrame() {
   playerMesh.userData.indicators.left.forEach(m => { m.material.emissiveIntensity = controlState.signalLeft && blink ? 1 : 0; });
   playerMesh.userData.indicators.right.forEach(m => { m.material.emissiveIntensity = controlState.signalRight && blink ? 1 : 0; });
 
+  timerValEl.textContent = formatMMSS(gameState.timeLeft);
+  timerRowEl.classList.toggle('warn', gameState.timeLeft <= 15);
+
   return blink;
 }
 
@@ -67,6 +80,9 @@ export function showToast(title, sub) {
   setTimeout(() => el.remove(), 3200);
 }
 
-export function showGameOver() {
+export function showResults() {
+  document.getElementById('resultScore').textContent = Math.round(gameState.score);
+  document.getElementById('resultDamage').textContent = `${Math.round(gameState.damage)}%`;
+  document.getElementById('resultTime').textContent = formatMMSS(gameState.duration);
   document.getElementById('gameOverScreen').style.display = 'flex';
 }

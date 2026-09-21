@@ -6,4 +6,6 @@ export const gameState = {
   score: CONFIG.SCORE_START,
   damage: 0,
   gameOver: false,
+  duration: CONFIG.DEFAULT_GAME_DURATION,  // seconds, set from the home screen's picker
+  timeLeft: CONFIG.DEFAULT_GAME_DURATION,
 };

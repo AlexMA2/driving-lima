@@ -27,6 +27,7 @@
   </div>
 
   <div id="scorePanel">
+    <div id="timerRow"><span id="timerIcon">⏱</span><span id="timerVal">03:00</span></div>
     <h3>PUNTAJE DEL CONDUCTOR</h3>
     <div id="scoreVal">100</div>
     <div class="barTrack"><div id="scoreBar"></div></div>
@@ -58,6 +59,8 @@
       <div><b>Q / E</b> — Direccionales (izquierda / derecha)</div>
       <div><b>L</b> — Apagar direccionales</div>
       <div><b>H</b> — Bocina</div>
+      <div><b>R</b> — Reiniciar la partida</div>
+      <div><b>ESC</b> — Volver al menú principal</div>
     </div>
     <button id="closeInstructions">Cerrar</button>
   </div>
@@ -84,19 +87,38 @@
     </div>
   </div>
 
+  <div id="durationSelector">
+    <span id="durationLabel">Duración de la partida:</span>
+    <div id="durationOptions">
+      <button type="button" class="durationOpt" data-seconds="120">2 min</button>
+      <button type="button" class="durationOpt selected" data-seconds="180">3 min</button>
+      <button type="button" class="durationOpt" data-seconds="300">5 min</button>
+      <button type="button" class="durationOpt" data-seconds="600">10 min</button>
+    </div>
+  </div>
+
   <div class="rules">
     <div><b>Mouse</b> — Arrastra el volante para girar (se auto-centra al soltar)</div>
     <div><b>W/A/S/D</b> o Flechas — Acelerar / Frenar / Girar</div>
     <div><b>ESPACIO</b> — Freno de mano &nbsp; <b>H</b> — Bocina</div>
     <div><b>Q / E</b> — Direccionales (izquierda / derecha)</div>
+    <div><b>R</b> — Reiniciar &nbsp; <b>ESC</b> — Menú principal</div>
   </div>
   <button id="startBtn">EMPEZAR A MANEJAR</button>
 </div>
 
 <div id="gameOverScreen">
-  <h1>LICENCIA SUSPENDIDA</h1>
-  <p>Tu puntaje llegó a cero por excesivas infracciones de tránsito.</p>
-  <button id="restartBtn" style="background:#2196f3;border:none;color:#fff;padding:12px 30px;border-radius:24px;font-weight:700;cursor:pointer;">REINTENTAR</button>
+  <h1>RESULTADOS</h1>
+  <p>Se acabó el tiempo de la partida.</p>
+  <div id="resultsStats">
+    <div class="resultRow"><span>Puntaje del Conductor</span><b id="resultScore">100</b></div>
+    <div class="resultRow"><span>Daño del Vehículo</span><b id="resultDamage">0%</b></div>
+    <div class="resultRow"><span>Tiempo Jugado</span><b id="resultTime">03:00</b></div>
+  </div>
+  <div id="resultsActions">
+    <button id="homeBtn">VOLVER AL INICIO</button>
+    <button id="restartBtn">REINTENTAR</button>
+  </div>
 </div>
 
 <script type="module" src="/src/main.js"></script>

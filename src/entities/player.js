@@ -34,7 +34,7 @@ export function createPlayer(spawn) {
     directionLocal: new CANNON.Vec3(0, -1, 0),
     suspensionStiffness: 32,
     suspensionRestLength: 0.32,
-    frictionSlip: 1.5,
+    frictionSlip: 3.4,
     dampingRelaxation: 2.4,
     dampingCompression: 4.5,
     maxSuspensionForce: 100000,

@@ -95,7 +95,11 @@ function approach(current, target, rate, dt) {
 }
 
 export function updateWheelAndPedals(dt) {
-  const followRate = controlState.wheelDragging ? CONFIG.WHEEL_FOLLOW_RATE : CONFIG.WHEEL_RETURN_RATE;
+  // Keyboard steering (A/D) sets a nonzero target without ever setting wheelDragging, so it
+  // needs the snappier follow rate too — only an actually-centered, released wheel should
+  // ease back at the slower hydraulic self-centering rate.
+  const isSteering = controlState.wheelDragging || controlState.wheelTarget !== 0;
+  const followRate = isSteering ? CONFIG.WHEEL_FOLLOW_RATE : CONFIG.WHEEL_RETURN_RATE;
   controlState.wheelAngle = approach(controlState.wheelAngle, controlState.wheelTarget, followRate, dt);
 
   controlState.throttle = controlState.throttleHeld

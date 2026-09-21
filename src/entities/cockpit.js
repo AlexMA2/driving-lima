@@ -93,7 +93,10 @@ export function buildCockpit() {
 }
 
 export function updateCockpit(wheelAngleRad, signalLeft, signalRight, blinkOn) {
-  if (steeringWheelSpin) steeringWheelSpin.rotation.z = wheelAngleRad;
+  // Positive rotation.z is CCW as seen by the camera looking down -Z, but a positive
+  // wheelAngle means "turned right" (see systems/input.js) — negate so the on-screen
+  // wheel actually turns the way the driver turned it.
+  if (steeringWheelSpin) steeringWheelSpin.rotation.z = -wheelAngleRad;
   leftIndicatorLamp.material.emissive.set(signalLeft && blinkOn ? 0xffa000 : 0x000000);
   leftIndicatorLamp.material.emissiveIntensity = signalLeft && blinkOn ? 1.2 : 0;
   rightIndicatorLamp.material.emissive.set(signalRight && blinkOn ? 0xffa000 : 0x000000);

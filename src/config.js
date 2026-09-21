@@ -6,7 +6,7 @@ export const CONFIG = {
   SIDEWALK_WIDTH: 3,
 
   // ---- Vehicle physics (RaycastVehicle) — TWEAK HERE for handling feel ----
-  ENGINE_FORCE: 1450,         // higher = faster acceleration
+  ENGINE_FORCE: 480,          // higher = faster acceleration (~11s 0-120km/h at this value)
   MAX_SPEED_KMH: 100,         // soft cap enforced in code
   BRAKE_FORCE: 36,
   HANDBRAKE_FORCE: 60,
@@ -17,6 +17,11 @@ export const CONFIG = {
   URBAN_SPEED_LIMIT: 50,      // km/h  (M20)
   SCHOOL_SPEED_LIMIT: 30,     // km/h  (M20 in school zone)
   INFRACTION_COOLDOWN: 4.5,   // seconds between repeated same-type infractions
+  WRONG_WAY_SPEED_THRESHOLD: 5, // km/h above which crossing into the oncoming lanes counts as driving in the wrong direction
+
+  // ---- Match duration (configured on the home screen) ----
+  DEFAULT_GAME_DURATION: 180,     // seconds
+  GAME_DURATION_OPTIONS: [120, 180, 300, 600], // seconds, shown as selectable pills on the home screen
 
   // ---- AI traffic frequencies — TWEAK HERE for difficulty ----
   AI_TARGET_COUNT: 9,
@@ -47,6 +52,7 @@ export const PENALTIES = {
   G10: { score: -10, label: 'G10: Cambio de carril sin señalización' },
   G28: { score: -15, label: 'G28: Cruce en luz roja' },
   G57: { score: -10, label: 'G57: No ceder el paso' },
+  M12: { score: -20, label: 'M12: Conducir en Sentido Contrario' },
   COLLISION: { score: -25, damage: 30, label: 'Choque detectado' },
   BUMP: { score: -5, damage: 10, label: 'Rompemuelas a alta velocidad' },
 };
@@ -75,7 +81,7 @@ export const SCENARIOS = {
     laneCountPerSide: 3,
     roadLength: 3000,
     aiDensity: 1.9,
-    aiTargetCount: 16,
+    aiTargetCount: 26,
     badDriverMultiplier: 2.4,
     speedLimit: 80,
   },

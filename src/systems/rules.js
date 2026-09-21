@@ -2,16 +2,18 @@ import * as THREE from 'three';
 import { CONFIG, PENALTIES } from '../config.js';
 import { gameState } from '../state/gameState.js';
 import { chassisBody } from '../entities/player.js';
-import { LANE_X } from '../world/road.js';
+import { LANE_X, ROAD_HALF_WIDTH } from '../world/road.js';
 import { INTERSECTIONS } from '../world/intersections.js';
 import { inSchoolZone } from '../world/schoolZone.js';
 import { SPEED_BUMPS } from '../world/speedBumps.js';
 import { controlState } from './input.js';
-import { showToast, refreshHud, showGameOver } from '../ui/hud.js';
+import { showToast, refreshHud } from '../ui/hud.js';
 import { playCrash } from './audio.js';
 
 const lastInfractionTime = {};
 
+// The driver score is a performance grade shown in the end-of-run results, not a "life" —
+// running it down no longer ends the match (see main.js's timer-based end instead).
 export function triggerInfraction(code, customDamage) {
   const now = performance.now() / 1000;
   if (lastInfractionTime[code] !== undefined && now - lastInfractionTime[code] < CONFIG.INFRACTION_COOLDOWN) return;
@@ -22,11 +24,6 @@ export function triggerInfraction(code, customDamage) {
   if (p.damage || customDamage) gameState.damage = THREE.MathUtils.clamp(gameState.damage + (customDamage ?? p.damage), 0, 100);
   showToast(p.label, `${p.score} pts${p.damage ? `, +${p.damage}% daño` : ''}`);
   refreshHud();
-
-  if (gameState.score <= 0 && !gameState.gameOver) {
-    gameState.gameOver = true;
-    showGameOver();
-  }
 }
 
 // ---- Lane-change (G10) tracking ----
@@ -39,12 +36,14 @@ function nearestLaneIndex(x) {
 let prevLaneIndex = -1;
 let prevPlayerZ = 0;
 let urbanSpeedLimit = CONFIG.URBAN_SPEED_LIMIT;
+let scenarioLayout = 'line';
 
 // Must run once after the player body exists (main.js calls this right after createPlayer()).
 export function initRules(scenario) {
   prevLaneIndex = nearestLaneIndex(chassisBody.position.x);
   prevPlayerZ = chassisBody.position.z;
   urbanSpeedLimit = scenario?.speedLimit ?? CONFIG.URBAN_SPEED_LIMIT;
+  scenarioLayout = scenario?.layout ?? 'line';
 }
 
 export function checkLaneChangeRule() {
@@ -55,6 +54,19 @@ export function checkLaneChangeRule() {
     if (!signaled) triggerInfraction('G10');
   }
   if (curLane !== -1) prevLaneIndex = curLane;
+}
+
+// ---- Wrong-way driving (M12) ----
+// Only meaningful on the single-corridor scenarios, where negative-x lanes are always the
+// oncoming direction (see world/road.js). The grid scenario's streets carry both directions
+// side-by-side per block rather than a fixed left/right split, so it's skipped there.
+export function checkWrongWayRule() {
+  if (scenarioLayout !== 'line') return;
+  const x = chassisBody.position.x;
+  const speedKmh = chassisBody.velocity.length() * 3.6;
+  if (x < -0.5 && x > -ROAD_HALF_WIDTH && speedKmh > CONFIG.WRONG_WAY_SPEED_THRESHOLD) {
+    triggerInfraction('M12');
+  }
 }
 
 // ---- Speed limit (M20) ----
