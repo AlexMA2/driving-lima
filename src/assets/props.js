@@ -69,6 +69,33 @@ export function buildSign(text, bg = 0xffcc00, shape = 'rect') {
   return g;
 }
 
+// Octagonal red PARE sign on a pole; the face is a canvas texture on an 8-sided disc.
+export function buildStopSign() {
+  const g = new THREE.Group();
+  const pole = cyl(0.06, 0.06, 2.4, 0x777777, 6); pole.position.y = 1.2;
+
+  const cvs = document.createElement('canvas'); cvs.width = 256; cvs.height = 256;
+  const ctx = cvs.getContext('2d');
+  ctx.fillStyle = '#c62828'; ctx.fillRect(0, 0, 256, 256);
+  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 10; ctx.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const a = Math.PI / 8 + i * Math.PI / 4;
+    const x = 128 + 112 * Math.cos(a), y = 128 - 112 * Math.sin(a);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.closePath(); ctx.stroke();
+  ctx.fillStyle = '#ffffff'; ctx.font = 'bold 74px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('PARE', 128, 132);
+
+  const face = new THREE.Mesh(
+    new THREE.CircleGeometry(0.55, 8, Math.PI / 8),
+    new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(cvs), side: THREE.DoubleSide })
+  );
+  face.position.set(0, 2.3, 0.04);
+  g.add(pole, face);
+  return g;
+}
+
 export function buildPedestrian(shirtColor) {
   const g = new THREE.Group();
   const legs = box(0.28, 0.7, 0.2, 0x2b2b3a); legs.position.y = 0.35;

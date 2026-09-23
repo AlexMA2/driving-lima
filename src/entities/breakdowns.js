@@ -37,7 +37,7 @@ function nearestOwnLane(x) {
   return PLAYER_LANES.reduce((best, lx) => (Math.abs(lx - x) < Math.abs(best - x) ? lx : best), PLAYER_LANES[0]);
 }
 
-function spawnStalledCar(laneX, z) {
+export function spawnStalledCar(laneX, z) {
   const mesh = buildSedan(choice([0x6b6b6b, 0x8d6e63, 0x546e7a, 0xb0bec5]));
   mesh.position.set(laneX, 0, z);
   mesh.rotation.y = laneDir(laneX) < 0 ? 0 : Math.PI;

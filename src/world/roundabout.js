@@ -297,9 +297,19 @@ function buildApron(arm) {
   scene.add(mesh);
 }
 
-export function buildRoundabout(scenario) {
-  const reach = RB.outerR + RB.armLength + 90;
-  buildGround(RB.cx, RB.cz, reach * 2, reach * 2);
+// Options (all optional): `cx`/`cz` re-centre the roundabout, `ground` and `buildings` switch off
+// the terrain plane / filler skyline when the caller builds a bigger world around it,
+// `armLengths` overrides an arm's length by id and `armCrossings` lists coordinates along an arm
+// (z for N/S, x for E/W) where a cross street cuts through its curbs.
+export function buildRoundabout(scenario, { cx = 0, cz = 0, ground = true, buildings = true, armLengths = {}, armCrossings = {} } = {}) {
+  RB.cx = cx; RB.cz = cz;
+  Object.keys(ROUTES).forEach(k => delete ROUTES[k]); // routes are cached relative to the centre
+  const armLength = (id) => armLengths[id] ?? RB.armLength;
+
+  if (ground) {
+    const reach = RB.outerR + RB.armLength + 90;
+    buildGround(RB.cx, RB.cz, reach * 2, reach * 2);
+  }
 
   // ring asphalt (top face just under the arms' 0.10 so the overlapping slabs never z-fight)
   annulus(RB.innerR, RB.outerR, -0.05, 0.097, 0x3a3a3f);
@@ -307,11 +317,12 @@ export function buildRoundabout(scenario) {
   buildIsland();
 
   // arms: curbs/markings begin past the flared mouth, asphalt slabs pad back into the ring
-  const L = RB.armLength, o = RB.outerR, m = RB.mouth, lanes = scenario.laneCountPerSide;
-  buildStreet('z', RB.cx, RB.cz + o + m, RB.cz + o + L, lanes, [], { padLo: m + 1.5 }); // S
-  buildStreet('z', RB.cx, RB.cz - o - L, RB.cz - o - m, lanes, [], { padHi: m + 1.5 }); // N
-  buildStreet('x', RB.cz, RB.cx + o + m, RB.cx + o + L, lanes, [], { padLo: m + 1.5 }); // E
-  buildStreet('x', RB.cz, RB.cx - o - L, RB.cx - o - m, lanes, [], { padHi: m + 1.5 }); // W
+  const o = RB.outerR, m = RB.mouth, lanes = scenario.laneCountPerSide;
+  const cross = (id) => armCrossings[id] ?? [];
+  buildStreet('z', RB.cx, RB.cz + o + m, RB.cz + o + armLength('S'), lanes, cross('S'), { padLo: m + 1.5 }); // S
+  buildStreet('z', RB.cx, RB.cz - o - armLength('N'), RB.cz - o - m, lanes, cross('N'), { padHi: m + 1.5 }); // N
+  buildStreet('x', RB.cz, RB.cx + o + m, RB.cx + o + armLength('E'), lanes, cross('E'), { padLo: m + 1.5 }); // E
+  buildStreet('x', RB.cz, RB.cx - o - armLength('W'), RB.cx - o - m, lanes, cross('W'), { padHi: m + 1.5 }); // W
   ARMS.forEach(buildApron);
   ARMS.forEach(buildArmFurniture);
 
@@ -335,10 +346,12 @@ export function buildRoundabout(scenario) {
   flushZebras();
 
   // filler buildings in the four quadrants between the arms
-  const q = RB.outerR + RB.armLength / 2 + 10, size = RB.armLength + 20;
-  [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sx, sz]) => {
-    scatterBlockBuildings(RB.cx + sx * q, RB.cz + sz * q, size, CONFIG.LANE_WIDTH + CONFIG.SIDEWALK_WIDTH + 12, [10, 16]);
-  });
+  if (buildings) {
+    const q = RB.outerR + RB.armLength / 2 + 10, size = RB.armLength + 20;
+    [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sx, sz]) => {
+      scatterBlockBuildings(RB.cx + sx * q, RB.cz + sz * q, size, CONFIG.LANE_WIDTH + CONFIG.SIDEWALK_WIDTH + 12, [10, 16]);
+    });
+  }
 
   // player starts far out on the south arm, in the incoming lane, facing the ring
   return { x: RB.cx + LANE_OFFSET, y: 1.2, z: RB.cz + RB.outerR + RB.armLength - 30, rotY: 0 };

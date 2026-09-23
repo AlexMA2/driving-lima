@@ -66,13 +66,11 @@ export function buildLaneMarkings(centerX, laneCountPerSide, zStart, zEnd, laneW
   }
 }
 
-export function buildRoad(scenario) {
-  const laneCountPerSide = scenario.laneCountPerSide;
-  const roadLength = scenario.roadLength;
+// Computes the lane centres (and half road width) for a road with `laneCountPerSide` lanes each
+// way, centred on x=0. Scenarios that lay their own asphalt (the tutorial course) call this
+// directly so the lane-change rule and AI still know where the lanes are.
+export function setLaneLayout(laneCountPerSide) {
   ROAD_HALF_WIDTH = laneCountPerSide * CONFIG.LANE_WIDTH;
-  WORLD_Z_START = 0;
-  WORLD_Z_END = -roadLength;
-
   LANE_X = []; PLAYER_LANES = []; ONCOMING_LANES = [];
   for (let i = 0; i < laneCountPerSide; i++) {
     const own = (i + 0.5) * CONFIG.LANE_WIDTH;
@@ -81,6 +79,14 @@ export function buildRoad(scenario) {
     ONCOMING_LANES.push(onc);
   }
   LANE_X = [...ONCOMING_LANES].reverse().concat(PLAYER_LANES).sort((a, b) => a - b);
+}
+
+export function buildRoad(scenario) {
+  const laneCountPerSide = scenario.laneCountPerSide;
+  const roadLength = scenario.roadLength;
+  WORLD_Z_START = 0;
+  WORLD_Z_END = -roadLength;
+  setLaneLayout(laneCountPerSide);
 
   // Large static ground plane (also what RaycastVehicle wheels raycast against)
   const groundBody = new CANNON.Body({ mass: 0, material: groundMaterial });
