@@ -113,8 +113,13 @@ export function buildRoad(scenario) {
     sw.receiveShadow = true;
     scene.add(sw);
 
+    // The collision box is deliberately much taller than the visible curb (which is only
+    // 0.18 high) and taller than the car itself: a curb-height collider sits right around
+    // the chassis's own ground clearance, so the chassis box can tip and rest partly on top
+    // of it instead of being stopped by it — leaving the car "high-centered" with its wheels
+    // off the ground and no traction. A tall collider always behaves like a plain wall.
     const curbBody = new CANNON.Body({ mass: 0, material: propMaterial });
-    curbBody.addShape(new CANNON.Box(new CANNON.Vec3(CONFIG.SIDEWALK_WIDTH / 2, 0.2, roadLength / 2)));
+    curbBody.addShape(new CANNON.Box(new CANNON.Vec3(CONFIG.SIDEWALK_WIDTH / 2, 1, roadLength / 2)));
     curbBody.position.set(side * (ROAD_HALF_WIDTH + CONFIG.SIDEWALK_WIDTH / 2), 0.05, -roadLength / 2);
     curbBody.userData = { isPenalized: false, isStatic: true };
     world.addBody(curbBody);

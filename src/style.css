@@ -83,6 +83,25 @@ canvas { display: block; touch-action: none; }
 }
 #helpBtn:hover { background: rgba(30,34,48,0.8); }
 
+#logBtn {
+  position: absolute; right: 72px; bottom: 20px; pointer-events: auto;
+  height: 42px; padding: 0 16px; border-radius: 21px; border: 2px solid rgba(255,255,255,0.4);
+  background: rgba(10,12,20,0.6); color: #fff; font-size: 12px; font-weight: 800; letter-spacing: .5px; cursor: pointer;
+}
+#logBtn:hover { background: rgba(30,34,48,0.8); }
+
+#logDialogBox { max-width: 640px; width: 90vw; }
+#logHint { font-size: 13px; opacity: .8; line-height: 1.5; margin-bottom: 12px; text-align: left; }
+#logText {
+  text-align: left; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
+  padding: 12px 14px; font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; line-height: 1.6;
+  max-height: 42vh; overflow-y: auto; white-space: pre-wrap; word-break: break-word; margin-bottom: 16px;
+}
+#logActions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+#logActions button { padding: 9px 18px; font-size: 13px; }
+#clearLogBtn, #closeLog { background: rgba(255,255,255,0.12); }
+#clearLogBtn:hover, #closeLog:hover { background: rgba(255,255,255,0.2); }
+
 .dialogOverlay {
   position: fixed; inset: 0; background: rgba(5,8,15,0.75); z-index: 70;
   display: none; align-items: center; justify-content: center;
@@ -140,10 +159,10 @@ canvas { display: block; touch-action: none; }
   display:none; align-items:center; justify-content:center; flex-direction:column; gap:14px; text-align:center;
 }
 #gameOverScreen h1 { font-size: 34px; color:#ff9800; }
-#gameOverScreen > .resultRow { width: 320px; }
+#gameOverScreen > .resultRow { width: 460px; max-width: 90vw; }
 
 #resultsStats {
-  background: rgba(255,255,255,0.06); border-radius: 12px; padding: 16px 26px; width: 320px; max-width: 90vw;
+  background: rgba(255,255,255,0.06); border-radius: 12px; padding: 16px 26px; width: 460px; max-width: 90vw;
 }
 #resultsStats h3 { font-size: 12px; letter-spacing: 1.5px; opacity:.7; font-weight:600; margin-bottom:8px; text-align:left; }
 #resultsInfractions { max-height: 220px; overflow-y: auto; }

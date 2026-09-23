@@ -1,10 +1,12 @@
 import { PENALTIES } from '../config.js';
 import { gameState } from '../state/gameState.js';
-import { controlState } from '../systems/input.js';
+import { controlState, wheelScreenCenter } from '../systems/input.js';
 import { chassisBody, playerMesh } from '../entities/player.js';
 import { inSchoolZone } from '../world/schoolZone.js';
 import { updateIndicatorSound } from '../systems/audio.js';
+import { getLogText, clearLog } from '../systems/debugLog.js';
 
+const speedoEl = document.getElementById('speedo');
 const speedValEl = document.getElementById('speedVal');
 const zoneTagEl = document.getElementById('zoneTag');
 const handbrakeTagEl = document.getElementById('handbrakeTag');
@@ -29,11 +31,50 @@ export function refreshHud() {
   timerValEl.textContent = formatMMSS(gameState.timeLeft);
 }
 
+// The speedometer/turn-signal cluster sits centered on screen at the steering wheel's own
+// screen-space height (WHEEL_LOCAL_POS projected through the camera, see systems/input.js),
+// like a real dashboard cluster viewed just past the wheel rim, instead of a fixed HUD corner.
+function positionSpeedoAtWheel() {
+  const pos = wheelScreenCenter();
+  speedoEl.style.left = '50%';
+  speedoEl.style.top = `${pos.y}px`;
+  speedoEl.style.bottom = 'auto';
+  speedoEl.style.transform = 'translate(-50%, -50%)';
+}
+
 export function initDialogs() {
   const dialog = document.getElementById('instructionsDialog');
   document.getElementById('helpBtn').addEventListener('click', () => dialog.classList.add('show'));
   document.getElementById('closeInstructions').addEventListener('click', () => dialog.classList.remove('show'));
   dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.classList.remove('show'); });
+
+  positionSpeedoAtWheel();
+  window.addEventListener('resize', positionSpeedoAtWheel);
+
+  // Debug action log: a copyable dump of every input/rule event, meant to be pasted back for
+  // diagnosing intermittent bugs (throttle not responding, a lane-change ticket firing while
+  // signaled, etc.) that are hard to catch live. Opened with the LOG button or Ctrl+L.
+  const logDialog = document.getElementById('logDialog');
+  const logTextEl = document.getElementById('logText');
+  const openLog = () => { logTextEl.textContent = getLogText(); logDialog.classList.add('show'); };
+  document.getElementById('logBtn').addEventListener('click', openLog);
+  document.getElementById('closeLog').addEventListener('click', () => logDialog.classList.remove('show'));
+  logDialog.addEventListener('click', (e) => { if (e.target === logDialog) logDialog.classList.remove('show'); });
+  document.getElementById('refreshLogBtn').addEventListener('click', () => { logTextEl.textContent = getLogText(); });
+  document.getElementById('clearLogBtn').addEventListener('click', () => { clearLog(); logTextEl.textContent = getLogText(); });
+  document.getElementById('copyLogBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('copyLogBtn');
+    try {
+      await navigator.clipboard.writeText(getLogText());
+      btn.textContent = 'Copiado ✓';
+    } catch {
+      btn.textContent = 'Error al copiar';
+    }
+    setTimeout(() => { btn.textContent = 'Copiar log'; }, 1500);
+  });
+  window.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key.toLowerCase() === 'l') { e.preventDefault(); openLog(); }
+  });
 }
 
 export function updateHudPerFrame() {

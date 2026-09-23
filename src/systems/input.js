@@ -4,6 +4,7 @@ import { vehicle, chassisBody } from '../entities/player.js';
 import { camera, canvas } from '../core/renderer.js';
 import { WHEEL_LOCAL_POS } from '../entities/cockpit.js';
 import { playHonk, playBrakeScreech } from './audio.js';
+import { logEvent } from './debugLog.js';
 
 const WHEEL_MAX_RAD = THREE.MathUtils.degToRad(CONFIG.WHEEL_MAX_ANGLE_DEG);
 
@@ -25,10 +26,11 @@ export const controlState = {
 let dragStartMouseAngle = 0;
 let dragStartWheelAngle = 0;
 
-function wheelScreenCenter() {
-  // The wheel mesh is a direct child of the camera, so its local position IS its view-space
-  // position — running it through the camera's own projection matrix gives NDC directly,
-  // and it stays correct across window resizes since projectionMatrix is updated on resize.
+// The wheel mesh is a direct child of the camera, so its local position IS its view-space
+// position — running it through the camera's own projection matrix gives NDC directly, and it
+// stays correct across window resizes since projectionMatrix is updated on resize. Exported so
+// the HUD can line up the speedometer/turn-signal cluster with the steering wheel's screen Y.
+export function wheelScreenCenter() {
   const ndc = WHEEL_LOCAL_POS.clone().applyMatrix4(camera.projectionMatrix);
   return {
     x: (ndc.x + 1) / 2 * window.innerWidth,
@@ -51,39 +53,78 @@ function normalizeDelta(a) {
 function isOverlayOpen() {
   return document.getElementById('startScreen').style.display !== 'none'
     || document.getElementById('gameOverScreen').style.display === 'flex'
-    || document.getElementById('instructionsDialog').classList.contains('show');
+    || document.getElementById('instructionsDialog').classList.contains('show')
+    || document.getElementById('logDialog').classList.contains('show');
 }
 
 export function initInput() {
   window.addEventListener('keydown', (e) => {
     switch (e.key.toLowerCase()) {
-      case 's': case 'arrowdown': controlState.brakeHeld = true; break;
+      case 's': case 'arrowdown': controlState.brakeHeld = true; logEvent('BRAKE_DOWN'); break;
       case 'a': case 'arrowleft': controlState.wheelTarget = -WHEEL_MAX_RAD; break;
       case 'd': case 'arrowright': controlState.wheelTarget = WHEEL_MAX_RAD; break;
-      case ' ': controlState.handbrake = true; e.preventDefault(); break;
+      case ' ': controlState.handbrake = true; e.preventDefault(); logEvent('HANDBRAKE_DOWN'); break;
       case 'h': playHonk(); break;
-      case 'q': controlState.signalLeft = !controlState.signalLeft; controlState.signalRight = false; controlState.lastSignalOnTime = performance.now() / 1000; break;
-      case 'e': controlState.signalRight = !controlState.signalRight; controlState.signalLeft = false; controlState.lastSignalOnTime = performance.now() / 1000; break;
-      case 'l': controlState.signalLeft = false; controlState.signalRight = false; break; // 'L' also doubles as an all-off "lights" key
+      case 'q':
+        controlState.signalLeft = !controlState.signalLeft; controlState.signalRight = false;
+        controlState.lastSignalOnTime = performance.now() / 1000;
+        logEvent('SIGNAL', { side: 'left', on: controlState.signalLeft });
+        break;
+      case 'e':
+        controlState.signalRight = !controlState.signalRight; controlState.signalLeft = false;
+        controlState.lastSignalOnTime = performance.now() / 1000;
+        logEvent('SIGNAL', { side: 'right', on: controlState.signalRight });
+        break;
+      case 'l': // 'L' also doubles as an all-off "lights" key
+        controlState.signalLeft = false; controlState.signalRight = false;
+        logEvent('SIGNAL', { side: 'both', on: false });
+        break;
     }
   });
 
   window.addEventListener('keyup', (e) => {
     switch (e.key.toLowerCase()) {
-      case 's': case 'arrowdown': controlState.brakeHeld = false; break;
+      case 's': case 'arrowdown': controlState.brakeHeld = false; logEvent('BRAKE_UP'); break;
       case 'a': case 'arrowleft': if (controlState.wheelTarget < 0) controlState.wheelTarget = 0; break;
       case 'd': case 'arrowright': if (controlState.wheelTarget > 0) controlState.wheelTarget = 0; break;
-      case ' ': controlState.handbrake = false; break;
+      case ' ': controlState.handbrake = false; logEvent('HANDBRAKE_UP'); break;
     }
+  });
+
+  // If the window/tab loses focus while a key is physically held down (alt-tab, a browser
+  // dialog stealing focus, clicking a dev tool, etc.) the OS never sends us its keyup, so
+  // brakeHeld/handbrake/wheelTarget could otherwise get stuck "on" forever — silently fighting
+  // the throttle so the car never picks up speed again until the player happens to retap the
+  // same key. Dropping all held inputs on blur is the only reliable place to catch that.
+  window.addEventListener('blur', () => {
+    if (controlState.brakeHeld || controlState.handbrake || controlState.wheelDragging || controlState.wheelTarget !== 0) {
+      logEvent('WINDOW_BLUR_RESET', {
+        brakeHeld: controlState.brakeHeld, handbrake: controlState.handbrake,
+        wheelDragging: controlState.wheelDragging, wheelTarget: controlState.wheelTarget,
+      });
+    }
+    controlState.brakeHeld = false;
+    controlState.handbrake = false;
+    controlState.wheelDragging = false;
+    controlState.wheelTarget = 0;
   });
 
   // Accelerator: scroll up nudges the throttle position up, scroll down nudges it down, and
   // it just sits there between scrolls — like a hand-throttle, not a spring-loaded pedal.
   // Skipped while a menu/dialog is on screen so those can still be scrolled normally.
   window.addEventListener('wheel', (e) => {
-    if (isOverlayOpen()) return;
+    if (isOverlayOpen()) {
+      logEvent('THROTTLE_SCROLL_IGNORED', { reason: 'overlay_open', deltaY: e.deltaY });
+      return;
+    }
     const delta = e.deltaY < 0 ? CONFIG.THROTTLE_WHEEL_STEP : -CONFIG.THROTTLE_WHEEL_STEP;
+    const before = controlState.throttleTarget;
     controlState.throttleTarget = THREE.MathUtils.clamp(controlState.throttleTarget + delta, 0, 1);
+    logEvent('THROTTLE_SCROLL', {
+      deltaY: e.deltaY, before, after: controlState.throttleTarget,
+      speedKmh: chassisBody.velocity.length() * 3.6,
+      brakeHeld: controlState.brakeHeld, handbrake: controlState.handbrake,
+    });
     e.preventDefault();
   }, { passive: false });
 

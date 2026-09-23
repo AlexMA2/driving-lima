@@ -38,6 +38,7 @@
   <div id="leftMirrorViewport"></div>
   <div id="rightMirrorViewport"></div>
 
+  <button id="logBtn" title="Registro de depuración (Ctrl+L)">LOG</button>
   <button id="helpBtn" title="Instrucciones">?</button>
 </div>
 
@@ -56,8 +57,23 @@
       <div><b>H</b> — Bocina</div>
       <div><b>R</b> — Reiniciar la partida</div>
       <div><b>ESC</b> — Volver al menú principal</div>
+      <div><b>CTRL+L</b> — Abrir el registro de depuración</div>
     </div>
     <button id="closeInstructions">Cerrar</button>
+  </div>
+</div>
+
+<div id="logDialog" class="dialogOverlay">
+  <div class="dialogBox" id="logDialogBox">
+    <h2>Registro de depuración</h2>
+    <p id="logHint">Cada acción (acelerador, freno, direccionales, infracciones) queda registrada aquí con marca de tiempo. Copia el texto y pégalo para reportar un error.</p>
+    <pre id="logText"></pre>
+    <div id="logActions">
+      <button id="refreshLogBtn">Actualizar</button>
+      <button id="copyLogBtn">Copiar log</button>
+      <button id="clearLogBtn">Limpiar</button>
+      <button id="closeLog">Cerrar</button>
+    </div>
   </div>
 </div>
 

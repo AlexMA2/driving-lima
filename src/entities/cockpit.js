@@ -81,12 +81,14 @@ export function buildCockpit() {
   mirrorHousing.position.set(0, 0.53, -0.88);
   g.add(mirrorArm, mirrorHousing);
 
-  // Side mirrors: mounted at the front of the door, by the A-pillar, and projecting outward
-  // past the door skin (real wing mirrors sit outside the body, not flush with the window).
+  // Side mirrors: in a real car they sit roughly level with the steering wheel from the
+  // driver's eye (a touch above the wheel rim, not up at the window sill), mounted at the
+  // door/A-pillar junction and projecting outward past the door skin (door's outer face is
+  // at x=∓1.015). Pinned to WHEEL_LOCAL_POS.y so they track it if the wheel ever moves.
   const sideMirrorL = part(new THREE.BoxGeometry(0.12, 0.09, 0.08), trim);
-  sideMirrorL.position.set(-1.1, -0.05, -0.82);
+  sideMirrorL.position.set(-1.15, WHEEL_LOCAL_POS.y + 0.05, -0.66);
   const sideMirrorR = part(new THREE.BoxGeometry(0.12, 0.09, 0.08), trim);
-  sideMirrorR.position.set(1.1, -0.05, -0.82);
+  sideMirrorR.position.set(1.15, WHEEL_LOCAL_POS.y + 0.05, -0.66);
   g.add(sideMirrorL, sideMirrorR);
 
   camera.add(g);

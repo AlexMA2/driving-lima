@@ -8,6 +8,7 @@ import { SPEED_BUMPS } from '../world/speedBumps.js';
 import { controlState } from './input.js';
 import { showToast } from '../ui/hud.js';
 import { playCrash } from './audio.js';
+import { logEvent } from './debugLog.js';
 
 const lastInfractionTime = {};
 
@@ -16,11 +17,15 @@ const lastInfractionTime = {};
 // fines no longer ends the match; only the timer (or the finish button) does.
 export function triggerInfraction(code) {
   const now = performance.now() / 1000;
-  if (lastInfractionTime[code] !== undefined && now - lastInfractionTime[code] < CONFIG.INFRACTION_COOLDOWN) return;
+  if (lastInfractionTime[code] !== undefined && now - lastInfractionTime[code] < CONFIG.INFRACTION_COOLDOWN) {
+    logEvent('INFRACTION_SKIPPED_COOLDOWN', { code, sinceLast: now - lastInfractionTime[code] });
+    return;
+  }
   lastInfractionTime[code] = now;
 
   const p = PENALTIES[code];
   gameState.infractionCounts[code] = (gameState.infractionCounts[code] || 0) + 1;
+  logEvent('INFRACTION', { code, fine: p.fine, count: gameState.infractionCounts[code] });
   showToast(p.label, `Multa: S/ ${p.fine}`);
 }
 
@@ -47,8 +52,19 @@ export function initRules(scenario) {
 export function checkLaneChangeRule() {
   const curLane = nearestLaneIndex(chassisBody.position.x);
   if (curLane !== -1 && prevLaneIndex !== -1 && curLane !== prevLaneIndex) {
-    const now = performance.now() / 1000;
-    const signaled = (controlState.signalLeft || controlState.signalRight) && (now - controlState.lastSignalOnTime) < 4;
+    // Bug fix: this used to also require the signal to have been switched on within the last
+    // 4s (`now - lastSignalOnTime < 4`), so a signal turned on early — e.g. while waiting a
+    // few seconds for a gap in traffic before actually merging, which is the *correct* way to
+    // signal — read as "not signaled" the moment that window elapsed, even though the blinker
+    // was still visibly on. What actually matters is whether the signal is on *at the moment
+    // of the lane change*, regardless of when it was switched on.
+    const signaled = controlState.signalLeft || controlState.signalRight;
+    logEvent('LANE_CHANGE_CHECK', {
+      fromLane: prevLaneIndex, toLane: curLane,
+      signalLeft: controlState.signalLeft, signalRight: controlState.signalRight,
+      signaledSinceSec: (performance.now() / 1000 - controlState.lastSignalOnTime),
+      signaled, ticketed: !signaled,
+    });
     if (!signaled) triggerInfraction('G10');
   }
   if (curLane !== -1) prevLaneIndex = curLane;
