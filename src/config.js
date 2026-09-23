@@ -41,11 +41,15 @@ export const CONFIG = {
   THROTTLE_WHEEL_STEP: 0.08,    // throttle fraction added/removed per scroll notch
   THROTTLE_RAMP_UP: 1.35,       // seconds to glide from 0 -> 1 throttle position
   THROTTLE_RAMP_DOWN: 0.9,      // seconds to glide from 1 -> 0 throttle position
+  THROTTLE_AUTO_RELEASE: 0,     // throttle position lost per second once scrolling stops (0 = holds forever)
+  THROTTLE_INVERT_SCROLL: false, // true: scroll down accelerates, scroll up eases off
 
   // ---- Brake pedal (press / hold / release, ramped — not instant on/off) ----
   BRAKE_RAMP_UP: 0.45,          // seconds to go 0 -> 1 while held
   BRAKE_RAMP_DOWN: 0.35,        // seconds to go 1 -> 0 after release
   REVERSE_SPEED_THRESHOLD_KMH: 3, // must be nearly stopped before brake-hold engages reverse
+  ENGINE_BRAKE: 0.15,           // fraction of BRAKE_FORCE applied when coasting with no throttle, brake or handbrake
+  KEYBOARD_STEER_FRACTION: 1,   // how much of the wheel's lock A/D turn to (1 = full lock)
 };
 
 // Penalties follow the Peruvian Reglamento Nacional de Transito (D.S. N 016-2009-MTC).

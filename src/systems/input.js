@@ -6,7 +6,8 @@ import { WHEEL_LOCAL_POS } from '../entities/cockpit.js';
 import { playHonk, playBrakeScreech } from './audio.js';
 import { logEvent } from './debugLog.js';
 
-const WHEEL_MAX_RAD = THREE.MathUtils.degToRad(CONFIG.WHEEL_MAX_ANGLE_DEG);
+// Read live (not cached at load) so the global config can change the wheel's lock between games.
+const wheelMaxRad = () => THREE.MathUtils.degToRad(CONFIG.WHEEL_MAX_ANGLE_DEG);
 
 export const controlState = {
   // raw press state — set on keydown/keyup or pointerdown/pointerup, never inferred from
@@ -19,6 +20,7 @@ export const controlState = {
   throttleTarget: 0, throttle: 0, brake: 0, // ramped 0..1 — this is what physics actually reads
 
   wheelAngle: 0, wheelTarget: 0, wheelDragging: false,
+  lastScrollTime: -999, // performance.now()/1000 of the latest accelerator scroll (for auto-release)
 
   signalLeft: false, signalRight: false, lastSignalOnTime: -999,
 };
@@ -61,8 +63,8 @@ export function initInput() {
   window.addEventListener('keydown', (e) => {
     switch (e.key.toLowerCase()) {
       case 's': case 'arrowdown': controlState.brakeHeld = true; logEvent('BRAKE_DOWN'); break;
-      case 'a': case 'arrowleft': controlState.wheelTarget = -WHEEL_MAX_RAD; break;
-      case 'd': case 'arrowright': controlState.wheelTarget = WHEEL_MAX_RAD; break;
+      case 'a': case 'arrowleft': controlState.wheelTarget = -wheelMaxRad() * CONFIG.KEYBOARD_STEER_FRACTION; break;
+      case 'd': case 'arrowright': controlState.wheelTarget = wheelMaxRad() * CONFIG.KEYBOARD_STEER_FRACTION; break;
       case ' ': controlState.handbrake = true; e.preventDefault(); logEvent('HANDBRAKE_DOWN'); break;
       case 'h': playHonk(); break;
       case 'q':
@@ -117,7 +119,9 @@ export function initInput() {
       logEvent('THROTTLE_SCROLL_IGNORED', { reason: 'overlay_open', deltaY: e.deltaY });
       return;
     }
-    const delta = e.deltaY < 0 ? CONFIG.THROTTLE_WHEEL_STEP : -CONFIG.THROTTLE_WHEEL_STEP;
+    const up = CONFIG.THROTTLE_INVERT_SCROLL ? e.deltaY > 0 : e.deltaY < 0;
+    const delta = up ? CONFIG.THROTTLE_WHEEL_STEP : -CONFIG.THROTTLE_WHEEL_STEP;
+    controlState.lastScrollTime = performance.now() / 1000;
     const before = controlState.throttleTarget;
     controlState.throttleTarget = THREE.MathUtils.clamp(controlState.throttleTarget + delta, 0, 1);
     logEvent('THROTTLE_SCROLL', {
@@ -142,7 +146,8 @@ export function initInput() {
     if (!controlState.wheelDragging) return;
     const now = angleFromCenter(e.clientX, e.clientY);
     const delta = normalizeDelta(now - dragStartMouseAngle);
-    controlState.wheelTarget = THREE.MathUtils.clamp(dragStartWheelAngle + delta, -WHEEL_MAX_RAD, WHEEL_MAX_RAD);
+    const lock = wheelMaxRad();
+    controlState.wheelTarget = THREE.MathUtils.clamp(dragStartWheelAngle + delta, -lock, lock);
   });
   window.addEventListener('pointerup', () => {
     if (!controlState.wheelDragging) return;
@@ -163,6 +168,12 @@ export function updateWheelAndPedals(dt) {
   const isSteering = controlState.wheelDragging || controlState.wheelTarget !== 0;
   const followRate = isSteering ? CONFIG.WHEEL_FOLLOW_RATE : CONFIG.WHEEL_RETURN_RATE;
   controlState.wheelAngle = approach(controlState.wheelAngle, controlState.wheelTarget, followRate, dt);
+
+  // Optional auto-release: once the wheel has been left alone for a moment, the accelerator
+  // position eases back toward 0 (0 = the hand-throttle simply holds, the default).
+  if (CONFIG.THROTTLE_AUTO_RELEASE > 0 && performance.now() / 1000 - controlState.lastScrollTime > 0.4) {
+    controlState.throttleTarget = Math.max(0, controlState.throttleTarget - CONFIG.THROTTLE_AUTO_RELEASE * dt);
+  }
 
   controlState.throttle = controlState.throttle < controlState.throttleTarget
     ? Math.min(controlState.throttleTarget, controlState.throttle + dt / CONFIG.THROTTLE_RAMP_UP)
@@ -190,7 +201,7 @@ export function applyVehicleControls(dt) {
   // Wheel convention: positive wheelAngle = turned clockwise (right). CANNON's
   // setSteeringValue here uses positive = left (see original vehicle wiring), hence the
   // negation.
-  const steerNorm = THREE.MathUtils.clamp(controlState.wheelAngle / WHEEL_MAX_RAD, -1, 1);
+  const steerNorm = THREE.MathUtils.clamp(controlState.wheelAngle / wheelMaxRad(), -1, 1);
   const steerVal = -steerNorm * steerScale;
   vehicle.setSteeringValue(steerVal, 0);
   vehicle.setSteeringValue(steerVal, 1);
@@ -211,7 +222,7 @@ export function applyVehicleControls(dt) {
   vehicle.applyEngineForce(engineForce, 2);
   vehicle.applyEngineForce(engineForce, 3);
 
-  if (controlState.throttleTarget <= 0 && !controlState.brakeHeld && !controlState.handbrake) brakeForce = Math.max(brakeForce, CONFIG.BRAKE_FORCE * 0.15);
+  if (controlState.throttleTarget <= 0 && !controlState.brakeHeld && !controlState.handbrake) brakeForce = Math.max(brakeForce, CONFIG.BRAKE_FORCE * CONFIG.ENGINE_BRAKE);
 
   const handbrakeForce = controlState.handbrake ? CONFIG.HANDBRAKE_FORCE : 0;
   vehicle.setBrake(brakeForce, 0);

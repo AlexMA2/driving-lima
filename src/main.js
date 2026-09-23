@@ -40,6 +40,7 @@ import { gameState } from './state/gameState.js';
 import { resolveScenario, getPerformance } from './state/settings.js';
 import { applyPerformance, refreshMaterials, updateFps } from './core/performance.js';
 import { initMenu, setScreen } from './ui/menu.js';
+import { initGlobalConfig } from './ui/globalConfigDialog.js';
 
 // The cockpit (dashboard/wheel/pillars) is parented to `camera` (see entities/cockpit.js) so
 // it rides rigidly with the first-person view. WebGLRenderer only draws what it finds by
@@ -179,6 +180,7 @@ function restartGame() {
 }
 
 initMenu({ onStart: startGame });
+initGlobalConfig();
 document.getElementById('restartBtn').addEventListener('click', restartGame);
 document.getElementById('homeBtn').addEventListener('click', goHome);
 document.getElementById('finishBtn').addEventListener('click', () => { if (started) endGame(); });

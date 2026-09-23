@@ -266,6 +266,18 @@ body[data-screen="scenarios"] #scenarioScreen { display: block; }
 .dialogBox .sfOpt:hover { background: rgba(255,255,255,0.12); }
 .dialogBox .sfOpt.selected { border-color: #ff9800; background: rgba(255,152,0,0.16); }
 
+/* Gear button: menu screens only, so it never shows over the driving HUD */
+#globalConfigBtn {
+  position: fixed; top: 18px; right: 20px; z-index: 55; width: 44px; height: 44px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; color: #fff;
+  background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); transition: background .15s, transform .3s;
+}
+#globalConfigBtn:hover { background: rgba(255,255,255,0.2); transform: rotate(60deg); }
+body[data-screen="game"] #globalConfigBtn { display: none; }
+#globalConfigBox { width: min(600px, 94vw); max-width: none; text-align: left; }
+#globalConfigHint { font-size: 13px; opacity: .75; line-height: 1.5; margin-bottom: 14px; }
+#globalConfigBody { max-height: 58vh; overflow-y: auto; padding-right: 8px; margin-bottom: 18px; }
+
 #fpsCounter {
   position: absolute; left: 14px; top: 126px; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 6px;
   background: rgba(10,12,20,0.55); display: none; font-variant-numeric: tabular-nums;

@@ -4,8 +4,9 @@
 
 const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+// A field's own `format` returns the complete label; otherwise the raw value plus its unit.
 function formatValue(field, value) {
-  return `${field.format ? field.format(value) : value}${field.unit ?? ''}`;
+  return field.format ? field.format(value) : `${value}${field.unit ?? ''}`;
 }
 
 function controlHtml(field, value) {
