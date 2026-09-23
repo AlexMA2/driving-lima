@@ -45,6 +45,7 @@ function positionSpeedoAtWheel() {
 export function initDialogs() {
   const dialog = document.getElementById('instructionsDialog');
   document.getElementById('helpBtn').addEventListener('click', () => dialog.classList.add('show'));
+  document.getElementById('controlsBtn').addEventListener('click', () => dialog.classList.add('show'));
   document.getElementById('closeInstructions').addEventListener('click', () => dialog.classList.remove('show'));
   dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.classList.remove('show'); });
 

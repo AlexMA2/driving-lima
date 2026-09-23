@@ -142,22 +142,6 @@ const AUTOSTART_KEY = 'dls_autostart';
 let selectedScenario = 'straight';
 let selectedDuration = CONFIG.DEFAULT_GAME_DURATION;
 
-document.querySelectorAll('.scenarioCard').forEach(card => {
-  card.addEventListener('click', () => {
-    document.querySelectorAll('.scenarioCard').forEach(c => c.classList.remove('selected'));
-    card.classList.add('selected');
-    selectedScenario = card.dataset.scenario;
-  });
-});
-
-document.querySelectorAll('.durationOpt').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.durationOpt').forEach(b => b.classList.remove('selected'));
-    btn.classList.add('selected');
-    selectedDuration = parseInt(btn.dataset.seconds, 10);
-  });
-});
-
 function startGame(scenarioId, durationSec) {
   document.getElementById('startScreen').style.display = 'none';
   document.getElementById('gameOverScreen').style.display = 'none';

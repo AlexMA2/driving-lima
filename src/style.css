@@ -119,40 +119,65 @@ canvas { display: block; touch-action: none; }
 }
 
 #startScreen {
-  position: fixed; inset: 0; background: rgba(5,8,15,0.92); color:#fff; z-index: 50;
-  display:flex; align-items:center; justify-content:center; flex-direction:column; text-align:center; gap: 16px;
-  overflow-y: auto; padding: 30px 16px;
+  position: fixed; inset: 0; background: #0b1020; color:#fff; z-index: 50;
+  display:flex; align-items:center; justify-content:center; overflow-y: auto; padding: 40px 6vw;
 }
-#startScreen h1 { font-size: 32px; }
-#startScreen p { max-width: 560px; opacity:.85; line-height:1.6; font-size:14px; }
-#startScreen .rules { text-align:left; background:rgba(255,255,255,0.06); padding:16px 22px; border-radius:10px; font-size:13px; line-height:1.8; }
-
-#scenarioSelector { display:flex; gap:14px; flex-wrap: wrap; justify-content:center; max-width: 720px; }
-.scenarioCard {
-  cursor: pointer; width: 210px; text-align:left; padding: 14px 16px; border-radius: 12px;
-  background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.14); transition: all .15s;
+#homeBg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+#homeLayout {
+  position: relative; z-index: 1; width: 100%; max-width: 1280px;
+  display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(260px, 1fr); gap: 56px; align-items: center;
 }
-.scenarioCard:hover { background: rgba(255,255,255,0.1); }
-.scenarioCard.selected { border-color: #ff9800; background: rgba(255,152,0,0.14); }
-.scenarioCard h3 { font-size: 15px; margin-bottom: 6px; }
-.scenarioCard p { font-size: 12px; opacity: .8; line-height: 1.5; max-width: none; }
+#homeLeft { text-align: left; }
+#homeEyebrow {
+  display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: 3px; color: #ffb36b;
+  border: 1px solid rgba(255,179,107,0.5); border-radius: 20px; padding: 5px 14px; margin-bottom: 18px;
+}
+#homeTitle { font-size: clamp(40px, 5.4vw, 76px); line-height: 0.98; font-weight: 900; letter-spacing: -1.5px; margin-bottom: 20px; }
+#homeTitle span { background: linear-gradient(135deg, #ffb300, #ff5722); -webkit-background-clip: text; background-clip: text; color: transparent; }
+#homeLead { max-width: 560px; font-size: 16px; line-height: 1.65; opacity: .82; margin-bottom: 26px; }
 
+#featureCards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; max-width: 640px; }
+.featureCard {
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 14px;
+  padding: 16px 18px; backdrop-filter: blur(4px); transition: transform .15s, border-color .15s, background .15s;
+}
+.featureCard:hover { transform: translateY(-3px); border-color: rgba(255,179,107,0.6); background: rgba(255,255,255,0.09); }
+.featureIcon { width: 34px; height: 34px; color: #ffb36b; margin-bottom: 10px; }
+.featureCard h3 { font-size: 15px; margin-bottom: 5px; }
+.featureCard p { font-size: 12.5px; line-height: 1.55; opacity: .75; }
+
+#homeRight { display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center; }
 #startBtn {
-  background: linear-gradient(135deg,#ff9800,#f44336); border:none; color:#fff; font-weight:700;
-  padding: 14px 38px; border-radius: 30px; font-size: 17px; cursor:pointer; letter-spacing:1px;
-  box-shadow: 0 6px 20px rgba(244,67,54,0.4);
+  position: relative; width: 230px; height: 230px; border-radius: 50%; border: none; cursor: pointer; color: #fff;
+  background: radial-gradient(circle at 32% 28%, #ffb300, #ff5722 62%, #d32f2f);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  font-size: 24px; font-weight: 900; letter-spacing: 3px;
+  box-shadow: 0 12px 40px rgba(244,67,54,0.5), inset 0 -8px 20px rgba(0,0,0,0.2);
+  transition: transform .15s, filter .15s;
 }
-#startBtn:hover { filter: brightness(1.1); }
+#startBtn::before {
+  content: ''; position: absolute; inset: -14px; border-radius: 50%; border: 2px solid rgba(255,152,0,0.55);
+  animation: playPulse 2.2s ease-out infinite;
+}
+#startBtn:hover { transform: scale(1.06); filter: brightness(1.1); }
+#startBtn:active { transform: scale(0.98); }
+#startBtn .playIcon { width: 84px; height: 84px; margin-left: 8px; }
+@keyframes playPulse { 0% { transform: scale(0.94); opacity: 1; } 100% { transform: scale(1.22); opacity: 0; } }
+#homeHint { font-size: 14px; opacity: .75; letter-spacing: .3px; }
+#controlsBtn {
+  background: none; border: 1px solid rgba(255,255,255,0.25); color: #fff; opacity: .85; cursor: pointer;
+  padding: 8px 20px; border-radius: 20px; font-size: 13px; font-weight: 600;
+}
+#controlsBtn:hover { background: rgba(255,255,255,0.1); opacity: 1; }
 
-#durationSelector { display:flex; flex-direction:column; align-items:center; gap:8px; }
-#durationLabel { font-size: 13px; opacity: .8; letter-spacing: .5px; }
-#durationOptions { display:flex; gap:10px; }
-.durationOpt {
-  cursor: pointer; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight:600;
-  background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.14); color:#fff; transition: all .15s;
+@media (max-width: 900px) {
+  #startScreen { align-items: flex-start; }
+  #homeLayout { grid-template-columns: 1fr; gap: 36px; }
+  #homeRight { order: -1; flex-direction: row; flex-wrap: wrap; justify-content: center; }
+  #startBtn { width: 150px; height: 150px; font-size: 18px; }
+  #startBtn .playIcon { width: 52px; height: 52px; }
+  #featureCards { grid-template-columns: 1fr; }
 }
-.durationOpt:hover { background: rgba(255,255,255,0.1); }
-.durationOpt.selected { border-color: #ff9800; background: rgba(255,152,0,0.14); }
 
 #gameOverScreen {
   position: fixed; inset:0; background: rgba(5,8,15,0.94); color:#fff; z-index:60;
