@@ -13,7 +13,7 @@ const TWO_PI = Math.PI * 2;
 export const roundaboutPool = [];
 const pool = roundaboutPool;
 let targetCount = 20;
-let recklessChance = 0.18;
+let recklessChance = 0.2;
 let spawnTimer = 0;
 const sample = {};
 
@@ -24,7 +24,7 @@ const JUST_PASSED = 0.3;
 
 export function initRoundaboutAi(scenario) {
   targetCount = scenario.aiTargetCount ?? 20;
-  recklessChance = 0.18 * (scenario.badDriverMultiplier ?? 1);
+  recklessChance = (scenario.badDrivers ?? 20) / 100;
   pool.forEach(removeTrafficVehicle);
   pool.length = 0;
   spawnTimer = 0;

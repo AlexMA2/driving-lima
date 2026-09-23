@@ -78,7 +78,8 @@ export const SCENARIOS = {
     roadLength: 3000,
     aiDensity: 1,
     aiTargetCount: 9,
-    badDriverMultiplier: 1,
+    badDrivers: 25,        // % of traffic that is reckless
+    pedestrians: 4,
     speedLimit: 50,
   },
   highway: {
@@ -91,7 +92,8 @@ export const SCENARIOS = {
     roadLength: 3000,
     aiDensity: 1.9,
     aiTargetCount: 26,
-    badDriverMultiplier: 2.4,
+    badDrivers: 60,
+    pedestrians: 4,
     speedLimit: 80,
   },
   grid: {
@@ -105,7 +107,7 @@ export const SCENARIOS = {
     blockSize: 150,
     aiDensity: 1.2,
     aiTargetCount: 12,
-    badDriverMultiplier: 1.6,
+    badDrivers: 32,
     speedLimit: 40,
   },
   roundabout: {
@@ -116,7 +118,7 @@ export const SCENARIOS = {
     description: 'Una rotonda con cuatro accesos. Cede el paso a quien ya circula, elige tu salida y señalízala.',
     laneCountPerSide: 1,
     aiTargetCount: 20,
-    badDriverMultiplier: 1.2,
+    badDrivers: 22,
     speedLimit: 35,
   },
 };

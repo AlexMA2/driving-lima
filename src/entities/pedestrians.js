@@ -14,6 +14,13 @@ import { playPedestrianChatter } from '../systems/audio.js';
 // Jaywalking pedestrians: spawn/despawn relative to the player, some cross near a marked
 // crosswalk (feeding the G57 "did not yield" check), most cross wherever, forcing braking.
 export const pedestrianPool = [];
+let targetCount = CONFIG.PEDESTRIAN_TARGET_COUNT;
+
+export function initPedestrians(scenario) {
+  targetCount = scenario.pedestrians ?? CONFIG.PEDESTRIAN_TARGET_COUNT;
+  pedestrianPool.forEach(p => { scene.remove(p.mesh); world.removeBody(p.body); });
+  pedestrianPool.length = 0;
+}
 
 function spawnPedestrian() {
   const fromLeft = rng() < 0.5;
@@ -69,7 +76,7 @@ export function updatePedestrians(dt) {
       pedestrianPool.splice(i, 1);
     }
   }
-  if (pedestrianPool.length < CONFIG.PEDESTRIAN_TARGET_COUNT && rng() < CONFIG.PEDESTRIAN_SPAWN_CHANCE_PER_SEC * dt) {
+  if (pedestrianPool.length < targetCount && rng() < CONFIG.PEDESTRIAN_SPAWN_CHANCE_PER_SEC * dt) {
     spawnPedestrian();
   }
 }

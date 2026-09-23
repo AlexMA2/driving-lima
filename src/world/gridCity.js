@@ -22,7 +22,7 @@ const STREETS = []; // { orientation:'z'|'x', fixed, lo, hi, laneCountPerSide }
 export const GRID_INTERSECTIONS = [];
 const gridAiPool = [];
 let aiTargetCount = 10;
-let badDriverMultiplier = 1;
+let recklessShare = 0.3;
 let prevPlayerPos = null;
 
 function buildIntersection(x, z) {
@@ -96,7 +96,7 @@ export function buildGridCity(scenario) {
   }
 
   aiTargetCount = Math.round(scenario.aiTargetCount ?? 10);
-  badDriverMultiplier = scenario.badDriverMultiplier ?? 1;
+  recklessShare = (scenario.badDrivers ?? 30) / 100;
   gridAiPool.forEach(ai => { scene.remove(ai.mesh); world.removeBody(ai.body); });
   gridAiPool.length = 0;
   prevPlayerPos = null;
@@ -126,7 +126,7 @@ function spawnGridAi() {
   const dir = choice([-1, 1]);
   const laneOffset = -0.5 * CONFIG.LANE_WIDTH * dir; // z-street: dir=-1 (south) sits on +X, see road.js laneDir
   const type = choice(AI_TYPES);
-  const isBadDriver = type === 'car' && rng() < 0.2 * badDriverMultiplier;
+  const isBadDriver = type === 'car' && rng() < recklessShare;
 
   let mesh, speed, half;
   if (type === 'combi') { mesh = buildCombi(0x2266aa); speed = rand(5, 8); half = new CANNON.Vec3(1.05, 0.85, 2.8); }

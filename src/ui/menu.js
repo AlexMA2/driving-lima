@@ -1,15 +1,12 @@
-import { CONFIG, SCENARIOS } from '../config.js';
+import { SCENARIOS } from '../config.js';
 import { SCENARIO_ICONS } from './scenarioIcons.js';
+import { openScenarioConfig, scenarioSummary } from './configDialog.js';
 
 // Screen flow: home -> scenarios -> game. Which screen is showing lives on <body data-screen>,
 // which the stylesheet uses to show/hide the menu layers and the input system reads to know
 // when the scroll wheel should drive the throttle instead of scrolling a menu.
 export function setScreen(name) {
   document.body.dataset.screen = name;
-}
-
-function formatDuration(seconds) {
-  return `${Math.round(seconds / 60)} min`;
 }
 
 function renderScenarioCards(gridEl) {
@@ -23,29 +20,24 @@ function renderScenarioCards(gridEl) {
     </article>`).join('');
 }
 
-function renderDurationOptions(containerEl, selectedSeconds) {
-  containerEl.innerHTML = CONFIG.GAME_DURATION_OPTIONS.map(sec =>
-    `<button type="button" class="durationOpt${sec === selectedSeconds ? ' selected' : ''}" data-seconds="${sec}">${formatDuration(sec)}</button>`
-  ).join('');
-}
-
-// onStart(scenarioId, durationSeconds) is called when the player presses JUGAR.
+// onStart(scenarioId) is called when the player presses JUGAR; the match settings for that
+// scenario (duration, traffic, ...) are read from the saved config at that point.
 export function initMenu({ onStart }) {
   const gridEl = document.getElementById('scenarioGrid');
   const barEl = document.getElementById('scenarioActionBar');
   const nameEl = document.getElementById('scenarioSelectedName');
-  const durationEl = document.getElementById('durationOptions');
+  const summaryEl = document.getElementById('scenarioSummary');
 
   let selectedScenario = null;
-  let selectedDuration = CONFIG.DEFAULT_GAME_DURATION;
 
   renderScenarioCards(gridEl);
-  renderDurationOptions(durationEl, selectedDuration);
+  const refreshSummary = () => { summaryEl.textContent = selectedScenario ? scenarioSummary(selectedScenario) : ''; };
 
   function selectScenario(id) {
     selectedScenario = id;
     gridEl.querySelectorAll('.scenarioCard').forEach(c => c.classList.toggle('selected', c.dataset.scenario === id));
     nameEl.textContent = SCENARIOS[id].label;
+    refreshSummary();
     barEl.classList.add('show');
   }
 
@@ -58,17 +50,13 @@ export function initMenu({ onStart }) {
     if (card && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); selectScenario(card.dataset.scenario); }
   });
 
-  durationEl.addEventListener('click', (e) => {
-    const btn = e.target.closest('.durationOpt');
-    if (!btn) return;
-    selectedDuration = parseInt(btn.dataset.seconds, 10);
-    renderDurationOptions(durationEl, selectedDuration);
-  });
-
   document.getElementById('startBtn').addEventListener('click', () => setScreen('scenarios'));
   document.getElementById('scenarioBackBtn').addEventListener('click', () => setScreen('home'));
+  document.getElementById('scenarioConfigBtn').addEventListener('click', () => {
+    if (selectedScenario) openScenarioConfig(selectedScenario, refreshSummary);
+  });
   document.getElementById('scenarioPlayBtn').addEventListener('click', () => {
-    if (selectedScenario) onStart(selectedScenario, selectedDuration);
+    if (selectedScenario) onStart(selectedScenario);
   });
 
   window.addEventListener('keydown', (e) => {

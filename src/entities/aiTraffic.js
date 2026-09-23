@@ -20,7 +20,7 @@ let badDriverMultiplier = 1;
 
 export function initAiTraffic(scenario) {
   targetCount = Math.round((scenario.aiTargetCount ?? CONFIG.AI_TARGET_COUNT));
-  badDriverMultiplier = scenario.badDriverMultiplier ?? 1;
+  badDriverMultiplier = (scenario.badDrivers ?? 25) / 25; // 25% reckless == 1.0
   aiPool.forEach(ai => { scene.remove(ai.mesh); world.removeBody(ai.body); });
   aiPool.length = 0;
 }

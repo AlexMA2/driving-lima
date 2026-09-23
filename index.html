@@ -30,6 +30,7 @@
     <div id="timerRow"><span id="timerIcon">⏱</span><span id="timerVal">03:00</span></div>
     <button id="finishBtn" title="Terminar la partida">🏁 TERMINAR</button>
   </div>
+  <div id="fpsCounter">-- FPS</div>
   <div id="zoneTag">⚠ ZONA ESCOLAR - MÁX 30 KM/H</div>
 
   <div id="toastContainer"></div>
@@ -167,17 +168,25 @@
     </div>
 
     <div id="scenarioActionBar">
-      <div id="scenarioSelectedInfo"><span>Escenario seleccionado</span><b id="scenarioSelectedName"></b></div>
-      <div id="durationSelector">
-        <span id="durationLabel">Duración</span>
-        <div id="durationOptions"></div>
-      </div>
+      <div id="scenarioSelectedInfo"><span>Escenario seleccionado</span><b id="scenarioSelectedName"></b><small id="scenarioSummary"></small></div>
       <div id="scenarioActions">
+        <button id="scenarioConfigBtn" type="button">CONFIGURAR</button>
         <button id="scenarioPlayBtn" type="button">JUGAR</button>
       </div>
     </div>
 
     <div id="scenarioGrid"></div>
+  </div>
+</div>
+
+<div id="configDialog" class="dialogOverlay">
+  <div class="dialogBox" id="configBox">
+    <h2 id="configTitle">Configurar</h2>
+    <div id="configBody"></div>
+    <div id="configActions">
+      <button id="configReset" type="button" class="secondary">Restaurar valores</button>
+      <button id="configClose" type="button">Listo</button>
+    </div>
   </div>
 </div>
 

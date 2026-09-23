@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import './style.css';
 
-import { CONFIG, SCENARIOS } from './config.js';
 import { renderer, camera } from './core/renderer.js';
 import { scene, updateSun } from './core/scene.js';
 import { world } from './core/physics.js';
@@ -19,7 +18,7 @@ import { buildBreakdowns, updateBreakdownHazards } from './entities/breakdowns.j
 import { createPlayer, chassisBody, syncPlayerMesh } from './entities/player.js';
 import { updateAi, initAiTraffic } from './entities/aiTraffic.js';
 import { initRoundaboutAi, updateRoundaboutAi } from './entities/roundaboutAi.js';
-import { updatePedestrians } from './entities/pedestrians.js';
+import { updatePedestrians, initPedestrians } from './entities/pedestrians.js';
 import { buildCockpit, updateCockpit } from './entities/cockpit.js';
 
 import { controlState, initInput, applyVehicleControls } from './systems/input.js';
@@ -38,6 +37,8 @@ import { initAudio, updateEngineSound } from './systems/audio.js';
 
 import { refreshHud, updateHudPerFrame, initDialogs, showToast, showResults } from './ui/hud.js';
 import { gameState } from './state/gameState.js';
+import { resolveScenario, getPerformance } from './state/settings.js';
+import { applyPerformance, refreshMaterials, updateFps } from './core/performance.js';
 import { initMenu, setScreen } from './ui/menu.js';
 
 // The cockpit (dashboard/wheel/pillars) is parented to `camera` (see entities/cockpit.js) so
@@ -51,7 +52,7 @@ let started = false;
 const clock = new THREE.Clock();
 
 function buildWorld(scenarioId) {
-  scenario = SCENARIOS[scenarioId];
+  scenario = resolveScenario(scenarioId);
   let spawn;
 
   if (scenario.layout === 'grid') {
@@ -67,6 +68,7 @@ function buildWorld(scenarioId) {
     buildSpeedBumps();
     buildBreakdowns();
     initAiTraffic(scenario);
+    initPedestrians(scenario);
     spawn = { x: PLAYER_LANES[0], y: 1.2, z: WORLD_Z_START - 30, rotY: 0 };
   }
 
@@ -93,8 +95,10 @@ function endGame() {
 
 function animate() {
   requestAnimationFrame(animate);
-  const dt = Math.min(clock.getDelta(), 0.05);
+  const rawDt = clock.getDelta();
+  const dt = Math.min(rawDt, 0.05);
   if (!started || gameState.gameOver) { renderer.render(scene, camera); return; }
+  updateFps(rawDt);
 
   gameState.timeLeft = Math.max(0, gameState.timeLeft - dt);
   if (gameState.timeLeft <= 0) {
@@ -145,18 +149,20 @@ function animate() {
 
 initDialogs();
 
-// Persists the in-progress scenario+duration across a full page reload — reload is the
+// Persists the in-progress scenario across a full page reload (its settings live in localStorage) — reload is the
 // simplest reliable way to reset all of three.js/cannon-es state (nothing in the world
 // builders tracks/tears down what a previous buildWorld() created), and "R" / "Volver al
 // inicio" would otherwise have to duplicate that cleanup by hand.
 const AUTOSTART_KEY = 'dls_autostart';
 
-function startGame(scenarioId, durationSec) {
+function startGame(scenarioId) {
   setScreen('game');
   document.getElementById('gameOverScreen').style.display = 'none';
-  gameState.duration = durationSec;
-  gameState.timeLeft = durationSec;
+  applyPerformance(getPerformance());
   buildWorld(scenarioId);
+  refreshMaterials();
+  gameState.duration = scenario.duration;
+  gameState.timeLeft = scenario.duration;
   started = true;
   clock.getDelta();
   refreshHud();
@@ -168,7 +174,7 @@ function goHome() {
 }
 
 function restartGame() {
-  sessionStorage.setItem(AUTOSTART_KEY, JSON.stringify({ scenario: scenario.id, duration: gameState.duration }));
+  sessionStorage.setItem(AUTOSTART_KEY, JSON.stringify({ scenario: scenario.id }));
   location.reload();
 }
 
@@ -192,7 +198,6 @@ const pendingAutostart = sessionStorage.getItem(AUTOSTART_KEY);
 if (pendingAutostart) {
   sessionStorage.removeItem(AUTOSTART_KEY);
   try {
-    const { scenario: autoScenario, duration: autoDuration } = JSON.parse(pendingAutostart);
-    startGame(autoScenario, autoDuration ?? CONFIG.DEFAULT_GAME_DURATION);
+    startGame(JSON.parse(pendingAutostart).scenario);
   } catch { /* malformed/stale sessionStorage entry — fall back to the normal start screen */ }
 }
