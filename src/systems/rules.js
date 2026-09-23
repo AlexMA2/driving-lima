@@ -3,6 +3,8 @@ import { gameState } from '../state/gameState.js';
 import { chassisBody } from '../entities/player.js';
 import { LANE_X, ROAD_HALF_WIDTH } from '../world/road.js';
 import { INTERSECTIONS } from '../world/intersections.js';
+import { RB, ringInfo } from '../world/roundabout.js';
+import { aiCirclingTowards } from '../entities/roundaboutAi.js';
 import { inSchoolZone } from '../world/schoolZone.js';
 import { SPEED_BUMPS } from '../world/speedBumps.js';
 import { controlState } from './input.js';
@@ -47,6 +49,7 @@ export function initRules(scenario) {
   prevPlayerZ = chassisBody.position.z;
   urbanSpeedLimit = scenario?.speedLimit ?? CONFIG.URBAN_SPEED_LIMIT;
   scenarioLayout = scenario?.layout ?? 'line';
+  onRing = false;
 }
 
 export function checkLaneChangeRule() {
@@ -80,6 +83,32 @@ export function checkWrongWayRule() {
   const speedKmh = chassisBody.velocity.length() * 3.6;
   if (x < -0.5 && x > -ROAD_HALF_WIDTH && speedKmh > CONFIG.WRONG_WAY_SPEED_THRESHOLD) {
     triggerInfraction('M12');
+  }
+}
+
+// ---- Roundabout (rotonda) rules ----
+// Yield when stepping onto the ring while a circling car is about to reach the entry point,
+// signal right when leaving it, and never circulate against the flow (clockwise).
+let onRing = false;
+
+export function checkRoundaboutRules() {
+  const p = chassisBody.position, v = chassisBody.velocity;
+  const { r, theta } = ringInfo(p.x, p.z);
+  const speedKmh = v.length() * 3.6;
+  const inside = r < RB.outerR - 0.3 && r > RB.innerR - 1;
+
+  if (inside !== onRing) {
+    if (inside) {
+      if (speedKmh > 5 && aiCirclingTowards(theta)) triggerInfraction('RB_YIELD');
+    } else if (r >= RB.outerR - 0.3 && speedKmh > 5 && !controlState.signalRight) {
+      triggerInfraction('RB_SIGNAL');
+    }
+    onRing = inside;
+  }
+
+  if (inside && speedKmh > 8) {
+    const alongFlow = v.x * Math.sin(theta) - v.z * Math.cos(theta); // counter-clockwise tangent
+    if (alongFlow < -2) triggerInfraction('M12');
   }
 }
 

@@ -59,11 +59,14 @@ export const PENALTIES = {
   M12: { fine: 20, label: 'M12: Conducir en Sentido Contrario' },
   COLLISION: { fine: 25, label: 'Choque detectado' },
   BUMP: { fine: 5, label: 'Rompemuelas a alta velocidad' },
+  RB_YIELD: { fine: 20, label: 'Rotonda: no cediste el paso' },
+  RB_SIGNAL: { fine: 10, label: 'Rotonda: salida sin señalizar' },
 };
 
 // ---- Scenario presets, picked on the start screen ----
 // `layout: 'line'` scenarios reuse the single long avenue (world/road.js).
 // `layout: 'grid'` builds a real turnable street grid (world/gridCity.js).
+// `layout: 'roundabout'` builds a central roundabout with four arms (world/roundabout.js).
 export const SCENARIOS = {
   straight: {
     id: 'straight',
@@ -104,5 +107,16 @@ export const SCENARIOS = {
     aiTargetCount: 12,
     badDriverMultiplier: 1.6,
     speedLimit: 40,
+  },
+  roundabout: {
+    id: 'roundabout',
+    layout: 'roundabout',
+    label: 'Rotondas',
+    difficulty: 'Medio', difficultyLevel: 2,
+    description: 'Una rotonda con cuatro accesos. Cede el paso a quien ya circula, elige tu salida y señalízala.',
+    laneCountPerSide: 1,
+    aiTargetCount: 20,
+    badDriverMultiplier: 1.2,
+    speedLimit: 35,
   },
 };

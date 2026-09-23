@@ -61,4 +61,23 @@ const grid = `<svg viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg">
   <rect x="148" y="34" width="6" height="16" rx="2" fill="#151515"/><circle cx="151" cy="38" r="1.8" fill="#ff3b30"/><circle cx="151" cy="43" r="1.8" fill="#3a3a00"/><circle cx="151" cy="47.5" r="1.8" fill="#0a4d0a"/>
 </svg>`;
 
-export const SCENARIO_ICONS = { straight, highway, grid };
+// Top-down roundabout with four arms and a counter-clockwise flow.
+const roundabout = `<svg viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg">
+  <rect width="200" height="110" fill="#5b7148"/>
+  <g fill="#3a3a3f"><rect x="0" y="47" width="200" height="16"/><rect x="92" y="-5" width="16" height="120"/></g>
+  <g fill="#ffcc00" opacity="0.9"><rect x="0" y="54.2" width="64" height="1.6"/><rect x="136" y="54.2" width="64" height="1.6"/>
+     <rect x="99.2" y="-5" width="1.6" height="28"/><rect x="99.2" y="87" width="1.6" height="28"/></g>
+  <circle cx="100" cy="55" r="31" fill="none" stroke="#3a3a3f" stroke-width="16"/>
+  <circle cx="100" cy="55" r="31" fill="none" stroke="#fff" stroke-width="1.2" stroke-dasharray="5 5" opacity="0.85"/>
+  <circle cx="100" cy="55" r="24" fill="#cfcac0"/><circle cx="100" cy="55" r="22" fill="#4f7a3c"/>
+  <circle cx="90" cy="48" r="4.5" fill="#2f6b34"/><circle cx="111" cy="50" r="4" fill="#2f6b34"/><circle cx="96" cy="66" r="4.5" fill="#2f6b34"/>
+  <circle cx="100" cy="55" r="5" fill="#d9a441"/>
+  <g fill="#ff9800"><polygon points="131,49 137,55 125,55"/><polygon points="94,24 100,18 106,24" transform="rotate(-90 100 21)"/>
+     <polygon points="69,61 63,55 75,55"/><polygon points="106,86 100,92 94,86" transform="rotate(-90 100 89)"/></g>
+  <g transform="translate(101 92)"><rect width="7" height="13" rx="2" fill="#cc2b2b"/></g>
+  <g transform="translate(150 56)"><rect width="13" height="7" rx="2" fill="#1e88e5"/></g>
+  <g transform="translate(86 6)"><rect width="7" height="13" rx="2" fill="#f9a825"/></g>
+  <g transform="translate(126 68)"><rect width="9" height="6" rx="2" fill="#6a1b9a" transform="rotate(40 4.5 3)"/></g>
+</svg>`;
+
+export const SCENARIO_ICONS = { straight, highway, grid, roundabout };

@@ -13,10 +13,12 @@ import { buildSchoolZone } from './world/schoolZone.js';
 import { buildDecorations } from './world/decorations.js';
 import { buildSpeedBumps } from './world/speedBumps.js';
 import { buildGridCity, updateGridTrafficLights, updateGridAi, checkGridRedLight } from './world/gridCity.js';
+import { buildRoundabout } from './world/roundabout.js';
 
 import { buildBreakdowns, updateBreakdownHazards } from './entities/breakdowns.js';
 import { createPlayer, chassisBody, syncPlayerMesh } from './entities/player.js';
 import { updateAi, initAiTraffic } from './entities/aiTraffic.js';
+import { initRoundaboutAi, updateRoundaboutAi } from './entities/roundaboutAi.js';
 import { updatePedestrians } from './entities/pedestrians.js';
 import { buildCockpit, updateCockpit } from './entities/cockpit.js';
 
@@ -29,6 +31,7 @@ import {
   checkRedLightRule,
   checkSpeedBumpRule,
   checkWrongWayRule,
+  checkRoundaboutRules,
 } from './systems/rules.js';
 import { updateCameraRig, renderMirrorViewports } from './systems/cameraRig.js';
 import { initAudio, updateEngineSound } from './systems/audio.js';
@@ -53,6 +56,8 @@ function buildWorld(scenarioId) {
 
   if (scenario.layout === 'grid') {
     spawn = buildGridCity(scenario);
+  } else if (scenario.layout === 'roundabout') {
+    spawn = buildRoundabout(scenario);
   } else {
     buildRoad(scenario);
     buildBuildings(scenario);
@@ -66,6 +71,7 @@ function buildWorld(scenarioId) {
   }
 
   createPlayer(spawn);
+  if (scenario.layout === 'roundabout') initRoundaboutAi(scenario); // after the player exists so spawns keep clear of it
   buildCockpit();
   initInput();
   initAudio();
@@ -74,6 +80,8 @@ function buildWorld(scenarioId) {
 
   if (scenario.layout === 'grid') {
     showToast('Ciudad con Giros', 'Gira libremente en cada cruce. Respeta los semáforos.');
+  } else if (scenario.layout === 'roundabout') {
+    showToast('Rotondas', 'Cede el paso a quien ya circula y señaliza tu salida a la derecha.');
   }
 }
 
@@ -105,6 +113,9 @@ function animate() {
     updateGridAi(dt);
     updateGridTrafficLights(dt);
     checkGridRedLight(speedKmh);
+  } else if (scenario.layout === 'roundabout') {
+    updateRoundaboutAi(dt);
+    checkRoundaboutRules();
   } else {
     updateAi(dt);
     updatePedestrians(dt);
