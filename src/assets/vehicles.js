@@ -1,6 +1,14 @@
 import * as THREE from 'three';
 import { box, cyl } from './primitives.js';
 
+// Mesh.clone() shares the material, which would make a left lamp light up together with its
+// right-hand twin. Every indicator lamp gets its own material so each side blinks independently.
+function cloneLamp(lamp) {
+  const copy = lamp.clone();
+  copy.material = lamp.material.clone();
+  return copy;
+}
+
 export function buildWheelMesh() {
   const g = new THREE.Group();
   const tire = cyl(0.4, 0.4, 0.28, 0x151515, 14);
@@ -34,9 +42,9 @@ export function buildSedan(color = 0xcc2b2b) {
   // Indicator lamps (used for lane-change signaling + hazard blinking)
   const indL = box(0.12, 0.12, 0.12, 0xffa000, { emissive: 0xffa000, emissiveIntensity: 0 });
   indL.position.set(-0.95, 0.55, -2.1);
-  const indR = indL.clone(); indR.position.x = 0.95;
-  const indLR = indL.clone(); indLR.position.z = 2.1;
-  const indRR = indR.clone(); indRR.position.z = 2.1;
+  const indR = cloneLamp(indL); indR.position.x = 0.95;
+  const indLR = cloneLamp(indL); indLR.position.z = 2.1;
+  const indRR = cloneLamp(indR); indRR.position.z = 2.1;
   g.add(indL, indR, indLR, indRR);
   g.userData.indicators = { left: [indL, indLR], right: [indR, indRR] };
   g.userData.tailLights = [tailL, tailR];
@@ -66,7 +74,7 @@ export function buildMototaxi(color = 0xffcc00) {
 
   const indL = box(0.1, 0.1, 0.1, 0xffa000, { emissive: 0xffa000, emissiveIntensity: 0 });
   indL.position.set(-0.55, 0.7, 1.25);
-  const indR = indL.clone(); indR.position.x = 0.55;
+  const indR = cloneLamp(indL); indR.position.x = 0.55;
   g.add(indL, indR);
   g.userData.indicators = { left: [indL], right: [indR] };
   g.userData.tailLights = [];
@@ -102,9 +110,9 @@ export function buildCombi(color = 0x2266aa) {
 
   const indL = box(0.14, 0.14, 0.14, 0xffa000, { emissive: 0xffa000, emissiveIntensity: 0 });
   indL.position.set(-1.05, 0.9, -2.75);
-  const indR = indL.clone(); indR.position.x = 1.05;
-  const indLR = indL.clone(); indLR.position.z = 2.75;
-  const indRR = indR.clone(); indRR.position.z = 2.75;
+  const indR = cloneLamp(indL); indR.position.x = 1.05;
+  const indLR = cloneLamp(indL); indLR.position.z = 2.75;
+  const indRR = cloneLamp(indR); indRR.position.z = 2.75;
   g.add(indL, indR, indLR, indRR);
   g.userData.indicators = { left: [indL, indLR], right: [indR, indRR] };
   g.userData.tailLights = [tailL, tailR];
