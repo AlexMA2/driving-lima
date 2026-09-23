@@ -14,7 +14,7 @@ import { buildSpeedBumps } from './world/speedBumps.js';
 import { buildGridCity, updateGridTrafficLights, updateGridAi, checkGridRedLight } from './world/gridCity.js';
 import { buildRoundabout } from './world/roundabout.js';
 
-import { buildBreakdowns, updateBreakdownHazards } from './entities/breakdowns.js';
+import { initBreakdowns, updateBreakdowns } from './entities/breakdowns.js';
 import { createPlayer, chassisBody, syncPlayerMesh } from './entities/player.js';
 import { updateAi, initAiTraffic } from './entities/aiTraffic.js';
 import { initRoundaboutAi, updateRoundaboutAi } from './entities/roundaboutAi.js';
@@ -66,7 +66,6 @@ function buildWorld(scenarioId) {
     buildSchoolZone();
     buildDecorations();
     buildSpeedBumps();
-    buildBreakdowns();
     initAiTraffic(scenario);
     initPedestrians(scenario);
     spawn = { x: PLAYER_LANES[0], y: 1.2, z: WORLD_Z_START - 30, rotY: 0 };
@@ -74,6 +73,7 @@ function buildWorld(scenarioId) {
 
   createPlayer(spawn);
   if (scenario.layout === 'roundabout') initRoundaboutAi(scenario); // after the player exists so spawns keep clear of it
+  if (scenario.layout === 'line') initBreakdowns(scenario);
   buildCockpit();
   initInput();
   initAudio();
@@ -128,7 +128,7 @@ function animate() {
     checkRedLightRule();
     checkSpeedBumpRule();
     checkWrongWayRule();
-    updateBreakdownHazards();
+    updateBreakdowns();
   }
   checkSpeedRule();
 

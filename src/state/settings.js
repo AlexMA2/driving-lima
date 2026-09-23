@@ -47,6 +47,16 @@ export const SCENARIO_FIELDS = [
     show: sc => !sc.scripted,
   },
   {
+    key: 'passing', section: 'Tráfico', type: 'range', label: 'Autos que te rebasan', min: 0, max: 100, step: 5, unit: '%',
+    default: () => 35, help: 'Vehículos rápidos que se acercan por detrás en el carril vecino: revisa los espejos antes de cambiar de carril.',
+    show: sc => sc.layout === 'line',
+  },
+  {
+    key: 'hazards', section: 'Tráfico', type: 'choice', label: 'Autos malogrados en tu carril',
+    options: [{ value: 'off', label: 'Ninguno' }, { value: 'low', label: 'Pocos' }, { value: 'medium', label: 'Normal' }, { value: 'high', label: 'Muchos' }],
+    default: () => 'medium', help: 'Un auto se malogra frente a ti y debes cambiar de carril mientras otro auto te rebasa.', show: sc => sc.layout === 'line',
+  },
+  {
     key: 'pedestrians', section: 'Tráfico', type: 'range', label: 'Peatones', min: 0, max: 10, step: 1, unit: '',
     default: sc => sc.pedestrians ?? 0, help: 'Máximo de peatones cruzando a la vez.', show: sc => sc.layout === 'line',
   },
@@ -134,6 +144,8 @@ export function resolveScenario(scenarioId) {
     badDrivers: s.badDrivers,
     badDriverMultiplier: s.badDrivers / 25, // legacy scale: 25% reckless == 1.0
     pedestrians: s.pedestrians,
+    passing: s.passing,
+    hazards: s.hazards,
     speedLimit: s.speedLimit,
     duration: s.duration,
     settings: s,
