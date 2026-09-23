@@ -64,7 +64,14 @@ export const SCENARIO_FIELDS = [
   },
   {
     key: 'pedestrians', section: 'Tráfico', type: 'range', label: 'Peatones', min: 0, max: 10, step: 1, unit: '',
-    default: sc => sc.pedestrians ?? 0, help: 'Máximo de peatones cruzando a la vez.', show: sc => sc.layout === 'line',
+    default: sc => sc.pedestrians ?? 0, help: 'Máximo de peatones cruzando a la vez. Los peatones cruzan por las cebras y, en las avenidas, también por cualquier parte.',
+    show: sc => !sc.scripted,
+  },
+  {
+    key: 'zebras', section: 'Tráfico', type: 'choice', label: 'Cruces peatonales (cebras)',
+    options: [{ value: 'off', label: 'Ninguno' }, { value: 'low', label: 'Pocos' }, { value: 'medium', label: 'Normal' }, { value: 'high', label: 'Muchos' }],
+    default: () => 'medium', help: 'Cantidad de cebras en la vía. Los conductores educados se detienen para los peatones; tú también debes hacerlo.',
+    show: sc => !sc.scripted,
   },
 ];
 
@@ -201,6 +208,7 @@ export function resolveScenario(scenarioId) {
     pedestrians: s.pedestrians,
     passing: s.passing,
     hazards: s.hazards,
+    zebras: s.zebras,
     speedLimit: s.speedLimit,
     duration: s.duration,
     settings: s,

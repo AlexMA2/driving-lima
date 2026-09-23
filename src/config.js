@@ -115,6 +115,7 @@ export const SCENARIOS = {
     aiTargetCount: 12,
     badDrivers: 32,
     goodDrivers: 35,
+    pedestrians: 3,
     speedLimit: 40,
   },
   roundabout: {
@@ -127,6 +128,7 @@ export const SCENARIOS = {
     aiTargetCount: 20,
     badDrivers: 22,
     goodDrivers: 35,
+    pedestrians: 3,
     speedLimit: 35,
   },
 };

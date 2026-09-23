@@ -6,6 +6,7 @@ import { createTrafficVehicle, placeTrafficVehicle, removeTrafficVehicle, pickTr
 import { pickDriverProfile, PROFILE_SPEED, PROFILE_GAP } from './drivers.js';
 import { chassisBody } from './player.js';
 import { stalledVehicles } from './obstacles.js';
+import { occupiedCrosswalkGap } from '../world/crosswalks.js';
 
 // Traffic for the straight-avenue scenarios. Each car is a small state machine:
 //   DRIVE -> SIGNAL -> CHANGE_LANE   (good drivers announce a lane change first)
@@ -117,6 +118,11 @@ function findLeader(ai) {
   aiPool.forEach(o => { if (o !== ai && o.dir === ai.dir) consider(o.currentX, o.mesh.position.z, o.half.z, o.speed); });
   if (laneDir(chassisBody.position.x) === ai.dir) consider(chassisBody.position.x, chassisBody.position.z, 2.2, chassisBody.velocity.length());
   stalledVehicles.forEach(s => { if (laneDir(s.x) === ai.dir) consider(s.x, s.z, s.halfZ, 0); });
+  // pedestrians on a zebra ahead: everyone but the bad drivers stops short of it
+  if (ai.profile !== 'bad') {
+    const gap = occupiedCrosswalkGap(ai.currentX, z, 0, ai.dir, ai.half.z);
+    if (gap < (best ? best.gap : Infinity)) best = { gap, speed: 0, crosswalk: true };
+  }
   return best;
 }
 
@@ -165,7 +171,7 @@ export function updateAi(dt) {
       const laneChangeChance = CONFIG.AI_LANE_CHANGE_CHANCE_PER_SEC * LANE_CHANGE_FACTOR[profile];
       // normal cars hold their lane; combis/mototaxis (and any good or bad driver) may move over
       const mayWeave = profile !== 'normal' || ai.type === 'combi' || ai.type === 'mototaxi';
-      const blocked = leader && leader.speed < 2 && leader.gap < 45;
+      const blocked = leader && !leader.crosswalk && leader.speed < 2 && leader.gap < 45;
       if (blocked) {
         // a stalled car (or a stopped queue) ahead: go around if the next lane is clear, else wait
         const free = ai.laneGroup.find(x => x !== ai.currentX && laneClear(ai, x));

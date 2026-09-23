@@ -3,6 +3,7 @@ import * as CANNON from 'cannon-es';
 import { CONFIG } from '../config.js';
 import { rng, rand, choice } from '../utils/rng.js';
 import { pickDriverProfile, PROFILE_SPEED, PROFILE_GAP } from '../entities/drivers.js';
+import { resetCrosswalks, addCrosswalk, includeCandidate, flushZebras, occupiedCrosswalkGap } from './crosswalks.js';
 import { scene } from '../core/scene.js';
 import { world, propMaterial } from '../core/physics.js';
 import { box } from '../assets/primitives.js';
@@ -86,6 +87,20 @@ export function buildGridCity(scenario) {
   AVENUE_XS.forEach(ax => STREETS.push(buildStreet('z', ax, avenueLo, avenueHi, scenario.laneCountPerSide, STREET_ZS)));
   STREET_ZS.forEach(sz => STREETS.push(buildStreet('x', sz, streetLo, streetHi, scenario.laneCountPerSide, AVENUE_XS)));
   AVENUE_XS.forEach(ax => STREET_ZS.forEach(sz => buildIntersection(ax, sz)));
+
+  // pedestrian crossings on the approaches to each intersection, beyond the stop lines
+  resetCrosswalks();
+  const walkHalf = ROAD_HALF_WIDTH_GRID + CONFIG.SIDEWALK_WIDTH - 0.3;
+  GRID_INTERSECTIONS.forEach((inter, ii) => {
+    const spots = [
+      { cx: inter.x, cz: inter.z + 14, axis: 'x' }, { cx: inter.x, cz: inter.z - 14, axis: 'x' },
+      { cx: inter.x + 14, cz: inter.z, axis: 'z' }, { cx: inter.x - 14, cz: inter.z, axis: 'z' },
+    ];
+    spots.forEach((s, si) => {
+      if (includeCandidate(200 + ii * 4 + si, scenario.zebras)) addCrosswalk({ ...s, roadHalf: ROAD_HALF_WIDTH_GRID, walkHalf });
+    });
+  });
+  flushZebras();
 
   // Simple low-poly filler buildings inside each block cell (between streets)
   for (let bi = -1; bi < N; bi++) {
@@ -190,6 +205,11 @@ export function updateGridAi(dt) {
       if (relevantState !== 'GREEN' && ahead.dist < 22 && !(ai.isBadDriver && rng() < 0.15)) {
         targetSpeed = THREE.MathUtils.clamp((ahead.dist - 8) / 14, 0, 1) * ai.baseSpeed;
       }
+    }
+    // stop short of a zebra with pedestrians on it (bad drivers don't)
+    if (ai.profile !== 'bad') {
+      const zgap = occupiedCrosswalkGap(pos.x, pos.z, s.orientation === 'z' ? 0 : ai.dir, s.orientation === 'z' ? ai.dir : 0, ai.half.z);
+      if (zgap < Infinity) targetSpeed = Math.min(targetSpeed, THREE.MathUtils.clamp(zgap / 8, 0, 1) * ai.baseSpeed);
     }
     // keep a gap to the vehicle ahead in the same lane: another car, or the player
     const lead = leaderAhead(ai);

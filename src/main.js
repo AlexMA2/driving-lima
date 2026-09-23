@@ -11,6 +11,7 @@ import { buildIntersections, updateTrafficLight, INTERSECTIONS } from './world/i
 import { buildSchoolZone } from './world/schoolZone.js';
 import { buildDecorations } from './world/decorations.js';
 import { buildSpeedBumps } from './world/speedBumps.js';
+import { buildLineCrosswalks } from './world/lineCrosswalks.js';
 import { buildGridCity, updateGridTrafficLights, updateGridAi, checkGridRedLight } from './world/gridCity.js';
 import { buildRoundabout } from './world/roundabout.js';
 
@@ -67,12 +68,13 @@ function buildWorld(scenarioId) {
     buildSchoolZone();
     buildDecorations();
     buildSpeedBumps();
+    buildLineCrosswalks(scenario.zebras);
     initAiTraffic(scenario);
-    initPedestrians(scenario);
     spawn = { x: PLAYER_LANES[0], y: 1.2, z: WORLD_Z_START - 30, rotY: 0 };
   }
 
   createPlayer(spawn);
+  initPedestrians(scenario);
   if (scenario.layout === 'roundabout') initRoundaboutAi(scenario); // after the player exists so spawns keep clear of it
   if (scenario.layout === 'line') initBreakdowns(scenario);
   buildCockpit();
@@ -116,10 +118,12 @@ function animate() {
 
   if (scenario.layout === 'grid') {
     updateGridAi(dt);
+    updatePedestrians(dt);
     updateGridTrafficLights(dt);
     checkGridRedLight(speedKmh);
   } else if (scenario.layout === 'roundabout') {
     updateRoundaboutAi(dt);
+    updatePedestrians(dt);
     checkRoundaboutRules();
   } else {
     updateAi(dt);

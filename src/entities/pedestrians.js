@@ -5,78 +5,121 @@ import { rng, rand, choice } from '../utils/rng.js';
 import { scene } from '../core/scene.js';
 import { world, propMaterial } from '../core/physics.js';
 import { ROAD_HALF_WIDTH } from '../world/road.js';
-import { INTERSECTIONS } from '../world/intersections.js';
+import { CROSSWALKS } from '../world/crosswalks.js';
 import { buildPedestrian } from '../assets/props.js';
 import { chassisBody } from './player.js';
 import { triggerInfraction } from '../systems/rules.js';
 import { playPedestrianChatter } from '../systems/audio.js';
 
-// Jaywalking pedestrians: spawn/despawn relative to the player, some cross near a marked
-// crosswalk (feeding the G57 "did not yield" check), most cross wherever, forcing braking.
+// Pedestrians. Most cross at a marked zebra (see world/crosswalks.js), starting when the player
+// is a fair way off so they're mid-crossing as the car arrives — drivers who don't stop for them
+// get a G57. On the straight avenues some also jaywalk anywhere ahead, forcing a braking decision.
 export const pedestrianPool = [];
-let targetCount = CONFIG.PEDESTRIAN_TARGET_COUNT;
+let maxPedestrians = CONFIG.PEDESTRIAN_TARGET_COUNT;
+let allowJaywalkers = true;
+
+const SHIRTS = [0xd32f2f, 0x1976d2, 0x388e3c, 0xffa000, 0x5d4037];
 
 export function initPedestrians(scenario) {
-  targetCount = scenario.pedestrians ?? CONFIG.PEDESTRIAN_TARGET_COUNT;
-  pedestrianPool.forEach(p => { scene.remove(p.mesh); world.removeBody(p.body); });
+  maxPedestrians = scenario.pedestrians ?? CONFIG.PEDESTRIAN_TARGET_COUNT;
+  allowJaywalkers = scenario.layout === 'line';
+  pedestrianPool.forEach(removeBody);
   pedestrianPool.length = 0;
 }
 
-function spawnPedestrian() {
-  const fromLeft = rng() < 0.5;
-  const startX = fromLeft ? -(ROAD_HALF_WIDTH + CONFIG.SIDEWALK_WIDTH - 0.6) : (ROAD_HALF_WIDTH + CONFIG.SIDEWALK_WIDTH - 0.6);
-  const nearCrosswalk = rng() < 0.4 && INTERSECTIONS.length > 0;
-  const z = nearCrosswalk ? choice(INTERSECTIONS).crosswalkZ + rand(-1, 1) : chassisBody.position.z - rand(25, 90);
+function removeBody(p) {
+  scene.remove(p.mesh);
+  world.removeBody(p.body);
+}
 
-  const mesh = buildPedestrian(choice([0xd32f2f, 0x1976d2, 0x388e3c, 0xffa000, 0x5d4037]));
-  mesh.position.set(startX, 0, z);
+// World position of a pedestrian: `u` along its walking axis, `fixed` on the other one.
+function worldPos(p, out) {
+  if (p.axis === 'x') out.set(p.u, 0, p.fixed); else out.set(p.fixed, 0, p.u);
+  return out;
+}
+
+// `crosswalk` may be a registry entry or a plain descriptor for a jaywalking line
+// ({ axis, center, fixed, roadHalf, walkHalf }); `dir` is +1 or -1 along the walking axis.
+export function spawnPedestrian(crosswalk, dir = choice([-1, 1]), speed = rand(1.1, 1.7)) {
+  const axis = crosswalk.axis;
+  const center = axis === 'x' ? (crosswalk.cx ?? crosswalk.center) : (crosswalk.cz ?? crosswalk.center);
+  const fixed = crosswalk.fixed ?? (axis === 'x' ? crosswalk.cz : crosswalk.cx);
+  const mesh = buildPedestrian(choice(SHIRTS));
   scene.add(mesh);
 
   const body = new CANNON.Body({ mass: 0, type: CANNON.Body.KINEMATIC, material: propMaterial });
   body.addShape(new CANNON.Box(new CANNON.Vec3(0.2, 0.65, 0.2)));
-  body.position.set(startX, 0.65, z);
   body.userData = { isPenalized: true, type: 'pedestrian' };
   world.addBody(body);
 
-  pedestrianPool.push({
-    mesh, body, dirX: fromLeft ? 1 : -1, speed: rand(1.1, 1.7), z,
-    nearCrosswalk, yieldChecked: false, prevPos: new THREE.Vector3(startX, 0, z),
+  const p = {
+    mesh, body, axis, dir, speed, center, fixed,
+    roadHalf: crosswalk.roadHalf, walkHalf: crosswalk.walkHalf,
+    u: center - dir * crosswalk.walkHalf,
+    cw: CROSSWALKS.includes(crosswalk) ? crosswalk : null,
+    yieldChecked: false, onRoad: false, pos: new THREE.Vector3(),
+  };
+  worldPos(p, p.pos);
+  mesh.position.copy(p.pos);
+  body.position.set(p.pos.x, 0.65, p.pos.z);
+  pedestrianPool.push(p);
+  return p;
+}
+
+function spawnIfNeeded(dt) {
+  if (pedestrianPool.length >= maxPedestrians || rng() >= CONFIG.PEDESTRIAN_SPAWN_CHANCE_PER_SEC * dt) return;
+  const pl = chassisBody.position;
+
+  if (allowJaywalkers && rng() < 0.4) {
+    const fixed = pl.z - rand(25, 90);
+    spawnPedestrian({ axis: 'x', center: 0, fixed, roadHalf: ROAD_HALF_WIDTH, walkHalf: ROAD_HALF_WIDTH + CONFIG.SIDEWALK_WIDTH - 0.3 });
+    return;
+  }
+
+  // a free zebra somewhere ahead-ish: close enough to matter, far enough to see the pedestrian set off
+  const candidates = CROSSWALKS.filter(cw => {
+    const d = Math.hypot(cw.cx - pl.x, cw.cz - pl.z);
+    return cw.pedsOnRoad === 0 && d > 30 && d < 110 && !pedestrianPool.some(p => p.cw === cw);
   });
+  if (candidates.length) spawnPedestrian(choice(candidates));
 }
 
 export function updatePedestrians(dt) {
+  CROSSWALKS.forEach(cw => { cw.pedsOnRoad = 0; });
+  const pl = chassisBody.position;
+  const playerSpeedKmh = chassisBody.velocity.length() * 3.6;
+
   for (let i = pedestrianPool.length - 1; i >= 0; i--) {
     const p = pedestrianPool[i];
-    const newX = p.mesh.position.x + p.dirX * p.speed * dt;
-    const newPos = new THREE.Vector3(newX, 0, p.z);
-    p.body.position.set(newX, 0.65, p.z);
-    p.body.velocity.set((newX - p.prevPos.x) / dt, 0, 0);
-    p.mesh.position.copy(newPos);
-    p.mesh.rotation.y = p.dirX > 0 ? Math.PI / 2 : -Math.PI / 2;
-    p.prevPos.copy(newPos);
+    const prev = p.pos.clone();
+    p.u += p.dir * p.speed * dt;
+    worldPos(p, p.pos);
+    p.body.position.set(p.pos.x, 0.65, p.pos.z);
+    p.body.velocity.set((p.pos.x - prev.x) / dt, 0, (p.pos.z - prev.z) / dt);
+    p.mesh.position.copy(p.pos);
+    p.mesh.rotation.y = p.axis === 'x' ? (p.dir > 0 ? Math.PI / 2 : -Math.PI / 2) : (p.dir > 0 ? Math.PI : 0);
+
+    p.onRoad = Math.abs(p.u - p.center) < p.roadHalf + 0.6;
+    if (p.cw && p.onRoad) p.cw.pedsOnRoad++;
 
     // A passerby close to the car calls out / chats — small ambience, not a rule check.
-    if (chassisBody.position.distanceTo(newPos) < 6) playPedestrianChatter();
+    if (pl.distanceTo(p.pos) < 6) playPedestrianChatter();
 
-    // G57 check: player driving through the crosswalk while pedestrian actively occupies it, not yielding
-    if (p.nearCrosswalk && !p.yieldChecked && Math.abs(newX) < ROAD_HALF_WIDTH) {
-      const playerZ = chassisBody.position.z;
-      const playerSpeedKmh = chassisBody.velocity.length() * 3.6;
-      if (Math.abs(playerZ - p.z) < 3 && Math.abs(chassisBody.position.x - newX) < 4 && playerSpeedKmh > 8) {
+    // G57: the player rolls through the crossing while a pedestrian is on the roadway beside them
+    if (p.cw && p.onRoad && !p.yieldChecked && playerSpeedKmh > 8) {
+      const along = p.axis === 'x' ? Math.abs(pl.z - p.cw.cz) : Math.abs(pl.x - p.cw.cx);
+      const across = p.axis === 'x' ? Math.abs(pl.x - p.pos.x) : Math.abs(pl.z - p.pos.z);
+      if (along < 3 && across < 4) {
         triggerInfraction('G57');
         p.yieldChecked = true;
       }
     }
 
-    const crossedFully = Math.abs(newX) > (ROAD_HALF_WIDTH + CONFIG.SIDEWALK_WIDTH - 0.3);
-    const tooFar = Math.abs(p.z - chassisBody.position.z) > 250;
-    if (crossedFully || tooFar) {
-      scene.remove(p.mesh);
-      world.removeBody(p.body);
+    const crossedFully = Math.abs(p.u - p.center) > p.walkHalf;
+    if (crossedFully || pl.distanceTo(p.pos) > 250) {
+      removeBody(p);
       pedestrianPool.splice(i, 1);
     }
   }
-  if (pedestrianPool.length < targetCount && rng() < CONFIG.PEDESTRIAN_SPAWN_CHANCE_PER_SEC * dt) {
-    spawnPedestrian();
-  }
+  spawnIfNeeded(dt);
 }

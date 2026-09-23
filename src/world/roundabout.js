@@ -7,6 +7,7 @@ import { world, propMaterial } from '../core/physics.js';
 import { box, cyl } from '../assets/primitives.js';
 import { buildSign } from '../assets/props.js';
 import { buildGround, buildStreet, scatterBlockBuildings } from './streetKit.js';
+import { resetCrosswalks, addCrosswalk, includeCandidate, flushZebras } from './crosswalks.js';
 
 // "Rotondas" scenario: one central roundabout with four arms (S, E, N, W). Peru drives on the
 // right, so traffic circulates counter-clockwise seen from above (north = -Z): you enter by
@@ -321,6 +322,17 @@ export function buildRoundabout(scenario) {
     annulus(RB.outerR, RB.outerR + CONFIG.SIDEWALK_WIDTH, -0.04, 0.14, 0xb9b6ad, a0 + gap, a1 - gap);
     arcCurbColliders(RB.outerR + CONFIG.SIDEWALK_WIDTH / 2, CONFIG.SIDEWALK_WIDTH, a0 + gap, a1 - gap);
   });
+
+  // pedestrian crossings on each arm, near the ring and farther out
+  resetCrosswalks();
+  const roadHalf = CONFIG.LANE_WIDTH * lanes, walkHalf = roadHalf + CONFIG.SIDEWALK_WIDTH - 0.3;
+  ARMS.forEach((arm, ai) => [35, 95].forEach((d, di) => {
+    if (!includeCandidate(100 + ai * 2 + di, scenario.zebras)) return;
+    addCrosswalk({
+      cx: RB.cx + arm.ux * d, cz: RB.cz + arm.uz * d, axis: arm.ux === 0 ? 'x' : 'z', roadHalf, walkHalf, sign: true,
+    });
+  }));
+  flushZebras();
 
   // filler buildings in the four quadrants between the arms
   const q = RB.outerR + RB.armLength / 2 + 10, size = RB.armLength + 20;

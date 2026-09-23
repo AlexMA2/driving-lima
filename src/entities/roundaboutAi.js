@@ -4,6 +4,7 @@ import { chassisBody } from './player.js';
 import { createTrafficVehicle, placeTrafficVehicle, removeTrafficVehicle, pickTrafficType } from './aiVehicles.js';
 import { pickDriverProfile, PROFILE_SPEED, PROFILE_GAP } from './drivers.js';
 import { RB, ARMS, getRoute, sampleRoute, ringInfo, wrapAngle } from '../world/roundabout.js';
+import { occupiedCrosswalkGap } from '../world/crosswalks.js';
 
 // Traffic for the roundabout scenario. Every car follows a precomputed route (entry arm ->
 // ring -> exit arm, see world/roundabout.js). Cars yield at the line to anyone already on the
@@ -118,6 +119,12 @@ export function updateRoundaboutAi(dt) {
     if (!ai.reckless && toYield > -1 && toYield < 28 && ringBusyAt(ai.route.entryTheta, ai)) {
       const room = toYield - ai.half.z - 1.5;
       target = Math.min(target, THREE.MathUtils.clamp(room / 9, 0, 1) * target);
+    }
+
+    // stop short of a zebra with pedestrians on it (bad drivers don't)
+    if (ai.profile !== 'bad') {
+      const zgap = occupiedCrosswalkGap(ai.x, ai.z, hx, hz, ai.half.z);
+      if (zgap < Infinity) target = Math.min(target, THREE.MathUtils.clamp(zgap / 8, 0, 1) * target);
     }
 
     // keep a gap to whatever is ahead, the player included
