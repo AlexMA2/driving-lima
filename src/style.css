@@ -17,9 +17,13 @@ canvas { display: block; touch-action: none; }
 #needle { transition: transform .08s linear; }
 #speedVal { font-size: 38px; font-weight: 800; line-height: 1; }
 #speedUnit { font-size: 12px; opacity: .8; letter-spacing: 1px; }
-#gearRow { margin-top: 6px; font-size: 12px; display:flex; gap:10px; justify-content:center; }
-.indicatorDot { width:10px; height:10px; border-radius:50%; display:inline-block; background:#444; margin-right:4px; vertical-align:middle; }
-.indicatorDot.on { background:#ffb300; box-shadow:0 0 8px #ffb300; }
+/* The speedo is centred on the steering wheel's screen height, so its lower half can sit below
+   the viewport: the turn-signal arrows flank its top edge instead, where they're always visible. */
+#gearRow { position: absolute; top: 12px; left: 0; right: 0; height: 0; }
+.turnArrow { position: absolute; top: 0; width: 46px; height: 33px; fill: rgba(255,255,255,0.16); transition: fill .06s, filter .06s; }
+#indL { left: -62px; }
+#indR { right: -62px; }
+.turnArrow.on { fill: #ffb300; filter: drop-shadow(0 0 8px #ffb300); }
 #handbrakeTag { color:#ff5252; font-weight:700; opacity:0; transition:opacity .15s; }
 #handbrakeTag.show { opacity:1; }
 

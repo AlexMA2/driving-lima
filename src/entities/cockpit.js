@@ -14,6 +14,19 @@ export const WHEEL_LOCAL_POS = new THREE.Vector3(-0.4, -0.4, -0.6);
 function mat(color, opts = {}) {
   return new THREE.MeshStandardMaterial({ color, roughness: opts.roughness ?? 0.7, metalness: opts.metalness ?? 0.15, emissive: opts.emissive ?? 0x000000, emissiveIntensity: opts.emissiveIntensity ?? 0 });
 }
+// Flat left-pointing arrow (an indicator lamp) about 0.056 wide; mirror it with scale.x = -1.
+function arrowGeometry() {
+  const s = new THREE.Shape();
+  s.moveTo(-0.028, 0);
+  s.lineTo(-0.006, 0.02);
+  s.lineTo(-0.006, 0.009);
+  s.lineTo(0.028, 0.009);
+  s.lineTo(0.028, -0.009);
+  s.lineTo(-0.006, -0.009);
+  s.lineTo(-0.006, -0.02);
+  s.closePath();
+  return new THREE.ShapeGeometry(s);
+}
 function part(geo, material) {
   const m = new THREE.Mesh(geo, material);
   m.castShadow = false; m.receiveShadow = false; m.frustumCulled = false;
@@ -67,9 +80,12 @@ export function buildCockpit() {
   const cluster = part(new THREE.BoxGeometry(0.32, 0.15, 0.08), mat(0x101010));
   cluster.position.set(-0.4, -0.32, -0.68);
   g.add(cluster);
-  leftIndicatorLamp = part(new THREE.BoxGeometry(0.035, 0.035, 0.01), mat(0x332b00));
+  // arrow-shaped turn-signal lamps; the right one is the left one mirrored (so both sides are visible)
+  const lampMat = () => new THREE.MeshStandardMaterial({ color: 0x332b00, side: THREE.DoubleSide, roughness: 0.6 });
+  leftIndicatorLamp = part(arrowGeometry(), lampMat());
   leftIndicatorLamp.position.set(-0.49, -0.29, -0.635);
-  rightIndicatorLamp = part(new THREE.BoxGeometry(0.035, 0.035, 0.01), mat(0x332b00));
+  rightIndicatorLamp = part(arrowGeometry(), lampMat());
+  rightIndicatorLamp.scale.x = -1;
   rightIndicatorLamp.position.set(-0.31, -0.29, -0.635);
   g.add(leftIndicatorLamp, rightIndicatorLamp);
 
