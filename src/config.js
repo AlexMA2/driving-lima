@@ -83,6 +83,7 @@ export const SCENARIOS = {
     aiDensity: 1,
     aiTargetCount: 9,
     badDrivers: 25,        // % of traffic that is reckless
+    goodDrivers: 35,       // % that is courteous (signals, keeps distance, yields)
     pedestrians: 4,
     speedLimit: 50,
   },
@@ -97,6 +98,7 @@ export const SCENARIOS = {
     aiDensity: 1.9,
     aiTargetCount: 26,
     badDrivers: 60,
+    goodDrivers: 15,
     pedestrians: 4,
     speedLimit: 80,
   },
@@ -112,6 +114,7 @@ export const SCENARIOS = {
     aiDensity: 1.2,
     aiTargetCount: 12,
     badDrivers: 32,
+    goodDrivers: 35,
     speedLimit: 40,
   },
   roundabout: {
@@ -123,6 +126,7 @@ export const SCENARIOS = {
     laneCountPerSide: 1,
     aiTargetCount: 20,
     badDrivers: 22,
+    goodDrivers: 35,
     speedLimit: 35,
   },
 };

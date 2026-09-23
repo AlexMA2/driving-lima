@@ -109,7 +109,9 @@ function buildRoute(entryId, exitId) {
   const C = ringPoint(thetaOut + ENTRY_FLARE);
   const tC = ringTangent(thetaOut + ENTRY_FLARE);
   const D = { x: RB.cx + ex.ux * near + outRightX * LANE_OFFSET, z: RB.cz + ex.uz * near + outRightZ * LANE_OFFSET };
+  const exitStartIdx = pts.length - 1; // last point on the ring, where the exit curve begins
   pts.push(...bezier(C, { x: C.x + tC.x * kLeg, z: C.z + tC.z * kLeg }, { x: D.x - ex.ux * kLeg, z: D.z - ex.uz * kLeg }, D, 18));
+  const exitEndIdx = pts.length - 1;
 
   // 5) straight exit run
   for (let d = near + 6; d <= far; d += 6) {
@@ -125,7 +127,10 @@ function buildRoute(entryId, exitId) {
     if (ringInfo(pts[i].x, pts[i].z).r < RB.outerR + 2.5) { yieldS = cum[i]; break; }
   }
 
-  return { id: `${entryId}>${exitId}`, entry: entryId, exit: exitId, pts, cum, length: cum[cum.length - 1], yieldS, entryTheta: thetaIn };
+  return {
+    id: `${entryId}>${exitId}`, entry: entryId, exit: exitId, pts, cum, length: cum[cum.length - 1], yieldS, entryTheta: thetaIn,
+    exitStartS: cum[exitStartIdx], exitEndS: cum[exitEndIdx], // where a courteous driver's right signal is on
+  };
 }
 
 export function getRoute(entryId, exitId) {

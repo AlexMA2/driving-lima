@@ -3,26 +3,33 @@ import { CONFIG } from '../config.js';
 import { rng, rand, choice } from '../utils/rng.js';
 import { LANE_X, PLAYER_LANES, laneDir } from '../world/road.js';
 import { createTrafficVehicle, placeTrafficVehicle, removeTrafficVehicle, pickTrafficType } from './aiVehicles.js';
+import { pickDriverProfile, PROFILE_SPEED, PROFILE_GAP } from './drivers.js';
 import { chassisBody } from './player.js';
 import { stalledVehicles } from './obstacles.js';
 
 // Traffic for the straight-avenue scenarios. Each car is a small state machine:
-//   DRIVE -> CHANGE_LANE (unsignaled) / STOPPED (sudden passenger stop) / TAILGATE (bad driver
-//   rides your bumper, then brake-checks) -> DRIVE.
+//   DRIVE -> SIGNAL -> CHANGE_LANE   (good drivers announce a lane change first)
+//   DRIVE -> CHANGE_LANE             (normal / bad drivers just swerve, unsignaled)
+//   DRIVE -> STOPPED                 (sudden passenger stop)
+//   DRIVE -> TAILGATE -> DRIVE       (bad driver rides your bumper, then brake-checks)
 // Cars keep a following distance to whatever is ahead (other cars, the player, stalled cars) and
-// swerve around a blocked lane when the next one is clear. A share of the traffic is spawned as
+// go around a blocked lane when the next one is clear. A share of the traffic is spawned as
 // "overtakers": cars that come up fast from behind in the neighbouring lane, so the player has
 // to check the mirrors before merging.
 export const aiPool = [];
 
+let scenarioRef = {};
 let targetCount = CONFIG.AI_TARGET_COUNT;
-let badDriverMultiplier = 1;
 let passingShare = 0.35;   // fraction of spawns that are overtakers coming up from behind
 const MAX_OVERTAKERS = 3;
+const SIGNAL_LEAD_SECONDS = 1.6; // how long a good driver blinks before moving over
+
+// How readily each kind of driver changes lane, relative to the base chance.
+const LANE_CHANGE_FACTOR = { good: 0.5, normal: 1, bad: 2.5 };
 
 export function initAiTraffic(scenario) {
+  scenarioRef = scenario;
   targetCount = Math.round((scenario.aiTargetCount ?? CONFIG.AI_TARGET_COUNT));
-  badDriverMultiplier = (scenario.badDrivers ?? 25) / 25; // 25% reckless == 1.0
   passingShare = (scenario.passing ?? 35) / 100;
   aiPool.forEach(removeTrafficVehicle);
   aiPool.length = 0;
@@ -39,7 +46,7 @@ function addAi(v, laneX, z, speed, extra = {}) {
   const laneGroup = LANE_X.filter(x => (x > 0) === (laneX > 0));
   const ai = {
     ...v, laneGroup, currentX: laneX, targetX: laneX, dir, speed, baseSpeed: speed,
-    state: 'DRIVE', stateTimer: 0, isBadDriver: false, role: 'traffic', braking: false, ...extra,
+    state: 'DRIVE', stateTimer: 0, profile: 'normal', role: 'traffic', braking: false, signalSide: null, ...extra,
   };
   placeTrafficVehicle(ai, laneX, z, 0, dir, speed);
   ai.mesh.rotation.y = dir < 0 ? 0 : Math.PI;
@@ -71,8 +78,8 @@ function spawnAiVehicle() {
     : chassisBody.position.z - rand(140, 320);
 
   const v = createTrafficVehicle(type);
-  const isBadDriver = type === 'car' && rng() < 0.25 * badDriverMultiplier;
-  addAi(v, currentX, spawnZ, v.cruiseSpeed, { isBadDriver });
+  const profile = pickDriverProfile(scenarioRef);
+  addAi(v, currentX, spawnZ, v.cruiseSpeed * PROFILE_SPEED[profile], { profile });
 }
 
 // A car that comes from behind the player in `laneX`, `gapBehind` metres back, faster than the
@@ -126,50 +133,75 @@ function laneClear(ai, laneX) {
   return !stalledVehicles.some(s => laneDir(s.x) === ai.dir && conflicts(s.x, s.z));
 }
 
+// Which indicator a car uses to move toward `toX`. Own-direction lanes head -Z, so a larger x is
+// to their right; oncoming cars face the other way, so it's their left.
+function signalSideFor(ai, toX) {
+  const movingPositiveX = toX > ai.currentX;
+  return (movingPositiveX === (ai.dir < 0)) ? 'right' : 'left';
+}
+
+// Start moving over. Good drivers announce it first and re-check the lane before going.
 function beginLaneChange(ai, laneX) {
   ai.targetX = laneX;
-  ai.state = 'CHANGE_LANE';
   ai.stateTimer = 0;
+  if (ai.profile === 'good') {
+    ai.state = 'SIGNAL';
+    ai.signalSide = signalSideFor(ai, laneX);
+  } else {
+    ai.state = 'CHANGE_LANE';
+  }
 }
 
 export function updateAi(dt) {
+  const blinkOn = Math.floor(performance.now() / 350) % 2 === 0;
+
   for (let i = aiPool.length - 1; i >= 0; i--) {
     const ai = aiPool[i];
     ai.stateTimer += dt;
     const leader = findLeader(ai);
+    const profile = ai.profile;
 
     if (ai.state === 'DRIVE') {
-      const laneChangeChance = CONFIG.AI_LANE_CHANGE_CHANCE_PER_SEC * badDriverMultiplier;
+      const laneChangeChance = CONFIG.AI_LANE_CHANGE_CHANCE_PER_SEC * LANE_CHANGE_FACTOR[profile];
+      // normal cars hold their lane; combis/mototaxis (and any good or bad driver) may move over
+      const mayWeave = profile !== 'normal' || ai.type === 'combi' || ai.type === 'mototaxi';
       const blocked = leader && leader.speed < 2 && leader.gap < 45;
       if (blocked) {
         // a stalled car (or a stopped queue) ahead: go around if the next lane is clear, else wait
         const free = ai.laneGroup.find(x => x !== ai.currentX && laneClear(ai, x));
         if (free !== undefined) beginLaneChange(ai, free);
-      } else if ((ai.type === 'combi' || ai.type === 'mototaxi') && ai.role === 'traffic' && rng() < laneChangeChance * dt) {
+      } else if (mayWeave && ai.role === 'traffic' && rng() < laneChangeChance * dt) {
         const other = ai.laneGroup.find(x => x !== ai.currentX && laneClear(ai, x));
         if (other !== undefined) beginLaneChange(ai, other);
-      } else if (ai.type === 'combi' && ai.role === 'traffic' && rng() < CONFIG.AI_SUDDEN_STOP_CHANCE_PER_SEC * dt) {
+      } else if (ai.type === 'combi' && profile !== 'good' && ai.role === 'traffic'
+                 && rng() < CONFIG.AI_SUDDEN_STOP_CHANCE_PER_SEC * (profile === 'bad' ? 2 : 1) * dt) {
         ai.state = 'STOPPED'; ai.stateTimer = 0;
-      } else if (ai.isBadDriver) {
+      } else if (profile === 'bad' && ai.role === 'traffic') {
         // Reckless tailgater: when close behind the player in the same lane, surges forward
         // then randomly brake-checks — a hazard the player has to react to, not cause.
         const sameLane = Math.abs(ai.currentX - chassisBody.position.x) < 2 && ai.dir === laneDir(chassisBody.position.x);
         const gap = ai.dir < 0 ? chassisBody.position.z - ai.mesh.position.z : ai.mesh.position.z - chassisBody.position.z;
         if (sameLane && gap > 0 && gap < 18) {
           ai.state = 'TAILGATE'; ai.stateTimer = 0;
-        } else if (rng() < CONFIG.AI_TAILGATE_CHANCE_PER_SEC * badDriverMultiplier * dt) {
+        } else if (rng() < CONFIG.AI_TAILGATE_CHANCE_PER_SEC * dt) {
           ai.state = 'TAILGATE'; ai.stateTimer = 0; // also weaves erratically even without a target
         }
+      }
+    } else if (ai.state === 'SIGNAL') {
+      // blinking, still in lane; go only if the lane is still clear once the warning has been given
+      if (ai.stateTimer >= SIGNAL_LEAD_SECONDS) {
+        if (laneClear(ai, ai.targetX)) { ai.state = 'CHANGE_LANE'; ai.stateTimer = 0; }
+        else { ai.state = 'DRIVE'; ai.signalSide = null; }
       }
     } else if (ai.state === 'CHANGE_LANE') {
       const t = Math.min(ai.stateTimer / 1.1, 1);
       ai.currentX = THREE.MathUtils.lerp(ai.currentX, ai.targetX, 0.08);
-      if (t >= 1) { ai.currentX = ai.targetX; ai.state = 'DRIVE'; }
+      if (t >= 1) { ai.currentX = ai.targetX; ai.state = 'DRIVE'; ai.signalSide = null; }
     } else if (ai.state === 'STOPPED') {
       ai.speed = THREE.MathUtils.lerp(ai.speed, 0, 0.15);
       if (ai.stateTimer > rand(2.5, 4.5)) { ai.state = 'DRIVE'; }
     } else if (ai.state === 'TAILGATE') {
-      ai.speed = THREE.MathUtils.lerp(ai.speed, ai.baseSpeed * 1.9, 0.06);
+      ai.speed = THREE.MathUtils.lerp(ai.speed, ai.baseSpeed * 1.6, 0.06);
       if (ai.stateTimer > rand(1.8, 3.2)) { ai.state = 'DRIVE'; ai.stateTimer = 0; }
     }
 
@@ -178,7 +210,8 @@ export function updateAi(dt) {
     if (ai.state !== 'STOPPED' && ai.state !== 'TAILGATE') {
       let target = ai.baseSpeed;
       if (leader) {
-        const safe = 4 + ai.speed * 0.9;
+        const [standing, headway] = PROFILE_GAP[profile];
+        const safe = standing + ai.speed * headway;
         if (leader.gap < safe) {
           target = Math.min(target, leader.speed * THREE.MathUtils.clamp((leader.gap - 2) / (safe - 2), 0, 1));
           ai.braking = target < ai.speed - 0.5;
@@ -191,6 +224,11 @@ export function updateAi(dt) {
     const newZ = ai.mesh.position.z + ai.dir * ai.speed * dt;
     if (ai.mesh.userData.tailLights) {
       ai.mesh.userData.tailLights.forEach(t => { t.material.emissiveIntensity = ai.state === 'STOPPED' || ai.braking ? 0.9 : 0.3; });
+    }
+    const ind = ai.mesh.userData.indicators;
+    if (ind) {
+      ind.left.forEach(m => { m.material.emissiveIntensity = ai.signalSide === 'left' && blinkOn ? 1 : 0; });
+      ind.right.forEach(m => { m.material.emissiveIntensity = ai.signalSide === 'right' && blinkOn ? 1 : 0; });
     }
 
     ai.body.position.set(ai.currentX, ai.body.position.y, newZ);

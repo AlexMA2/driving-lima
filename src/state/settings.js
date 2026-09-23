@@ -48,6 +48,11 @@ export const SCENARIO_FIELDS = [
     show: sc => !sc.scripted,
   },
   {
+    key: 'goodDrivers', section: 'Tráfico', type: 'range', label: 'Conductores educados', min: 0, max: 100, step: 5, unit: '%',
+    default: sc => sc.goodDrivers, help: 'Señalizan antes de cambiar de carril, guardan distancia y ceden el paso. El resto son conductores normales.',
+    show: sc => !sc.scripted,
+  },
+  {
     key: 'passing', section: 'Tráfico', type: 'range', label: 'Autos que te rebasan', min: 0, max: 100, step: 5, unit: '%',
     default: () => 35, help: 'Vehículos rápidos que se acercan por detrás en el carril vecino: revisa los espejos antes de cambiar de carril.',
     show: sc => sc.layout === 'line',
@@ -192,7 +197,7 @@ export function resolveScenario(scenarioId) {
     ...base,
     aiTargetCount: Math.round((base.aiTargetCount ?? 0) * s.traffic / 100),
     badDrivers: s.badDrivers,
-    badDriverMultiplier: s.badDrivers / 25, // legacy scale: 25% reckless == 1.0
+    goodDrivers: Math.min(s.goodDrivers, 100 - s.badDrivers), // the two shares can't exceed the traffic
     pedestrians: s.pedestrians,
     passing: s.passing,
     hazards: s.hazards,

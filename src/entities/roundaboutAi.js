@@ -1,19 +1,21 @@
 import * as THREE from 'three';
-import { rng, rand, choice } from '../utils/rng.js';
+import { rand, choice } from '../utils/rng.js';
 import { chassisBody } from './player.js';
 import { createTrafficVehicle, placeTrafficVehicle, removeTrafficVehicle, pickTrafficType } from './aiVehicles.js';
+import { pickDriverProfile, PROFILE_SPEED, PROFILE_GAP } from './drivers.js';
 import { RB, ARMS, getRoute, sampleRoute, ringInfo, wrapAngle } from '../world/roundabout.js';
 
 // Traffic for the roundabout scenario. Every car follows a precomputed route (entry arm ->
 // ring -> exit arm, see world/roundabout.js). Cars yield at the line to anyone already on the
 // ring, keep a following distance to whatever is ahead (other cars *and* the player), and a
-// share of them are reckless and roll through the yield without looking.
+// share of them are bad drivers who roll through the yield without looking, while the good ones
+// leave more room and signal right before leaving the ring.
 
 const TWO_PI = Math.PI * 2;
 export const roundaboutPool = [];
 const pool = roundaboutPool;
 let targetCount = 20;
-let recklessChance = 0.2;
+let scenarioRef = {};
 let spawnTimer = 0;
 const sample = {};
 
@@ -24,7 +26,7 @@ const JUST_PASSED = 0.3;
 
 export function initRoundaboutAi(scenario) {
   targetCount = scenario.aiTargetCount ?? 20;
-  recklessChance = (scenario.badDrivers ?? 20) / 100;
+  scenarioRef = scenario;
   pool.forEach(removeTrafficVehicle);
   pool.length = 0;
   spawnTimer = 0;
@@ -44,9 +46,10 @@ function trySpawn(scatter) {
   if (pool.some(o => Math.hypot(o.x - sample.x, o.z - sample.z) < 14)) return false;
 
   const v = createTrafficVehicle(pickTrafficType());
+  const profile = pickDriverProfile(scenarioRef);
   const ai = {
     ...v, route, s, speed: v.cruiseSpeed * 0.8, x: sample.x, z: sample.z,
-    reckless: rng() < recklessChance, braking: false, inRing: false, theta: 0,
+    profile, reckless: profile === 'bad', braking: false, inRing: false, theta: 0,
   };
   placeTrafficVehicle(ai, sample.x, sample.z, sample.hx, sample.hz, ai.speed);
   pool.push(ai);
@@ -93,6 +96,7 @@ function leadGap(ai, hx, hz) {
 }
 
 export function updateRoundaboutAi(dt) {
+  const blinkOn = Math.floor(performance.now() / 350) % 2 === 0;
   for (const ai of pool) {
     const info = ringInfo(ai.x, ai.z);
     ai.theta = info.theta;
@@ -105,7 +109,7 @@ export function updateRoundaboutAi(dt) {
     sampleRoute(ai.route, ai.s, sample);
     const { hx, hz } = sample;
 
-    let target = ai.cruiseSpeed * (ai.reckless ? 1.25 : 1);
+    let target = ai.cruiseSpeed * PROFILE_SPEED[ai.profile];
     if (ai.r < RB.outerR + 16) target = Math.min(target, 8);
     if (ai.inRing) target = Math.min(target, 6.5);
 
@@ -118,7 +122,8 @@ export function updateRoundaboutAi(dt) {
 
     // keep a gap to whatever is ahead, the player included
     const lead = leadGap(ai, hx, hz);
-    const safe = (ai.reckless ? 2 : 3) + ai.speed * (ai.reckless ? 0.45 : 0.8);
+    const [standing, headway] = PROFILE_GAP[ai.profile];
+    const safe = standing + ai.speed * headway;
     if (lead.gap < safe) {
       target = Math.min(target, lead.speed * THREE.MathUtils.clamp((lead.gap - 1.5) / (safe - 1.5), 0, 1));
     }
@@ -136,6 +141,9 @@ export function updateRoundaboutAi(dt) {
     if (ai.mesh.userData.tailLights) {
       ai.mesh.userData.tailLights.forEach(t => { t.material.emissiveIntensity = ai.braking ? 0.9 : 0.3; });
     }
+    // courteous drivers signal right from just before the exit curve until they've left the ring
+    const signalling = ai.profile === 'good' && ai.s > ai.route.exitStartS - 10 && ai.s < ai.route.exitEndS;
+    ai.mesh.userData.indicators?.right.forEach(m => { m.material.emissiveIntensity = signalling && blinkOn ? 1 : 0; });
   }
 
   spawnTimer += dt;

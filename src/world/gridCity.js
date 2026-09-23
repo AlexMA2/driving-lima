@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { CONFIG } from '../config.js';
 import { rng, rand, choice } from '../utils/rng.js';
+import { pickDriverProfile, PROFILE_SPEED, PROFILE_GAP } from '../entities/drivers.js';
 import { scene } from '../core/scene.js';
 import { world, propMaterial } from '../core/physics.js';
 import { box } from '../assets/primitives.js';
@@ -22,7 +23,7 @@ const STREETS = []; // { orientation:'z'|'x', fixed, lo, hi, laneCountPerSide }
 export const GRID_INTERSECTIONS = [];
 const gridAiPool = [];
 let aiTargetCount = 10;
-let recklessShare = 0.3;
+let scenarioRef = {};
 let prevPlayerPos = null;
 
 function buildIntersection(x, z) {
@@ -96,7 +97,7 @@ export function buildGridCity(scenario) {
   }
 
   aiTargetCount = Math.round(scenario.aiTargetCount ?? 10);
-  recklessShare = (scenario.badDrivers ?? 30) / 100;
+  scenarioRef = scenario;
   gridAiPool.forEach(ai => { scene.remove(ai.mesh); world.removeBody(ai.body); });
   gridAiPool.length = 0;
   prevPlayerPos = null;
@@ -126,7 +127,8 @@ function spawnGridAi() {
   const dir = choice([-1, 1]);
   const laneOffset = -0.5 * CONFIG.LANE_WIDTH * dir; // z-street: dir=-1 (south) sits on +X, see road.js laneDir
   const type = choice(AI_TYPES);
-  const isBadDriver = type === 'car' && rng() < recklessShare;
+  const profile = pickDriverProfile(scenarioRef);
+  const isBadDriver = profile === 'bad';
 
   let mesh, speed, half;
   if (type === 'combi') { mesh = buildCombi(0x2266aa); speed = rand(5, 8); half = new CANNON.Vec3(1.05, 0.85, 2.8); }
@@ -150,7 +152,27 @@ function spawnGridAi() {
   body.userData = { isPenalized: true, type: 'ai-' + type };
   world.addBody(body);
 
-  gridAiPool.push({ mesh, body, type, street, dir, speed, baseSpeed: speed, isBadDriver, prevPos: new THREE.Vector3(x, 0, z) });
+  speed *= PROFILE_SPEED[profile];
+  gridAiPool.push({ mesh, body, type, street, dir, speed, baseSpeed: speed, profile, isBadDriver, half, prevPos: new THREE.Vector3(x, 0, z) });
+}
+
+// Nearest vehicle ahead of `ai` in its own lane on its street (cars travelling the same way, or
+// the player), as { gap, speed }.
+function leaderAhead(ai) {
+  const s = ai.street, pos = ai.mesh.position;
+  const alongAxis = (p) => (s.orientation === 'z' ? p.z : p.x);
+  const lateral = (p) => Math.abs(s.orientation === 'z' ? p.x - pos.x : p.z - pos.z);
+  let best = null;
+  const consider = (p, halfLen, speed) => {
+    if (lateral(p) > 1.9) return;
+    const along = (alongAxis(p) - alongAxis(pos)) * ai.dir;
+    if (along <= 0 || along > 40) return;
+    const gap = along - ai.half.z - halfLen;
+    if (!best || gap < best.gap) best = { gap, speed };
+  };
+  gridAiPool.forEach(o => { if (o !== ai && o.street === s && o.dir === ai.dir) consider(o.mesh.position, o.half.z, o.speed); });
+  consider(chassisBody.position, 2.2, chassisBody.velocity.length());
+  return best;
 }
 
 export function updateGridAi(dt) {
@@ -160,7 +182,7 @@ export function updateGridAi(dt) {
     const pos = ai.mesh.position;
 
     const ahead = nearestIntersectionAhead(pos.x, pos.z, s.orientation, ai.dir);
-    let targetSpeed = ai.baseSpeed * (ai.isBadDriver ? 1.3 : 1);
+    let targetSpeed = ai.baseSpeed;
     if (ahead) {
       const relevantState = s.orientation === 'z'
         ? (ahead.inter.phase.startsWith('NS') ? ahead.inter.phase.split('_')[1] : 'RED')
@@ -169,7 +191,15 @@ export function updateGridAi(dt) {
         targetSpeed = THREE.MathUtils.clamp((ahead.dist - 8) / 14, 0, 1) * ai.baseSpeed;
       }
     }
+    // keep a gap to the vehicle ahead in the same lane: another car, or the player
+    const lead = leaderAhead(ai);
+    if (lead) {
+      const [standing, headway] = PROFILE_GAP[ai.profile];
+      const safe = standing + ai.speed * headway;
+      if (lead.gap < safe) targetSpeed = Math.min(targetSpeed, lead.speed * THREE.MathUtils.clamp((lead.gap - 2) / (safe - 2), 0, 1));
+    }
     ai.speed = THREE.MathUtils.lerp(ai.speed, Math.max(0, targetSpeed), 0.06);
+    if (lead && lead.gap < 1.5) ai.speed = Math.min(ai.speed, lead.speed);
 
     if (s.orientation === 'z') pos.z += ai.dir * ai.speed * dt;
     else pos.x += ai.dir * ai.speed * dt;
