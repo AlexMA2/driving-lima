@@ -51,7 +51,7 @@ function normalizeDelta(a) {
 // start/results screens and dialogs (e.g. a long infractions list) — only steal the wheel
 // once the driving HUD is actually the thing on screen.
 function isOverlayOpen() {
-  return document.getElementById('startScreen').style.display !== 'none'
+  return document.body.dataset.screen !== 'game'
     || document.getElementById('gameOverScreen').style.display === 'flex'
     || document.getElementById('instructionsDialog').classList.contains('show')
     || document.getElementById('logDialog').classList.contains('show');

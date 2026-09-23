@@ -35,6 +35,7 @@ import { initAudio, updateEngineSound } from './systems/audio.js';
 
 import { refreshHud, updateHudPerFrame, initDialogs, showToast, showResults } from './ui/hud.js';
 import { gameState } from './state/gameState.js';
+import { initMenu, setScreen } from './ui/menu.js';
 
 // The cockpit (dashboard/wheel/pillars) is parented to `camera` (see entities/cockpit.js) so
 // it rides rigidly with the first-person view. WebGLRenderer only draws what it finds by
@@ -139,11 +140,8 @@ initDialogs();
 // inicio" would otherwise have to duplicate that cleanup by hand.
 const AUTOSTART_KEY = 'dls_autostart';
 
-let selectedScenario = 'straight';
-let selectedDuration = CONFIG.DEFAULT_GAME_DURATION;
-
 function startGame(scenarioId, durationSec) {
-  document.getElementById('startScreen').style.display = 'none';
+  setScreen('game');
   document.getElementById('gameOverScreen').style.display = 'none';
   gameState.duration = durationSec;
   gameState.timeLeft = durationSec;
@@ -163,7 +161,7 @@ function restartGame() {
   location.reload();
 }
 
-document.getElementById('startBtn').addEventListener('click', () => startGame(selectedScenario, selectedDuration));
+initMenu({ onStart: startGame });
 document.getElementById('restartBtn').addEventListener('click', restartGame);
 document.getElementById('homeBtn').addEventListener('click', goHome);
 document.getElementById('finishBtn').addEventListener('click', () => { if (started) endGame(); });
@@ -184,8 +182,6 @@ if (pendingAutostart) {
   sessionStorage.removeItem(AUTOSTART_KEY);
   try {
     const { scenario: autoScenario, duration: autoDuration } = JSON.parse(pendingAutostart);
-    if (autoScenario) selectedScenario = autoScenario;
-    if (autoDuration) selectedDuration = autoDuration;
-    startGame(selectedScenario, selectedDuration);
+    startGame(autoScenario, autoDuration ?? CONFIG.DEFAULT_GAME_DURATION);
   } catch { /* malformed/stale sessionStorage entry — fall back to the normal start screen */ }
 }

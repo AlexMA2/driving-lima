@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Simulador de Manejo - Tránsito Limeño</title>
 </head>
-<body>
+<body data-screen="home">
 
 <canvas id="canvas"></canvas>
 
@@ -153,6 +153,31 @@
       <p id="homeHint">Elige un escenario y ponte al volante</p>
       <button id="controlsBtn" type="button">Ver controles</button>
     </section>
+  </div>
+</div>
+
+<div id="scenarioScreen">
+  <div id="scenarioInner">
+    <div id="scenarioHeader">
+      <button id="scenarioBackBtn" type="button" class="ghostBtn">&larr; Volver</button>
+      <div>
+        <h2>Elige tu escenario</h2>
+        <p>Cada uno pone a prueba una habilidad distinta.</p>
+      </div>
+    </div>
+
+    <div id="scenarioActionBar">
+      <div id="scenarioSelectedInfo"><span>Escenario seleccionado</span><b id="scenarioSelectedName"></b></div>
+      <div id="durationSelector">
+        <span id="durationLabel">Duración</span>
+        <div id="durationOptions"></div>
+      </div>
+      <div id="scenarioActions">
+        <button id="scenarioPlayBtn" type="button">JUGAR</button>
+      </div>
+    </div>
+
+    <div id="scenarioGrid"></div>
   </div>
 </div>
 

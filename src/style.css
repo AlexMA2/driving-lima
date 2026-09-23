@@ -179,6 +179,73 @@ canvas { display: block; touch-action: none; }
   #featureCards { grid-template-columns: 1fr; }
 }
 
+/* ---- Menu layers: which one is visible is driven by <body data-screen> ---- */
+#startScreen, #scenarioScreen { display: none; }
+body[data-screen="home"] #startScreen { display: flex; }
+body[data-screen="scenarios"] #scenarioScreen { display: block; }
+
+.ghostBtn {
+  background: none; border: 1px solid rgba(255,255,255,0.25); color: #fff; opacity: .85; cursor: pointer;
+  padding: 8px 18px; border-radius: 20px; font-size: 13px; font-weight: 600;
+}
+.ghostBtn:hover { background: rgba(255,255,255,0.1); opacity: 1; }
+
+#scenarioScreen {
+  position: fixed; inset: 0; z-index: 50; overflow-y: auto; color: #fff;
+  background: radial-gradient(ellipse at 20% 0%, #24284a 0%, #0b1020 60%);
+  padding: 34px 6vw 50px;
+}
+#scenarioInner { max-width: 1180px; margin: 0 auto; }
+#scenarioHeader { display: flex; align-items: center; gap: 22px; margin-bottom: 22px; }
+#scenarioHeader h2 { font-size: 30px; font-weight: 800; }
+#scenarioHeader p { font-size: 14px; opacity: .7; margin-top: 2px; }
+
+#scenarioActionBar {
+  display: none; align-items: center; gap: 22px; flex-wrap: wrap; margin-bottom: 22px;
+  background: linear-gradient(135deg, rgba(255,152,0,0.16), rgba(244,67,54,0.12));
+  border: 1px solid rgba(255,152,0,0.5); border-radius: 16px; padding: 14px 20px;
+}
+#scenarioActionBar.show { display: flex; animation: barIn .25s ease-out; }
+@keyframes barIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+#scenarioSelectedInfo { display: flex; flex-direction: column; flex: 1; min-width: 160px; }
+#scenarioSelectedInfo span { font-size: 11px; letter-spacing: 1.5px; opacity: .65; text-transform: uppercase; }
+#scenarioSelectedInfo b { font-size: 20px; }
+#scenarioActions { display: flex; gap: 10px; }
+#scenarioActions button {
+  border: none; color: #fff; font-weight: 800; font-size: 14px; letter-spacing: 1px; cursor: pointer;
+  padding: 12px 30px; border-radius: 26px; transition: filter .15s, transform .15s;
+}
+#scenarioActions button:hover { filter: brightness(1.12); transform: translateY(-1px); }
+#scenarioPlayBtn { background: linear-gradient(135deg,#ff9800,#f44336); box-shadow: 0 6px 18px rgba(244,67,54,0.4); }
+
+#scenarioGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 18px; }
+.scenarioCard {
+  cursor: pointer; text-align: left; border-radius: 16px; overflow: hidden; outline: none;
+  background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.12); transition: transform .15s, border-color .15s, background .15s;
+}
+.scenarioCard:hover, .scenarioCard:focus-visible { transform: translateY(-4px); background: rgba(255,255,255,0.1); }
+.scenarioCard.selected { border-color: #ff9800; background: rgba(255,152,0,0.14); box-shadow: 0 8px 26px rgba(255,152,0,0.22); }
+.scenarioArt { aspect-ratio: 200 / 110; background: #1a1f3a; }
+.scenarioArt svg { display: block; width: 100%; height: 100%; }
+.scenarioBody { padding: 14px 16px 16px; }
+.scenarioTitleRow { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+.scenarioCard h3 { font-size: 16px; }
+.scenarioCard p { font-size: 12.5px; opacity: .78; line-height: 1.55; }
+.difficulty { font-size: 10px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; padding: 3px 9px; border-radius: 12px; white-space: nowrap; }
+.difficulty.d1 { background: rgba(76,175,80,0.25); color: #8be48f; }
+.difficulty.d2 { background: rgba(255,193,7,0.22); color: #ffd54f; }
+.difficulty.d3 { background: rgba(244,67,54,0.25); color: #ff8a80; }
+
+#durationSelector { display:flex; flex-direction:row; align-items:center; gap:12px; }
+#durationLabel { font-size: 12px; opacity: .7; letter-spacing: .5px; }
+#durationOptions { display:flex; gap:8px; }
+.durationOpt {
+  cursor: pointer; padding: 7px 14px; border-radius: 20px; font-size: 13px; font-weight:600;
+  background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.14); color:#fff; transition: all .15s;
+}
+.durationOpt:hover { background: rgba(255,255,255,0.1); }
+.durationOpt.selected { border-color: #ff9800; background: rgba(255,152,0,0.14); }
+
 #gameOverScreen {
   position: fixed; inset:0; background: rgba(5,8,15,0.94); color:#fff; z-index:60;
   display:none; align-items:center; justify-content:center; flex-direction:column; gap:14px; text-align:center;

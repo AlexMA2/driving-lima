@@ -69,6 +69,7 @@ export const SCENARIOS = {
     id: 'straight',
     layout: 'line',
     label: 'Recta Directa',
+    difficulty: 'Fácil', difficultyLevel: 1,
     description: 'Avenida larga y recta. Ideal para practicar velocidad, señalización de carril y distancias de frenado.',
     laneCountPerSide: 2,
     roadLength: 3000,
@@ -81,6 +82,7 @@ export const SCENARIOS = {
     id: 'highway',
     layout: 'line',
     label: 'Autopista Densa',
+    difficulty: 'Difícil', difficultyLevel: 3,
     description: 'Vía ancha de tres carriles por sentido con tráfico denso y conductores imprudentes. Pon a prueba tus reflejos.',
     laneCountPerSide: 3,
     roadLength: 3000,
@@ -93,6 +95,7 @@ export const SCENARIOS = {
     id: 'grid',
     layout: 'grid',
     label: 'Ciudad con Giros',
+    difficulty: 'Medio', difficultyLevel: 2,
     description: 'Cuadrícula urbana de avenidas y cruces reales con semáforos en cada esquina. Practica giros, cesión de paso y maniobras.',
     laneCountPerSide: 1,
     blocks: 3,             // streets per axis -> (blocks-1)^2... see gridCity.js for exact layout
