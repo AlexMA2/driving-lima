@@ -140,9 +140,9 @@ src/
 - **Solo se renderiza el HTML que la pantalla actual necesita.** `index.html` trae únicamente la pantalla
   de inicio. El selector de escenarios, el HUD, los diálogos y los resultados los crea su propio módulo
   cuando hacen falta y los retira del documento al salir. Dentro del HUD tampoco se dibuja lo que el
-  escenario no usa: sin cuenta regresiva en los ejercicios sin tiempo, sin la etiqueta de zona escolar
-  fuera de la avenida, sin contador de FPS ni espejos laterales si están desactivados, sin el panel de
-  instrucciones fuera del tutorial y el estacionamiento guiado.
+  escenario no usa: sin cuenta regresiva en los ejercicios sin tiempo, sin contador de FPS ni espejos
+  laterales si están desactivados, sin el panel de instrucciones fuera del tutorial y el estacionamiento
+  guiado.
 - **CSS crítico.** `src/styles/critical.scss` (reset, pantalla de inicio y engranaje) no lo importa ningún
   script: el plugin de `vite.config.ts` lo compila y lo incrusta en un `<style>` de `index.html`, así que
   la primera pantalla se pinta sin pedir hojas de estilo. Las demás hojas las importa el módulo que las

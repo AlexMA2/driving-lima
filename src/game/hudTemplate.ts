@@ -3,14 +3,13 @@ import { tutorialPanelHtml } from '../ui/tutorialPanel';
 import { formatMMSS } from '../utils/format';
 
 // The driving HUD's markup. It is assembled per game from what the scenario and the player's settings need:
-// no countdown in an untimed exercise, no school-zone tag away from the avenue, no FPS counter or wing mirrors
+// no countdown in an untimed exercise, no FPS counter or wing mirrors
 // unless they are switched on, no instruction panel outside the guided scenarios. What is not needed is not
 // rendered at all.
 
 export interface HudOptions {
   timed: boolean;             // show the countdown
   duration: number;           // seconds, for the first reading of the countdown
-  schoolZone: boolean;        // the avenue's "zona escolar" tag
   fps: boolean;
   sideMirrors: boolean;
   panelKind: string | null;   // label of the instruction panel, or null when the scenario has none
@@ -25,7 +24,6 @@ export function hudOptionsFor(scenario: ResolvedScenario, perf: PerformanceSetti
   return {
     timed: !scenario.untimed,
     duration: scenario.duration,
-    schoolZone: scenario.layout === 'line',
     fps: perf.showFps,
     sideMirrors: perf.sideMirrors,
     panelKind,
@@ -40,7 +38,6 @@ export function hudHtml(o: HudOptions): string {
     <button id="finishBtn" title="Terminar la partida">🏁 TERMINAR</button>
   </div>
   ${o.fps ? '<div id="fpsCounter">-- FPS</div>' : ''}
-  ${o.schoolZone ? '<div id="zoneTag">⚠ ZONA ESCOLAR - MÁX 30 KM/H</div>' : ''}
   ${o.panelKind ? tutorialPanelHtml(o.panelKind) : ''}
   <div id="toastContainer"></div>
 

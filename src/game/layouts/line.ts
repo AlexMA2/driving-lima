@@ -17,7 +17,7 @@ export const layout: LayoutRuntime = {
     buildRoad(scenario);
     buildBuildings(scenario);
     buildIntersections();
-    buildSchoolZone();
+    buildSchoolZone(scenario.speedLimit);
     buildDecorations();
     buildSpeedBumps();
     buildLineCrosswalks(scenario.zebras);

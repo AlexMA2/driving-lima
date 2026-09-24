@@ -76,19 +76,6 @@
   }
 }
 
-#zoneTag {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  top: 68px;
-  font-size: 12px;
-  padding: 6px 10px;
-  border-radius: 8px;
-  background: rgba(255, 193, 7, 0.25);
-  border: 1px solid rgba(255, 193, 7, 0.6);
-  display: none; // shown while the car is inside the school zone
-}
-
 #fpsCounter {
   position: absolute;
   left: 14px;

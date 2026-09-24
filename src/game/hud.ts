@@ -1,7 +1,6 @@
 import { gameState } from '../state/gameState';
 import { controlState } from '../systems/input';
-import { chassisBody, playerMesh } from '../entities/player';
-import { inSchoolZone } from '../world/schoolZone';
+import { playerMesh } from '../entities/player';
 import { updateIndicatorSound } from '../systems/audio';
 import { bindTutorialPanel } from '../ui/tutorialPanel';
 import { formatMMSS } from '../utils/format';
@@ -10,17 +9,16 @@ import { formatMMSS } from '../utils/format';
 // some scenarios, so every element here may be missing and is guarded.
 
 interface HudElements {
-  zoneTag: HTMLElement | null;
   timerVal: HTMLElement | null;
   timerRow: HTMLElement | null;
   toasts: HTMLElement | null;
 }
 
-let els: HudElements = { zoneTag: null, timerVal: null, timerRow: null, toasts: null };
+let els: HudElements = { timerVal: null, timerRow: null, toasts: null };
 
 // DOM writes dirty layout, and the mirrors/HUD sit on top of a WebGL canvas that redraws every
 // frame: only touch an element when its value actually changed.
-const shown = { zone: null as boolean | null, time: '', warn: null as boolean | null };
+const shown = { time: '', warn: null as boolean | null };
 
 export interface HudHandlers {
   onFinish(): void;
@@ -28,7 +26,7 @@ export interface HudHandlers {
 
 export function bindHud(root: ParentNode, { onFinish }: HudHandlers): void {
   const get = (id: string): HTMLElement | null => root.querySelector<HTMLElement>(`#${id}`);
-  els = { zoneTag: get('zoneTag'), timerVal: get('timerVal'), timerRow: get('timerRow'), toasts: get('toastContainer') };
+  els = { timerVal: get('timerVal'), timerRow: get('timerRow'), toasts: get('toastContainer') };
   bindTutorialPanel(root);
 
   get('finishBtn')?.addEventListener('click', onFinish);
@@ -55,11 +53,6 @@ export function refreshHud(): void {
 // (entities/instrumentCluster.ts); this keeps the rest of the HUD current and returns the
 // shared blink phase so the cluster's arrows and the car's lamps flash together.
 export function updateHudPerFrame(): boolean {
-  if (els.zoneTag) {
-    const inZone = inSchoolZone(chassisBody.position.z);
-    if (inZone !== shown.zone) { shown.zone = inZone; els.zoneTag.style.display = inZone ? 'block' : 'none'; }
-  }
-
   const blink = Math.floor(performance.now() / 350) % 2 === 0;
   const blinkActive = (controlState.signalLeft || controlState.signalRight) && blink;
   updateIndicatorSound(blinkActive);

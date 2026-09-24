@@ -110,6 +110,118 @@ export function buildSign(text: string, bg = 0xffcc00, shape = 'rect') {
   return g;
 }
 
+// ---- Peruvian traffic signs (Manual de Dispositivos de Control del Tránsito, MTC) ----
+// A plate is a flat sign drawn on a canvas: the front shows the sign, the back is bare grey metal. Plates are hung
+// on a post with `buildSignPost`, so one post can carry several (the school warning above the speed limit).
+// Faces the +Z direction: rotate the post to point it at the traffic it is meant for.
+
+const plateCache = new Map<string, THREE.Group>();
+
+interface PlateSpec {
+  key: string;
+  size: number; // metres, the square the artwork is drawn in
+  outline: (ctx: CanvasRenderingContext2D) => void; // the plate's shape, in a 256 x 256 canvas
+  paint: (ctx: CanvasRenderingContext2D) => void;   // the front artwork, clipped to the shape
+}
+
+function plateTexture(draw: (ctx: CanvasRenderingContext2D) => void): THREE.CanvasTexture {
+  const cvs = document.createElement('canvas'); cvs.width = 256; cvs.height = 256;
+  draw(cvs.getContext('2d')!);
+  const tex = new THREE.CanvasTexture(cvs);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  return tex;
+}
+
+function buildPlate({ key, size, outline, paint }: PlateSpec): THREE.Group {
+  const cached = plateCache.get(key);
+  if (cached) return cached.clone();
+
+  const front = new THREE.Mesh(
+    new THREE.PlaneGeometry(size, size),
+    new THREE.MeshStandardMaterial({
+      map: plateTexture(ctx => { ctx.save(); outline(ctx); ctx.clip(); paint(ctx); ctx.restore(); }),
+      transparent: true, alphaTest: 0.5, roughness: 0.45,
+    }),
+  );
+  front.position.z = 0.025;
+  const back = new THREE.Mesh(
+    new THREE.PlaneGeometry(size, size),
+    new THREE.MeshStandardMaterial({
+      map: plateTexture(ctx => { outline(ctx); ctx.fillStyle = '#8b9096'; ctx.fill(); }),
+      transparent: true, alphaTest: 0.5, roughness: 0.7,
+    }),
+  );
+  back.position.z = -0.025;
+  back.rotation.y = Math.PI;
+
+  const g = new THREE.Group();
+  g.add(front, back);
+  plateCache.set(key, g);
+  return g.clone();
+}
+
+// "Zona escolar": the warning pentagon (point up) in fluorescent yellow-green, with two children crossing.
+export function buildSchoolPlate(): THREE.Group {
+  const outline = (ctx: CanvasRenderingContext2D): void => {
+    ctx.beginPath();
+    [[128, 6], [247, 93], [201, 234], [55, 234], [9, 93]].forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+    ctx.closePath();
+  };
+  return buildPlate({
+    key: 'school', size: 0.9, outline,
+    paint(ctx) {
+      ctx.fillStyle = '#c9e21f'; ctx.fillRect(0, 0, 256, 256);
+      // the black border, inset from the edge
+      ctx.save();
+      ctx.translate(128, 140); ctx.scale(0.9, 0.9); ctx.translate(-128, -140);
+      outline(ctx);
+      ctx.strokeStyle = '#111'; ctx.lineWidth = 9; ctx.lineJoin = 'round'; ctx.stroke();
+      ctx.restore();
+
+      // two children walking hand in hand
+      ctx.strokeStyle = '#111'; ctx.fillStyle = '#111'; ctx.lineCap = 'round';
+      const child = (x: number, feet: number, h: number, handX: number): void => {
+        ctx.lineWidth = h * 0.12;
+        ctx.beginPath(); ctx.arc(x, feet - h * 0.9, h * 0.11, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(x, feet - h * 0.76); ctx.lineTo(x, feet - h * 0.4);                   // body
+        ctx.moveTo(x, feet - h * 0.4); ctx.lineTo(x - h * 0.15, feet);                    // legs
+        ctx.moveTo(x, feet - h * 0.4); ctx.lineTo(x + h * 0.17, feet);
+        ctx.moveTo(x, feet - h * 0.68); ctx.lineTo(handX, feet - h * 0.42);               // the arm they hold hands with
+        ctx.moveTo(x, feet - h * 0.68); ctx.lineTo(x + (x < 128 ? -0.2 : 0.2) * h, feet - h * 0.4); // the free arm
+        ctx.stroke();
+      };
+      child(98, 205, 92, 128);
+      child(158, 205, 80, 128);
+    },
+  });
+}
+
+// R-30 "Velocidad máxima": white disc, red ring, the limit in black.
+export function buildSpeedLimitPlate(kmh: number): THREE.Group {
+  const outline = (ctx: CanvasRenderingContext2D): void => { ctx.beginPath(); ctx.arc(128, 128, 124, 0, Math.PI * 2); };
+  return buildPlate({
+    key: `speed-${kmh}`, size: 0.75, outline,
+    paint(ctx) {
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 256, 256);
+      ctx.beginPath(); ctx.arc(128, 128, 108, 0, Math.PI * 2);
+      ctx.strokeStyle = '#c62828'; ctx.lineWidth = 30; ctx.stroke();
+      ctx.fillStyle = '#111'; ctx.font = 'bold 118px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(String(kmh), 128, 138);
+    },
+  });
+}
+
+// A post with plates on it. `y` is the height of each plate's centre.
+export function buildSignPost(plates: Array<{ plate: THREE.Object3D; y: number }>, height = 3.3): THREE.Group {
+  const g = new THREE.Group();
+  const pole = cyl(0.05, 0.05, height, 0x777777, 6); pole.position.y = height / 2;
+  g.add(pole);
+  plates.forEach(({ plate, y }) => { plate.position.set(0, y, 0.06); g.add(plate); });
+  return g;
+}
+
 // Octagonal red PARE sign on a pole; the face is a canvas texture on an 8-sided disc.
 export function buildStopSign() {
   const g = new THREE.Group();
