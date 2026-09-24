@@ -89,8 +89,7 @@ export function buildSign(text: string, bg = 0xffcc00, shape = 'rect') {
   } else {
     plate = box(1.15, 0.65, 0.05, bg);
   }
-  plate.position.y = 2.25;
-  plate.rotation.y = Math.PI / 2 - 0.001;
+  plate.position.y = 2.25; // backing stays parallel to the face (+Z): turned sideways it cut through the text
 
   // simple canvas texture with the sign text
   const cvs = document.createElement('canvas'); cvs.width = 256; cvs.height = 160;
