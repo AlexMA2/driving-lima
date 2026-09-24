@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
-import { gameState } from '../state/gameState.js';
-import { vehicle, chassisBody, forwardSpeed } from '../entities/player.js';
+import { vehicle, chassisBody, forwardSpeed, carYaw } from '../entities/player.js';
 import { camera, canvas } from '../core/renderer.js';
 import { WHEEL_LOCAL_POS } from '../entities/cockpit.js';
 import { playHonk, playBrakeScreech } from './audio.js';
@@ -22,11 +21,17 @@ export const controlState = {
   throttleTarget: 0, throttle: 0, brake: 0, // ramped 0..1 — this is what physics actually reads
 
   wheelAngle: 0, wheelTarget: 0, wheelDragging: false,
+  keyLeft: false, keyRight: false, // steering keys held: the wheel is turned progressively while they are (see updateWheelAndPedals)
   lastScrollTime: -999, // performance.now()/1000 of the latest accelerator scroll (for auto-release)
   lastHonkTime: -999,   // ...and of the latest horn press (the tutorial waits for it)
 
   signalLeft: false, signalRight: false, lastSignalOnTime: -999,
 };
+
+// Letting go of the last steering key hands the wheel back (unless the mouse is holding it).
+function releaseKeyboardSteer() {
+  if (!controlState.keyLeft && !controlState.keyRight && !controlState.wheelDragging) controlState.wheelTarget = 0;
+}
 
 let dragStartMouseAngle = 0;
 let dragStartWheelAngle = 0;
@@ -69,8 +74,8 @@ export function initInput() {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     switch (actionOf(e.key)) {
       case 'brake': controlState.brakeHeld = true; logEvent('BRAKE_DOWN'); break;
-      case 'steerLeft': controlState.wheelTarget = -wheelMaxRad() * CONFIG.KEYBOARD_STEER_FRACTION; break;
-      case 'steerRight': controlState.wheelTarget = wheelMaxRad() * CONFIG.KEYBOARD_STEER_FRACTION; break;
+      case 'steerLeft': controlState.keyLeft = true; break;
+      case 'steerRight': controlState.keyRight = true; break;
       case 'handbrake': controlState.handbrake = true; e.preventDefault(); logEvent('HANDBRAKE_DOWN'); break;
       case 'horn': playHonk(); controlState.lastHonkTime = performance.now() / 1000; break;
       case 'signalLeft':
@@ -95,8 +100,8 @@ export function initInput() {
   window.addEventListener('keyup', (e) => {
     switch (actionOf(e.key)) {
       case 'brake': controlState.brakeHeld = false; logEvent('BRAKE_UP'); break;
-      case 'steerLeft': if (controlState.wheelTarget < 0) controlState.wheelTarget = 0; break;
-      case 'steerRight': if (controlState.wheelTarget > 0) controlState.wheelTarget = 0; break;
+      case 'steerLeft': controlState.keyLeft = false; releaseKeyboardSteer(); break;
+      case 'steerRight': controlState.keyRight = false; releaseKeyboardSteer(); break;
       case 'handbrake': controlState.handbrake = false; logEvent('HANDBRAKE_UP'); break;
     }
   });
@@ -116,6 +121,8 @@ export function initInput() {
     controlState.brakeHeld = false;
     controlState.handbrake = false;
     controlState.wheelDragging = false;
+    controlState.keyLeft = false;
+    controlState.keyRight = false;
     controlState.wheelTarget = 0;
   });
 
@@ -170,6 +177,17 @@ function approach(current, target, rate, dt) {
 }
 
 export function updateWheelAndPedals(dt) {
+  // Keyboard steering is progressive: holding A/D winds the wheel on at KEYBOARD_STEER_RATE, so a tap is a
+  // small correction and a longer press a bigger one (jumping straight to full lock made every tap a swerve).
+  const keyDir = (controlState.keyRight ? 1 : 0) - (controlState.keyLeft ? 1 : 0);
+  if (keyDir !== 0 && !controlState.wheelDragging) {
+    const lock = wheelMaxRad();
+    const goal = keyDir * lock * CONFIG.KEYBOARD_STEER_FRACTION;
+    const stepRad = lock * CONFIG.KEYBOARD_STEER_RATE * dt;
+    const t = controlState.wheelTarget;
+    controlState.wheelTarget = t < goal ? Math.min(goal, t + stepRad) : Math.max(goal, t - stepRad);
+  }
+
   // Keyboard steering (A/D) sets a nonzero target without ever setting wheelDragging, so it
   // needs the snappier follow rate too — only an actually-centered, released wheel should
   // ease back at the slower hydraulic self-centering rate.
@@ -192,23 +210,49 @@ export function updateWheelAndPedals(dt) {
     : Math.max(0, controlState.brake - dt / CONFIG.BRAKE_RAMP_DOWN);
 }
 
-let wasHardBraking = false;
+// ---- Steering assist -------------------------------------------------------------------------------
+// A car does not straighten itself: after a lane change it keeps the heading it was left with, and the driver
+// has to counter-steer by exactly the right amount. Once the wheel is let go, this nudges the front wheels so the
+// heading settles parallel to the road (the roads are laid along the world axes). It never fights the driver: it
+// is off while the wheel is held, fades in as the wheel comes back to centre, and ignores errors big enough to be
+// an intended turn.
+const WHEELBASE = 2.9;
+const QUARTER_TURN = Math.PI / 2;
+let assistZone = () => false;
 
-// A wrecked car (systems/rules.js wreckPlayer) is dead weight: no engine, every brake locked, and
-// whatever motion is left over from the impact is wiped out each frame so it never creeps off.
-function immobilize() {
-  controlState.throttleTarget = 0; controlState.throttle = 0; controlState.brake = 0;
-  for (let i = 0; i < 4; i++) vehicle.setBrake(CONFIG.HANDBRAKE_FORCE * 3, i);
-  vehicle.applyEngineForce(0, 2);
-  vehicle.applyEngineForce(0, 3);
-  chassisBody.velocity.x = 0;
-  chassisBody.velocity.z = 0;
-  chassisBody.angularVelocity.set(0, 0, 0);
+// `zone(chassisPosition)` says where the assist applies; the layouts whose roads are not straight and axis-aligned
+// (roundabout, parking) leave it off.
+export function initSteerAssist(zone) { assistZone = zone; }
+
+function steerAssist() {
+  if (!CONFIG.STEER_ASSIST || !assistZone(chassisBody.position)) return 0;
+  const v = forwardSpeed();
+  if (v < 3) return 0; // only rolling forward; not while parking or reversing
+
+  const lock = wheelMaxRad();
+  const handsOff = 1 - THREE.MathUtils.clamp(Math.abs(controlState.wheelTarget) / (0.05 * lock), 0, 1);
+  const wheelCentred = 1 - THREE.MathUtils.clamp(Math.abs(controlState.wheelAngle) / (0.25 * lock), 0, 1);
+
+  const yaw = carYaw();
+  const error = yaw - Math.round(yaw / QUARTER_TURN) * QUARTER_TURN; // heading relative to the nearest road axis
+  const capture = THREE.MathUtils.degToRad(CONFIG.STEER_ASSIST_CAPTURE_DEG);
+  const inCapture = 1 - THREE.MathUtils.smoothstep(Math.abs(error), capture * 0.7, capture);
+
+  const weight = handsOff * wheelCentred * inCapture;
+  if (weight <= 0) return 0;
+
+  // Yaw rate that would remove the error in TAU seconds, and the front-wheel angle that produces it
+  // (bicycle model: rate = v * tan(angle) / wheelbase), corrected by how the car is actually turning.
+  const wanted = THREE.MathUtils.clamp(-error / CONFIG.STEER_ASSIST_TAU, -0.3, 0.3);
+  const actual = chassisBody.angularVelocity.y;
+  const angle = (WHEELBASE / Math.max(v, 2)) * (1.6 * wanted - 0.6 * actual);
+  return weight * THREE.MathUtils.clamp(angle, -0.1, 0.1);
 }
+
+let wasHardBraking = false;
 
 export function applyVehicleControls(dt) {
   updateWheelAndPedals(dt);
-  if (gameState.wrecked) { immobilize(); return; }
 
   const speedKmh = chassisBody.velocity.length() * 3.6;
 
@@ -221,14 +265,19 @@ export function applyVehicleControls(dt) {
   const hardBraking = speedKmh > 25 && (controlState.handbrake || controlState.brake > 0.6);
   if (hardBraking && !wasHardBraking) playBrakeScreech();
   wasHardBraking = hardBraking;
+  // At speed the wheels turn far less than at a crawl (real steering ratios do the same): a lane change
+  // needs a couple of degrees of heading, which a full lock at 50 km/h overshoots ten times over.
   let steerScale = CONFIG.MAX_STEER;
-  if (CONFIG.STEER_SPEED_FALLOFF) steerScale = CONFIG.MAX_STEER * THREE.MathUtils.clamp(1 - speedKmh / 180, 0.35, 1);
+  if (CONFIG.STEER_SPEED_FALLOFF) {
+    const r = speedKmh / CONFIG.STEER_SPEED_REF_KMH;
+    steerScale = CONFIG.MAX_STEER * THREE.MathUtils.clamp(1 / (1 + r * r), 0.08, 1);
+  }
 
   // Wheel convention: positive wheelAngle = turned clockwise (right). CANNON's
   // setSteeringValue here uses positive = left (see original vehicle wiring), hence the
   // negation.
   const steerNorm = THREE.MathUtils.clamp(controlState.wheelAngle / wheelMaxRad(), -1, 1);
-  const steerVal = -steerNorm * steerScale;
+  const steerVal = -steerNorm * steerScale + steerAssist();
   vehicle.setSteeringValue(steerVal, 0);
   vehicle.setSteeringValue(steerVal, 1);
 

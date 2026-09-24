@@ -2,7 +2,9 @@ import * as THREE from 'three';
 
 export const canvas = document.getElementById('canvas');
 
-export const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+// powerPreference: on a laptop with both an integrated and a dedicated GPU the browser otherwise tends to run WebGL
+// on the integrated one to save power; this asks for the dedicated GPU. No stencil buffer is used anywhere.
+export const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, stencil: false, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;

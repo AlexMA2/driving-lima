@@ -147,21 +147,13 @@ export function checkSpeedBumpRule() {
 
 // ---- Collision detection ----
 // What the chassis ran into decides what it costs:
-//  - a curb / sidewalk: a real crash (speed straight into it above CONFIG.CURB_CRASH_SPEED_KMH)
-//    wrecks the car for good — it stops and can't move again this run. Slower touches are
-//    harmless while driving, but in the parking scenarios even a scrape is a fault.
+//  - a curb / sidewalk: the curb collider doesn't push back (see world/road.js), so the car just
+//    drives up and over it — a real crash (speed straight into it above CONFIG.CURB_CRASH_SPEED_KMH)
+//    is only a ticket. Slower touches are harmless while driving, but in the parking scenarios
+//    even a scrape is a fault.
 //  - a parked car (parking scenarios): any touch is a fault, however gentle.
-//  - other traffic and pedestrians: a fine above a small impact speed.
-export function wreckPlayer() {
-  if (gameState.wrecked) return;
-  gameState.wrecked = true;
-  controlState.throttleTarget = 0;
-  controlState.brakeHeld = false;
-  document.body.classList.add('wrecked');
-  logEvent('WRECKED', { speedKmh: chassisBody.velocity.length() * 3.6 });
-  triggerInfraction('CURB_CRASH');
-}
-
+//  - a pedestrian: a fine only if the car itself is moving (they can't push it, and walking into a stopped car isn't a crash).
+//  - other traffic: a fine above a small impact speed.
 export function setupCollisionListener() {
   chassisBody.addEventListener('collide', (e) => {
     const other = e.body;
@@ -170,10 +162,15 @@ export function setupCollisionListener() {
     const impact = e.contact.getImpactVelocityAlongNormal ? Math.abs(e.contact.getImpactVelocityAlongNormal()) : 1;
 
     if (data.isCurb) {
-      if (impact * 3.6 > CONFIG.CURB_CRASH_SPEED_KMH) { playCrash(impact); wreckPlayer(); }
+      if (impact * 3.6 > CONFIG.CURB_CRASH_SPEED_KMH) { playCrash(impact); triggerInfraction('CURB_CRASH'); }
       else if (scenarioLayout === 'parking' && !data.touchOk && impact > 0.1) triggerInfraction('PARK_CURB');
     } else if (data.isParked) {
       if (impact > 0.1) { playCrash(impact); triggerInfraction('PARK_CAR'); }
+    } else if (data.type === 'pedestrian') {
+      // Pedestrians never push a car (see entities/pedestrians.js), and one that walks into a stopped or crawling car
+      // is not the driver's crash: only a car that is really moving runs somebody over.
+      const speed = chassisBody.velocity.length();
+      if (speed > 1) { data.onHit?.(); triggerInfraction('COLLISION'); playCrash(Math.max(impact, speed)); }
     } else if (data.isPenalized) {
       if (impact > 0.8) { triggerInfraction('COLLISION'); playCrash(impact); }
     }

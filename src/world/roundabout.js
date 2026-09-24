@@ -186,6 +186,8 @@ function annulus(rIn, rOut, yBottom, yTop, color, theta0, theta1, opts = {}) {
 }
 
 // Curved wall of tangent boxes standing on an arc — the cheap way to give a curb a real collider.
+// No collision response (see world/road.js's curbBody comment): it only detects the hit for the
+// ticket in systems/rules.js, the car drives up and over it.
 function arcCurbColliders(radius, thickness, theta0, theta1) {
   const steps = Math.max(1, Math.ceil((theta1 - theta0) / 0.16));
   const dTheta = (theta1 - theta0) / steps;
@@ -197,6 +199,7 @@ function arcCurbColliders(radius, thickness, theta0, theta1) {
     body.position.set(RB.cx + radius * Math.cos(th), 0.05, RB.cz + radius * Math.sin(th));
     body.quaternion.setFromEuler(0, -th - Math.PI / 2, 0);
     body.userData = { isPenalized: false, isStatic: true, isCurb: true };
+    body.collisionResponse = false;
     world.addBody(body);
   }
 }
@@ -326,7 +329,8 @@ export function buildRoundabout(scenario, { cx = 0, cz = 0, ground = true, build
   ARMS.forEach(buildApron);
   ARMS.forEach(buildArmFurniture);
 
-  // outer sidewalk between arms, with tall collider walls so the ring can't be left off-road
+  // outer sidewalk between arms; a curb collider still marks the edge for the ticket in
+  // systems/rules.js, but the car simply drives over it rather than being walled in
   const gap = Math.asin(MOUTH_HALF / (RB.outerR + CONFIG.SIDEWALK_WIDTH / 2));
   const sectors = [[-Math.PI, -Math.PI / 2], [-Math.PI / 2, 0], [0, Math.PI / 2], [Math.PI / 2, Math.PI]]; // between neighbouring arms
   sectors.forEach(([a0, a1]) => {

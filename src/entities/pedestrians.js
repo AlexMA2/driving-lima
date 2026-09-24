@@ -47,8 +47,12 @@ export function spawnPedestrian(crosswalk, dir = choice([-1, 1]), speed = rand(1
   const mesh = buildPedestrian(choice(SHIRTS));
   scene.add(mesh);
 
+  // A kinematic body has infinite mass: with normal contact response a pedestrian strolling into the side of a
+  // stopped car would shove it across the road, and a car that hit one would stop dead as against a wall. So the
+  // pedestrian only *reports* touches (systems/rules.js decides whether they cost a fine) and never pushes.
   const body = new CANNON.Body({ mass: 0, type: CANNON.Body.KINEMATIC, material: propMaterial });
   body.addShape(new CANNON.Box(new CANNON.Vec3(0.2, 0.65, 0.2)));
+  body.collisionResponse = false;
   body.userData = { isPenalized: true, type: 'pedestrian' };
   world.addBody(body);
 
@@ -62,8 +66,21 @@ export function spawnPedestrian(crosswalk, dir = choice([-1, 1]), speed = rand(1
   worldPos(p, p.pos);
   mesh.position.copy(p.pos);
   body.position.set(p.pos.x, 0.65, p.pos.z);
+  body.userData.onHit = () => knockDown(p);
   pedestrianPool.push(p);
   return p;
+}
+
+const DOWN_SECONDS = 6; // how long a pedestrian who was run over stays on the road
+
+// A car ran into this pedestrian: they stop walking and lie where they fell for a few seconds.
+function knockDown(p) {
+  if (p.hit) return;
+  p.hit = true;
+  p.hitTimer = DOWN_SECONDS;
+  p.body.velocity.set(0, 0, 0);
+  p.mesh.rotation.x = -Math.PI / 2;
+  p.mesh.position.y = 0.15;
 }
 
 function spawnIfNeeded(dt) {
@@ -91,6 +108,12 @@ export function updatePedestrians(dt) {
 
   for (let i = pedestrianPool.length - 1; i >= 0; i--) {
     const p = pedestrianPool[i];
+    if (p.hit) {
+      p.hitTimer -= dt;
+      if (p.cw && p.onRoad) p.cw.pedsOnRoad++; // traffic still stops for someone lying on the crossing
+      if (p.hitTimer <= 0 || pl.distanceTo(p.pos) > 250) { removeBody(p); pedestrianPool.splice(i, 1); }
+      continue;
+    }
     const prev = p.pos.clone();
     p.u += p.dir * p.speed * dt;
     worldPos(p, p.pos);

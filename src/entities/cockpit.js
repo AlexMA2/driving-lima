@@ -250,7 +250,7 @@ export function buildCockpit() {
   return g;
 }
 
-// state: { dt, wheelAngle, signalLeft, signalRight, blink, speedKmh, forwardMs, throttle, brakeHeld, handbrake, wrecked }
+// state: { dt, wheelAngle, signalLeft, signalRight, blink, speedKmh, forwardMs, throttle, brakeHeld, handbrake }
 export function updateCockpit(state) {
   // Positive rotation.z is CCW as seen by the camera looking down -Z, but a positive
   // wheelAngle means "turned right" (see systems/input.js) — negate so the on-screen

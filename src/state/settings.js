@@ -95,6 +95,10 @@ export const PERFORMANCE_FIELDS = [
     default: 100, help: 'Bajarla es lo que más FPS gana en equipos modestos.',
   },
   {
+    key: 'adaptiveResolution', section: 'Imagen', type: 'toggle', label: 'Resolución adaptable', default: true,
+    help: 'Si los FPS caen, baja la resolución sola (hasta la mitad) y la recupera cuando el equipo se desahoga. Nunca supera la resolución elegida arriba.',
+  },
+  {
     key: 'viewDistance', section: 'Imagen', type: 'choice', label: 'Distancia de visión',
     options: [{ value: 140, label: 'Corta' }, { value: 200, label: 'Media' }, { value: 260, label: 'Larga' }], default: 260,
     help: 'Todo lo que queda más allá se deja de dibujar.',
@@ -148,6 +152,8 @@ export const CONTROL_FIELDS = [
   { key: 'WHEEL_FOLLOW_RATE', section: 'Volante', type: 'range', label: 'Respuesta del volante', min: 4, max: 30, step: 1, unit: '', help: 'Qué tan rápido el volante sigue al mouse o al teclado.' },
   { key: 'WHEEL_RETURN_RATE', section: 'Volante', type: 'range', label: 'Autocentrado', min: 1, max: 12, step: 0.5, unit: '', help: 'Qué tan rápido vuelve al centro al soltarlo.' },
   { key: 'KEYBOARD_STEER_FRACTION', section: 'Volante', type: 'range', label: 'Giro con teclado (A / D)', min: 0.2, max: 1, step: 0.05, unit: '', format: v => Math.round(v * 100) + '%', help: 'Porcentaje del giro total al que llegan las teclas.' },
+  { key: 'KEYBOARD_STEER_RATE', section: 'Volante', type: 'range', label: 'Velocidad del giro con teclado', min: 0.6, max: 4, step: 0.1, unit: '', format: v => v.toFixed(1) + ' /s', help: 'Qué tan rápido gira el volante mientras mantienes A / D. Más bajo = correcciones más finas.' },
+  { key: 'STEER_ASSIST', section: 'Volante', type: 'toggle', label: 'Asistente de alineación', help: 'Al soltar el volante, el auto se endereza solo y queda paralelo a la vía (útil tras un cambio de carril).' },
   { key: 'STEER_SPEED_FALLOFF', section: 'Volante', type: 'toggle', label: 'Volante más duro a alta velocidad', help: 'Reduce el giro de las ruedas al ir rápido, para mayor estabilidad.' },
 
   { key: 'ENGINE_FORCE', section: 'Motor', type: 'range', label: 'Fuerza del motor', min: 200, max: 900, step: 10, unit: '', help: 'Más fuerza, más aceleración.' },

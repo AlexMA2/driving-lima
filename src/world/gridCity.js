@@ -38,7 +38,7 @@ function buildIntersection(x, z) {
   const ewStop1 = box(0.3, 0.02, ROAD_HALF_WIDTH_GRID, 0xffffff); ewStop1.position.set(x - gapHalf + 0.5, stopY, z + ROAD_HALF_WIDTH_GRID / 2); scene.add(ewStop1);
   const ewStop2 = box(0.3, 0.02, ROAD_HALF_WIDTH_GRID, 0xffffff); ewStop2.position.set(x + gapHalf - 0.5, stopY, z - ROAD_HALF_WIDTH_GRID / 2); scene.add(ewStop2);
 
-  const poleNS = buildTrafficLightPole();
+  const poleNS = buildTrafficLightPole(true);
   poleNS.position.set(x + gapHalf - 0.3, 0, z + gapHalf - 0.3);
   poleNS.rotation.y = Math.PI;
   scene.add(poleNS);
@@ -146,9 +146,10 @@ function spawnGridAi() {
   const isBadDriver = profile === 'bad';
 
   let mesh, speed, half;
-  if (type === 'combi') { mesh = buildCombi(0x2266aa); speed = rand(5, 8); half = new CANNON.Vec3(1.05, 0.85, 2.8); }
-  else if (type === 'mototaxi') { mesh = buildMototaxi(choice([0xffcc00, 0x43a047, 0x1e88e5])); speed = rand(4, 6); half = new CANNON.Vec3(0.65, 0.6, 1.1); }
-  else { mesh = buildSedan(choice(CAR_COLORS)); speed = rand(6, 10); half = new CANNON.Vec3(0.95, 0.55, 2.2); }
+  const opts = { bakeWheels: true }; // traffic never spins its wheels (see assets/vehicles.js)
+  if (type === 'combi') { mesh = buildCombi(0x2266aa, opts); speed = rand(5, 8); half = new CANNON.Vec3(1.05, 0.85, 2.8); }
+  else if (type === 'mototaxi') { mesh = buildMototaxi(choice([0xffcc00, 0x43a047, 0x1e88e5]), opts); speed = rand(4, 6); half = new CANNON.Vec3(0.65, 0.6, 1.1); }
+  else { mesh = buildSedan(choice(CAR_COLORS), opts); speed = rand(6, 10); half = new CANNON.Vec3(0.95, 0.55, 2.2); }
 
   const along = rand(street.lo + 15, street.hi - 15);
   // Right-hand-traffic convention: on a Z-street the -Z (south-bound) lane sits on +X; on an

@@ -22,9 +22,11 @@ const SPECS = {
 export function createTrafficVehicle(type) {
   const spec = SPECS[type];
   let mesh;
-  if (type === 'combi') mesh = buildCombi(0x2266aa);
-  else if (type === 'mototaxi') mesh = buildMototaxi(choice([0xffcc00, 0x43a047, 0x1e88e5]));
-  else mesh = buildSedan(choice(CAR_COLORS));
+  // traffic never spins its wheels, so they are baked into the body mesh (see assets/vehicles.js)
+  const opts = { bakeWheels: true };
+  if (type === 'combi') mesh = buildCombi(0x2266aa, opts);
+  else if (type === 'mototaxi') mesh = buildMototaxi(choice([0xffcc00, 0x43a047, 0x1e88e5]), opts);
+  else mesh = buildSedan(choice(CAR_COLORS), opts);
 
   const half = new CANNON.Vec3(...spec.half);
   const body = new CANNON.Body({ mass: 0, type: CANNON.Body.KINEMATIC, material: propMaterial });

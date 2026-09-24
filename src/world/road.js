@@ -112,22 +112,22 @@ export function buildRoad(scenario) {
   asphalt.receiveShadow = true;
   scene.add(asphalt);
 
-  // Sidewalks (+ curb collision so the player can't drive onto them, but isn't penalized for it)
+  // Sidewalks (+ a curb collider to detect driving onto them — see the ticket logic below)
   [-1, 1].forEach(side => {
     const sw = box(CONFIG.SIDEWALK_WIDTH, 0.18, roadLength, 0xb9b6ad);
     sw.position.set(side * (ROAD_HALF_WIDTH + CONFIG.SIDEWALK_WIDTH / 2), 0.05, -roadLength / 2);
     sw.receiveShadow = true;
     scene.add(sw);
 
-    // The collision box is deliberately much taller than the visible curb (which is only
-    // 0.18 high) and taller than the car itself: a curb-height collider sits right around
-    // the chassis's own ground clearance, so the chassis box can tip and rest partly on top
-    // of it instead of being stopped by it — leaving the car "high-centered" with its wheels
-    // off the ground and no traction. A tall collider always behaves like a plain wall.
+    // The collision box exists only to detect the hit for systems/rules.js's ticket, not to
+    // block movement: collisionResponse is off, so the chassis just drives up and over the curb
+    // (a real wall here used to either stop the car dead or, with a curb-height collider, tip
+    // and "high-center" it with its wheels off the ground and no traction).
     const curbBody = new CANNON.Body({ mass: 0, material: propMaterial });
     curbBody.addShape(new CANNON.Box(new CANNON.Vec3(CONFIG.SIDEWALK_WIDTH / 2, 1, roadLength / 2)));
     curbBody.position.set(side * (ROAD_HALF_WIDTH + CONFIG.SIDEWALK_WIDTH / 2), 0.05, -roadLength / 2);
     curbBody.userData = { isPenalized: false, isStatic: true, isCurb: true };
+    curbBody.collisionResponse = false;
     world.addBody(curbBody);
   });
 

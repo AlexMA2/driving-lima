@@ -12,6 +12,12 @@ export const CONFIG = {
   HANDBRAKE_FORCE: 60,
   MAX_STEER: 0.55,
   STEER_SPEED_FALLOFF: true,  // reduce steering angle at high speed for stability
+  STEER_SPEED_REF_KMH: 30,    // the wheels' lock is halved at this speed (1 / (1 + (v / ref)^2)), so a tap at 50 km/h is a nudge, not a swerve
+
+  // ---- Steering assist: once the wheel is let go, the car settles parallel to the road ----
+  STEER_ASSIST: true,         // false = the car keeps whatever heading it was left with, like a bare simulator
+  STEER_ASSIST_TAU: 1.2,      // seconds the assist takes to remove a heading error (smaller = firmer)
+  STEER_ASSIST_CAPTURE_DEG: 20, // only heading errors up to this are straightened; more than that is a turn, not a drift
 
   // ---- Rule thresholds ----
   URBAN_SPEED_LIMIT: 50,      // km/h  (M20)
@@ -52,9 +58,10 @@ export const CONFIG = {
   CRAWL_HOLD_KMH: 4,            // below this, with no throttle/brake/handbrake, the car settles instead of coasting on
   ENGINE_BRAKE: 0.15,           // fraction of BRAKE_FORCE applied when coasting with no throttle, brake or handbrake
   KEYBOARD_STEER_FRACTION: 1,   // how much of the wheel's lock A/D turn to (1 = full lock)
+  KEYBOARD_STEER_RATE: 1.6,     // lock fractions per second the wheel is turned while A/D is held (a tap is a small correction)
 
   // ---- Crashes ----
-  CURB_CRASH_SPEED_KMH: 8,      // hitting a curb/sidewalk faster than this (speed straight into it) wrecks the car for good
+  CURB_CRASH_SPEED_KMH: 8,      // hitting a curb/sidewalk faster than this (speed straight into it) draws a ticket
 };
 
 // Parking exercises: gap between the two parked cars (parallel, metres, bumper to bumper) and
@@ -80,7 +87,7 @@ export const PENALTIES = {
   STOP_SIGN: { fine: 20, label: 'No respetó la señal de PARE' },
   RB_YIELD: { fine: 20, label: 'Rotonda: no cediste el paso' },
   RB_SIGNAL: { fine: 10, label: 'Rotonda: salida sin señalizar' },
-  CURB_CRASH: { fine: 25, label: 'Choque contra la vereda: auto inmovilizado' },
+  CURB_CRASH: { fine: 25, label: 'Choque contra la vereda' },
   PARK_CAR: { fine: 25, label: 'Estacionamiento: tocaste un auto' },
   PARK_CURB: { fine: 10, label: 'Estacionamiento: rozaste la vereda' },
   PARK_SIGNAL: { fine: 10, label: 'Estacionamiento: maniobra sin señalizar' },

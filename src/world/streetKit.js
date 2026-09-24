@@ -95,9 +95,8 @@ export function buildStreet(orientation, fixed, lo, hi, laneCountPerSide, crossi
       sw.receiveShadow = true;
       scene.add(sw);
 
-      // Tall on purpose (see world/road.js's curbBody comment): a collider only as tall as
-      // the visible curb sits near the chassis's own ground clearance, letting the car tip
-      // and get high-centered on it instead of being stopped like a wall.
+      // No collision response (see world/road.js's curbBody comment): this only exists to
+      // detect the hit for the ticket in systems/rules.js, the car drives up and over it.
       const curbBody = new CANNON.Body({ mass: 0, material: propMaterial });
       const half = orientation === 'z'
         ? new CANNON.Vec3(CONFIG.SIDEWALK_WIDTH / 2, 1, len / 2)
@@ -105,6 +104,7 @@ export function buildStreet(orientation, fixed, lo, hi, laneCountPerSide, crossi
       curbBody.addShape(new CANNON.Box(half));
       if (orientation === 'z') curbBody.position.set(fixed + off, 0.05, mid); else curbBody.position.set(mid, 0.05, fixed + off);
       curbBody.userData = { isPenalized: false, isStatic: true, isCurb: true };
+      curbBody.collisionResponse = false;
       world.addBody(curbBody);
     });
   });

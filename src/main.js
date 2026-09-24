@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import './style.css';
 
 import { renderer, camera } from './core/renderer.js';
+import { batchStatic } from './core/batching.js';
 import { scene, updateSun } from './core/scene.js';
 import { world } from './core/physics.js';
 
@@ -13,7 +14,7 @@ import { buildDecorations } from './world/decorations.js';
 import { buildSpeedBumps } from './world/speedBumps.js';
 import { buildLineCrosswalks } from './world/lineCrosswalks.js';
 import { buildGridCity, updateGridTrafficLights, updateGridAi, checkGridRedLight } from './world/gridCity.js';
-import { buildRoundabout } from './world/roundabout.js';
+import { buildRoundabout, RB } from './world/roundabout.js';
 import { buildTutorialCourse } from './world/tutorialCourse.js';
 import { buildParkingLot } from './world/parkingLot.js';
 
@@ -25,7 +26,7 @@ import { initRoundaboutAi, updateRoundaboutAi } from './entities/roundaboutAi.js
 import { updatePedestrians, initPedestrians } from './entities/pedestrians.js';
 import { buildCockpit, updateCockpit } from './entities/cockpit.js';
 
-import { controlState, initInput, applyVehicleControls } from './systems/input.js';
+import { controlState, initInput, initSteerAssist, applyVehicleControls } from './systems/input.js';
 import {
   initRules,
   setupCollisionListener,
@@ -83,6 +84,10 @@ function buildWorld(scenarioId) {
     spawn = { x: PLAYER_LANES[0], y: 1.2, z: WORLD_Z_START - 30, rotY: 0 };
   }
 
+  // Everything built so far is scenery that never changes: weld what looks alike into far fewer draw calls.
+  // Chunked per area so the far end of a long street is still culled while it is out of view.
+  batchStatic(scene, { cell: 96 });
+
   createPlayer(spawn);
   initPedestrians(scenario);
   if (scenario.layout === 'roundabout') initRoundaboutAi(scenario); // after the player exists so spawns keep clear of it
@@ -94,6 +99,7 @@ function buildWorld(scenarioId) {
   if (scenario.layout === 'parking') initParking(scenario, { onDone: () => endGame('¡ESTACIONADO!') });
   buildCockpit();
   initInput();
+  initSteerAssist(steerAssistZone(scenario));
   initAudio();
   initRules(scenario);
   setupCollisionListener();
@@ -103,6 +109,14 @@ function buildWorld(scenarioId) {
   } else if (scenario.layout === 'roundabout') {
     showToast('Rotondas', 'Cede el paso a quien ya circula y señaliza tu salida a la derecha.');
   }
+}
+
+// Where the steering assist may straighten the car: the layouts made of straight roads along the world axes.
+// The tutorial also has a roundabout, which the assist keeps out of; roundabout and parking have no such roads.
+function steerAssistZone(sc) {
+  if (sc.layout === 'line' || sc.layout === 'grid') return () => true;
+  if (sc.layout === 'tutorial') return (p) => Math.hypot(p.x - RB.cx, p.z - RB.cz) > RB.outerR + 30;
+  return () => false;
 }
 
 function endGame(title) {
@@ -175,9 +189,9 @@ function animate() {
     signalLeft: controlState.signalLeft, signalRight: controlState.signalRight, blink,
     speedKmh, forwardMs: forwardSpeed(),
     throttle: controlState.throttle, brakeHeld: controlState.brakeHeld,
-    handbrake: controlState.handbrake, wrecked: gameState.wrecked,
+    handbrake: controlState.handbrake,
   });
-  updateEngineSound(speedKmh, controlState.throttle, gameState.wrecked);
+  updateEngineSound(speedKmh, controlState.throttle);
 
   // ---- main viewport ----
   // The sun's shadow map is drawn only here (autoUpdate is off, see core/renderer.js): the mirror
@@ -205,7 +219,7 @@ function startGame(scenarioId) {
   applyPerformance(getPerformance());
   buildWorld(scenarioId);
   refreshMaterials();
-  refreshKbds(); // key caps in the static markup (wreck banner) follow the saved bindings
+  refreshKbds(); // key caps in the static markup follow the saved bindings
   layoutMirrors();
   gameState.duration = scenario.duration;
   gameState.timeLeft = scenario.duration;

@@ -6,7 +6,6 @@ export const gameState = {
   gameOver: false,
   duration: CONFIG.DEFAULT_GAME_DURATION,  // seconds, set from the home screen's picker
   timeLeft: CONFIG.DEFAULT_GAME_DURATION,
-  wrecked: false,      // the car hit a curb hard: it is stuck for the rest of the run (see systems/rules.js)
   elapsed: 0,          // seconds played, counted in every scenario (untimed ones have no countdown)
   infractionCounts: {}, // PENALTIES code -> number of times triggered this run (see systems/rules.js)
 };

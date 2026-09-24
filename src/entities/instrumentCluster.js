@@ -179,16 +179,15 @@ export function createCluster() {
   let lastKey = '';
   let sincePaint = REPAINT_INTERVAL;
 
-  // data: { dt, speedKmh, forwardMs, throttle, brakeHeld, handbrake, wrecked, signalLeft, signalRight, blink }
+  // data: { dt, speedKmh, forwardMs, throttle, brakeHeld, handbrake, signalLeft, signalRight, blink }
   function update(d) {
     const dt = Math.min(d.dt || 0.016, 0.1);
     odometer += (d.speedKmh / 3600) * dt;
 
-    const reversing = d.forwardMs < -0.25 || (d.brakeHeld && d.speedKmh < 3 && d.throttle <= 0 && !d.wrecked);
+    const reversing = d.forwardMs < -0.25 || (d.brakeHeld && d.speedKmh < 3 && d.throttle <= 0);
     const moving = d.speedKmh > 1;
     let targetRpm;
-    if (d.wrecked) targetRpm = 0;
-    else if (reversing) targetRpm = Math.max(IDLE_RPM, d.speedKmh * REVERSE_RATIO) + d.throttle * 300;
+    if (reversing) targetRpm = Math.max(IDLE_RPM, d.speedKmh * REVERSE_RATIO) + d.throttle * 300;
     else {
       // pick the gear by the rpm it would give, with hysteresis between shift points
       while (gear < 5 && d.speedKmh * GEAR_RATIO[gear] > UPSHIFT_RPM) gear++;
@@ -200,10 +199,10 @@ export function createCluster() {
     needleRpm += (targetRpm - needleRpm) * k;
     needleSpeed += (d.speedKmh - needleSpeed) * (1 - Math.exp(-14 * dt));
 
-    const shownGear = d.wrecked ? 'P' : d.handbrake && !moving ? 'P' : reversing ? 'R' : 'D';
+    const shownGear = d.handbrake && !moving ? 'P' : reversing ? 'R' : 'D';
     const arrowL = d.signalLeft && d.blink, arrowR = d.signalRight && d.blink;
     const key = [Math.round(needleSpeed * 2), Math.round(needleRpm / 25), Math.round(d.speedKmh), shownGear, arrowL, arrowR,
-      d.handbrake, d.wrecked, Math.floor(odometer)].join('|');
+      d.handbrake, Math.floor(odometer)].join('|');
     sincePaint += dt;
     if (key === lastKey || sincePaint < REPAINT_INTERVAL) return;
     lastKey = key;
@@ -235,14 +234,14 @@ export function createCluster() {
     ctx.font = `600 22px ${FONT}`; ctx.fillStyle = '#c3c9d1';
     ctx.fillText(`${Math.floor(odometer).toLocaleString('en-US').replace(/,/g, ' ')} km`, 512, 274);
 
-    lamp(ctx, 400, 292, d.handbrake || d.wrecked, '#ff3b30', drawHandbrake);
+    lamp(ctx, 400, 292, d.handbrake, '#ff3b30', drawHandbrake);
     lamp(ctx, 462, 292, false, '#ff3b30', drawSeatbelt);
-    lamp(ctx, 562, 292, d.wrecked, '#ffb300', drawEngine);
-    lamp(ctx, 624, 292, !d.wrecked, '#3cff6b', drawLowBeam);
+    lamp(ctx, 562, 292, false, '#ffb300', drawEngine);
+    lamp(ctx, 624, 292, true, '#3cff6b', drawLowBeam);
 
     texture.needsUpdate = true;
   }
 
-  update({ dt: 0.016, speedKmh: 0, forwardMs: 0, throttle: 0, brakeHeld: false, handbrake: false, wrecked: false, signalLeft: false, signalRight: false, blink: false });
+  update({ dt: 0.016, speedKmh: 0, forwardMs: 0, throttle: 0, brakeHeld: false, handbrake: false, signalLeft: false, signalRight: false, blink: false });
   return { mesh, update };
 }

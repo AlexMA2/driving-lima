@@ -345,20 +345,3 @@ body.untimed #timerRow { display: none; }
 #homeBtn:hover { background: rgba(255,255,255,0.2); }
 #restartBtn { background: linear-gradient(135deg,#2196f3,#1565c0); }
 #restartBtn:hover { filter: brightness(1.1); }
-
-/* ---- Wrecked car ---- */
-#wreckBanner {
-  display: none; position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%);
-  flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 18px 30px;
-  background: rgba(40,8,8,0.86); border: 2px solid #ff5252; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-  animation: wreckIn .3s ease-out;
-}
-body.wrecked #wreckBanner { display: flex; }
-#wreckBanner b { font-size: 26px; letter-spacing: 2px; color: #ff5252; }
-#wreckBanner span { font-size: 15px; }
-#wreckBanner small { font-size: 13px; opacity: .85; }
-#wreckBanner kbd {
-  display: inline-block; min-width: 22px; padding: 1px 7px; margin: 0 1px; border-radius: 5px; font-family: inherit; font-size: 12px; font-weight: 800;
-  background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.35); border-bottom-width: 2px;
-}
-@keyframes wreckIn { from { opacity: 0; transform: translate(-50%, -46%); } to { opacity: 1; transform: translate(-50%, -50%); } }

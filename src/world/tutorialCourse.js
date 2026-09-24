@@ -95,7 +95,7 @@ export function buildTutorialCourse() {
   // traffic light + stop line for the north-bound lanes at the T-junction
   const stopLine = box(7, 0.02, 0.35, 0xffffff); stopLine.position.set(3.5, 0.113, light.stopZ + 0.6);
   scene.add(stopLine);
-  const pole = buildTrafficLightPole();
+  const pole = buildTrafficLightPole(true);
   pole.position.set(7.3, 0, light.stopZ + 1.1);
   pole.rotation.y = Math.PI;
   scene.add(pole);

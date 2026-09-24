@@ -29,8 +29,8 @@ const LINE_Y = 0.105; // just above the asphalt's top face (see world/road.js)
 const PAINT = 0xf2f2f2;
 const PARKED_COLORS = [0xcc2b2b, 0x2e7d32, 0x455a64, 0xf9a825, 0x6a1b9a, 0xe0e0e0, 0x212121, 0x8d6e63, 0x00838f, 0xb71c1c];
 
-// Streets here are a stretch of asphalt with tall curb colliders on the sides — the same idea as
-// world/road.js and streetKit.js (see the comment there on why a curb collider is so tall).
+// Streets here are a stretch of asphalt with curb colliders on the sides — the same idea as
+// world/road.js and streetKit.js (see the comment there: they only detect the hit, not block it).
 function slab(x0, x1, z0, z1, color, y, height) {
   const m = box(x1 - x0, height, Math.abs(z1 - z0), color, { roughness: 1 });
   m.position.set((x0 + x1) / 2, y, (z0 + z1) / 2);
@@ -45,6 +45,10 @@ function kerb(x0, x1, z0, z1, { touchOk = false } = {}) {
   body.addShape(new CANNON.Box(new CANNON.Vec3((x1 - x0) / 2, 1, Math.abs(z1 - z0) / 2)));
   body.position.set((x0 + x1) / 2, 0.05, (z0 + z1) / 2);
   body.userData = { isPenalized: false, isStatic: true, isCurb: true, touchOk };
+  // No collision response: this still fires 'collide' events for the ticket in systems/rules.js,
+  // but doesn't physically block the chassis — the car drives up and over the curb instead of
+  // stopping dead against it.
+  body.collisionResponse = false;
   world.addBody(body);
 }
 

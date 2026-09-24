@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { box, cyl } from './primitives.js';
+import { weldMeshes, batchStatic } from '../core/batching.js';
 
 // Mesh.clone() shares the material, which would make a left lamp light up together with its
 // right-hand twin. Every indicator lamp gets its own material so each side blinks independently.
@@ -7,6 +8,32 @@ function cloneLamp(lamp) {
   const copy = lamp.clone();
   copy.material = lamp.material.clone();
   return copy;
+}
+
+// Welds a finished vehicle's parts into a few meshes (see core/batching.js): one car drops from ~20 draw calls
+// to ~10. Lamps that blink together (both tail lights, the two indicators of one side) become one mesh each and
+// stay in userData, so the code that drives them is unchanged. The wheels stay separate for the player's car, whose
+// wheels are moved by the physics; traffic never spins them, so theirs are baked into the body (`bakeWheels`).
+function finishVehicle(g, { bakeWheels = false } = {}) {
+  const u = g.userData;
+  const lamps = new Set();
+  const weldPair = (list) => {
+    if (list.length < 2) { list.forEach(l => lamps.add(l)); return list; }
+    const merged = weldMeshes(list, g);
+    lamps.add(merged);
+    return [merged];
+  };
+  u.tailLights = weldPair(u.tailLights);
+  u.indicators = { left: weldPair(u.indicators.left), right: weldPair(u.indicators.right) };
+
+  const protect = new Set(lamps);
+  if (!bakeWheels) u.wheels.forEach(w => protect.add(w));
+  batchStatic(g, { protect });
+  if (bakeWheels) {
+    u.wheels.forEach(w => g.remove(w)); // now empty groups
+    u.wheels = [];
+  }
+  return g;
 }
 
 export function buildWheelMesh() {
@@ -20,7 +47,7 @@ export function buildWheelMesh() {
 }
 
 // ---- Sedan (player + generic AI car) ----
-export function buildSedan(color = 0xcc2b2b) {
+export function buildSedan(color = 0xcc2b2b, opts) {
   const g = new THREE.Group();
   const body = box(1.9, 0.55, 4.3, color);
   body.position.y = 0.55;
@@ -53,11 +80,11 @@ export function buildSedan(color = 0xcc2b2b) {
   const wp = [[-0.95, 0.4, -1.4], [0.95, 0.4, -1.4], [-0.95, 0.4, 1.35], [0.95, 0.4, 1.35]];
   wp.forEach(p => { const w = buildWheelMesh(); w.position.set(...p); g.add(w); wheels.push(w); });
   g.userData.wheels = wheels;
-  return g;
+  return finishVehicle(g, opts);
 }
 
 // ---- Mototaxi (3-wheeled) ----
-export function buildMototaxi(color = 0xffcc00) {
+export function buildMototaxi(color = 0xffcc00, opts) {
   const g = new THREE.Group();
   const rearCabin = box(1.35, 1.1, 1.5, color);
   rearCabin.position.set(0, 0.85, 0.55);
@@ -86,11 +113,11 @@ export function buildMototaxi(color = 0xffcc00) {
   g.add(frontWheel, rl, rr);
   wheels.push(frontWheel, rl, rr);
   g.userData.wheels = wheels;
-  return g;
+  return finishVehicle(g, opts);
 }
 
 // ---- Combi van (public transit) ----
-export function buildCombi(color = 0x2266aa) {
+export function buildCombi(color = 0x2266aa, opts) {
   const g = new THREE.Group();
   const body = box(2.1, 1.7, 5.6, color);
   body.position.y = 1.05;
@@ -121,5 +148,5 @@ export function buildCombi(color = 0x2266aa) {
   const wp = [[-1.05, 0.42, -1.8], [1.05, 0.42, -1.8], [-1.05, 0.42, 1.9], [1.05, 0.42, 1.9]];
   wp.forEach(p => { const w = buildWheelMesh(); w.scale.set(1.1, 1.1, 1.1); w.position.set(...p); g.add(w); wheels.push(w); });
   g.userData.wheels = wheels;
-  return g;
+  return finishVehicle(g, opts);
 }

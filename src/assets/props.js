@@ -24,15 +24,22 @@ export function buildSpeedBump(width) {
   return g;
 }
 
-export function buildTrafficLightPole() {
+// flipFacing: callers that swing the arm to the road's other side with `rotation.y = Math.PI`
+// also flip which world direction the lamp housing's open face ends up pointing (a 180° turn
+// negates both the arm's and the lamps' local offsets), which turns the lamps to face away from
+// the approaching driver — invisible, hidden behind the opaque housing. Pass true in that case so
+// the lamps are built on the housing's other local side and come out facing the right way after
+// the rotation. Callers that reorient with a different angle (e.g. -90°) don't need it.
+export function buildTrafficLightPole(flipFacing = false) {
   const g = new THREE.Group();
   const pole = cyl(0.09, 0.09, 4.2, 0x333333, 8); pole.position.y = 2.1;
   const arm = box(2.6, 0.1, 0.1, 0x333333); arm.position.set(1.3, 4.1, 0);
   const housing = box(0.4, 1.05, 0.4, 0x151515); housing.position.set(2.5, 3.6, 0);
+  const faceZ = flipFacing ? -0.21 : 0.21;
   const red = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 10), new THREE.MeshStandardMaterial({ color: 0x550000, emissive: 0x000000 }));
-  red.position.set(2.5, 3.95, 0.21);
-  const yellow = red.clone(); yellow.material = yellow.material.clone(); yellow.material.color.set(0x554400); yellow.position.set(2.5, 3.6, 0.21);
-  const green = red.clone(); green.material = green.material.clone(); green.material.color.set(0x004d00); green.position.set(2.5, 3.25, 0.21);
+  red.position.set(2.5, 3.95, faceZ);
+  const yellow = red.clone(); yellow.material = yellow.material.clone(); yellow.material.color.set(0x554400); yellow.position.set(2.5, 3.6, faceZ);
+  const green = red.clone(); green.material = green.material.clone(); green.material.color.set(0x004d00); green.position.set(2.5, 3.25, faceZ);
   g.add(pole, arm, housing, red, yellow, green);
   g.userData.lights = { red, yellow, green };
   return g;

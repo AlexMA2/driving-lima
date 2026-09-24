@@ -26,7 +26,7 @@ export function buildIntersections() {
     stopLine.position.set(ROAD_HALF_WIDTH / 2, 0.115, inter.z + 6);
     scene.add(stopLine);
 
-    const pole = buildTrafficLightPole();
+    const pole = buildTrafficLightPole(true);
     pole.position.set(ROAD_HALF_WIDTH + 0.3, 0, inter.z + 6.5);
     pole.rotation.y = Math.PI;
     scene.add(pole);
