@@ -3,7 +3,8 @@ import * as THREE from 'three';
 // The instrument cluster behind the steering wheel: a tachometer, a speedometer and a
 // multi-info display between them (digital speed, turn-signal arrows, gear, warning lamps),
 // painted on a canvas that is used as a texture on a plane in the cockpit. The dial faces are
-// drawn once; every update only repaints the needles/readouts, and only when something changed.
+// drawn once; every update only repaints the needles/readouts, and only when something changed
+// (at most 30 times a second: a repaint plus texture upload is not free, and the eye can't tell).
 
 const W = 1024, H = 320;
 export const CLUSTER_SIZE = { w: 0.62, h: 0.194 };
@@ -19,6 +20,7 @@ const GEAR_RATIO = [0, 112, 66, 46, 35, 28];
 const UPSHIFT_RPM = 3300;
 const DOWNSHIFT_RPM = 1450;
 const REVERSE_RATIO = 105;
+const REPAINT_INTERVAL = 1 / 30;
 
 const FONT = '"Segoe UI", "Helvetica Neue", Arial, sans-serif';
 const angleOf = (dial, value) => SWEEP_FROM + Math.min(Math.max(value / dial.max, 0), 1) * SWEEP;
@@ -175,6 +177,7 @@ export function createCluster() {
   let odometer = 48213.4;   // km
   let needleSpeed = 0, needleRpm = IDLE_RPM;
   let lastKey = '';
+  let sincePaint = REPAINT_INTERVAL;
 
   // data: { dt, speedKmh, forwardMs, throttle, brakeHeld, handbrake, wrecked, signalLeft, signalRight, blink }
   function update(d) {
@@ -201,8 +204,10 @@ export function createCluster() {
     const arrowL = d.signalLeft && d.blink, arrowR = d.signalRight && d.blink;
     const key = [Math.round(needleSpeed * 2), Math.round(needleRpm / 25), Math.round(d.speedKmh), shownGear, arrowL, arrowR,
       d.handbrake, d.wrecked, Math.floor(odometer)].join('|');
-    if (key === lastKey) return;
+    sincePaint += dt;
+    if (key === lastKey || sincePaint < REPAINT_INTERVAL) return;
     lastKey = key;
+    sincePaint = 0;
 
     ctx.drawImage(bg, 0, 0);
     needle(ctx, TACH, needleRpm / 1000, '#ff7a2f');

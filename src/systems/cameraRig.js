@@ -78,25 +78,54 @@ const mirrors = [
   { id: 'mirrorViewport', cam: mirrorCamera, anchor: 'rear' },
   { id: 'leftMirrorViewport', cam: leftMirrorCamera, anchor: 'left' },
   { id: 'rightMirrorViewport', cam: rightMirrorCamera, anchor: 'right' },
-].map(m => ({
+].map((m, index) => ({
   ...m,
+  index,
   el: document.getElementById(m.id),
   target: new THREE.WebGLRenderTarget(64, 64, { samples: 4 }),
   material: mirrorMaterial(),
+  rect: { left: 0, right: 0, top: 0, bottom: 0, width: 0, height: 0 }, // cached by layoutMirrors(), so no per-frame layout reads
+  stale: true,   // the target holds no valid picture yet (first frame, or it was just resized)
 }));
 
-function renderMirror(m) {
-  const r = m.el.getBoundingClientRect();
-  if (r.width <= 0 || r.height <= 0) return;
-  const dpr = renderer.getPixelRatio();
-  const pw = Math.max(2, Math.round(r.width * dpr)), ph = Math.max(2, Math.round(r.height * dpr));
-  if (m.target.width !== pw || m.target.height !== ph) m.target.setSize(pw, ph);
+// Performance settings (core/performance.js): how sharp the mirror pictures are, and how often a
+// mirror's scene is redrawn (the rest of the time its last picture is simply drawn again).
+const MIRROR_QUALITY = { low: { scale: 0.5, samples: 0 }, medium: { scale: 0.75, samples: 2 }, high: { scale: 1, samples: 4 } };
+let mirrorScale = 1;
+let mirrorEvery = 1;
+let mirrorFrame = 0;
 
-  m.cam.aspect = r.width / r.height;
-  m.cam.updateProjectionMatrix();
-  renderer.setRenderTarget(m.target);
-  renderer.render(scene, m.cam);
-  renderer.setRenderTarget(null);
+export function setMirrorQuality(level) {
+  const q = MIRROR_QUALITY[level] ?? MIRROR_QUALITY.high;
+  mirrorScale = q.scale;
+  mirrors.forEach(m => {
+    m.target.samples = q.samples;
+    m.target.dispose(); // the framebuffer is rebuilt with the new sample count on next use
+    m.stale = true;
+  });
+}
+
+export function setMirrorRefresh(everyNFrames) {
+  mirrorEvery = Math.max(1, everyNFrames | 0);
+}
+
+function renderMirror(m) {
+  const r = m.rect;
+  if (r.width <= 0 || r.height <= 0) return;
+
+  // Redraw the scene only on this mirror's turn (turns are staggered so the cost spreads over frames).
+  if (m.stale || (mirrorFrame + m.index) % mirrorEvery === 0) {
+    const dpr = renderer.getPixelRatio() * mirrorScale;
+    const pw = Math.max(2, Math.round(r.width * dpr)), ph = Math.max(2, Math.round(r.height * dpr));
+    if (m.target.width !== pw || m.target.height !== ph) m.target.setSize(pw, ph);
+
+    m.cam.aspect = r.width / r.height;
+    m.cam.updateProjectionMatrix();
+    renderer.setRenderTarget(m.target);
+    renderer.render(scene, m.cam);
+    renderer.setRenderTarget(null);
+    m.stale = false;
+  }
 
   // (setViewport/setScissor take css pixels — three multiplies by the pixel ratio itself)
   const x = r.left, y = window.innerHeight - r.bottom;
@@ -118,7 +147,12 @@ function renderMirror(m) {
 // NOTE: each viewport's CSS must keep a transparent background, otherwise it paints over
 // this render since it sits in front of the canvas in the DOM stacking order.
 export function renderMirrorViewports() {
+  mirrorFrame++;
+  // The main pass has just brought every world matrix up to date and nothing has moved since, so
+  // the mirror passes skip the full-scene matrix walk (their cameras still update themselves).
+  scene.matrixWorldAutoUpdate = false;
   mirrors.forEach(renderMirror);
+  scene.matrixWorldAutoUpdate = true;
 }
 
 // Lays each DOM mirror over the screen position of its real spot in the cabin (the anchor
@@ -135,6 +169,12 @@ export function layoutMirrors() {
     const cx = (p.x + 1) / 2 * W, cy = (1 - p.y) / 2 * H;
     m.el.style.left = `${THREE.MathUtils.clamp(cx - w / 2, margin, Math.max(margin, W - w - margin))}px`;
     m.el.style.top = `${THREE.MathUtils.clamp(cy - h / 2, margin, Math.max(margin, H - h - margin))}px`;
+  });
+  // one layout read after all the writes; a hidden mirror reads as a zero-size rect and is skipped
+  mirrors.forEach(m => {
+    const r = m.el.getBoundingClientRect();
+    m.rect = { left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, height: r.height };
+    m.stale = true;
   });
 }
 

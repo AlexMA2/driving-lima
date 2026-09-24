@@ -47,6 +47,7 @@ import { resolveScenario, getPerformance } from './state/settings.js';
 import { applyPerformance, refreshMaterials, updateFps } from './core/performance.js';
 import { initMenu, setScreen } from './ui/menu.js';
 import { initGlobalConfig } from './ui/globalConfigDialog.js';
+import { actionOf, refreshKbds } from './state/keybindings.js';
 
 // The cockpit (dashboard/wheel/pillars) is parented to `camera` (see entities/cockpit.js) so
 // it rides rigidly with the first-person view. WebGLRenderer only draws what it finds by
@@ -114,7 +115,8 @@ function animate() {
   requestAnimationFrame(animate);
   const rawDt = clock.getDelta();
   const dt = Math.min(rawDt, 0.05);
-  if (!started || gameState.gameOver) { renderer.render(scene, camera); return; }
+  if (!started) { renderer.render(scene, camera); return; }
+  if (gameState.gameOver) return; // the results screen covers the canvas: leave the last frame up instead of redrawing it
   updateFps(rawDt);
 
   gameState.elapsed += dt;
@@ -178,6 +180,9 @@ function animate() {
   updateEngineSound(speedKmh, controlState.throttle, gameState.wrecked);
 
   // ---- main viewport ----
+  // The sun's shadow map is drawn only here (autoUpdate is off, see core/renderer.js): the mirror
+  // passes below reuse it instead of re-rendering the same shadows three more times per frame.
+  renderer.shadowMap.needsUpdate = true;
   renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
   renderer.setScissorTest(false);
   renderer.render(scene, camera);
@@ -200,6 +205,7 @@ function startGame(scenarioId) {
   applyPerformance(getPerformance());
   buildWorld(scenarioId);
   refreshMaterials();
+  refreshKbds(); // key caps in the static markup (wreck banner) follow the saved bindings
   layoutMirrors();
   gameState.duration = scenario.duration;
   gameState.timeLeft = scenario.duration;
@@ -226,9 +232,10 @@ document.getElementById('homeBtn').addEventListener('click', goHome);
 document.getElementById('finishBtn').addEventListener('click', () => { if (started) endGame(scenario.untimed ? (scenario.layout === 'parking' ? 'PRÁCTICA TERMINADA' : 'TUTORIAL TERMINADO') : undefined); });
 
 window.addEventListener('keydown', (e) => {
-  if (!started) return;
-  if (e.key === 'Escape') goHome();
-  else if (e.key.toLowerCase() === 'r') restartGame();
+  if (!started || e.ctrlKey || e.metaKey || e.altKey) return;
+  const action = actionOf(e.key);
+  if (action === 'menu') goHome();
+  else if (action === 'restart') restartGame();
 });
 
 refreshHud();

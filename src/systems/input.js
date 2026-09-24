@@ -6,6 +6,7 @@ import { camera, canvas } from '../core/renderer.js';
 import { WHEEL_LOCAL_POS } from '../entities/cockpit.js';
 import { playHonk, playBrakeScreech } from './audio.js';
 import { logEvent } from './debugLog.js';
+import { actionOf } from '../state/keybindings.js';
 
 // Read live (not cached at load) so the global config can change the wheel's lock between games.
 const wheelMaxRad = () => THREE.MathUtils.degToRad(CONFIG.WHEEL_MAX_ANGLE_DEG);
@@ -62,36 +63,41 @@ function isOverlayOpen() {
 }
 
 export function initInput() {
+  // Keys come from the remappable bindings (state/keybindings.js). Chords with Ctrl/Alt/Meta
+  // belong to the browser or to shortcuts like Ctrl+L (debug log), never to the car.
   window.addEventListener('keydown', (e) => {
-    switch (e.key.toLowerCase()) {
-      case 's': case 'arrowdown': controlState.brakeHeld = true; logEvent('BRAKE_DOWN'); break;
-      case 'a': case 'arrowleft': controlState.wheelTarget = -wheelMaxRad() * CONFIG.KEYBOARD_STEER_FRACTION; break;
-      case 'd': case 'arrowright': controlState.wheelTarget = wheelMaxRad() * CONFIG.KEYBOARD_STEER_FRACTION; break;
-      case ' ': controlState.handbrake = true; e.preventDefault(); logEvent('HANDBRAKE_DOWN'); break;
-      case 'h': playHonk(); controlState.lastHonkTime = performance.now() / 1000; break;
-      case 'q':
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    switch (actionOf(e.key)) {
+      case 'brake': controlState.brakeHeld = true; logEvent('BRAKE_DOWN'); break;
+      case 'steerLeft': controlState.wheelTarget = -wheelMaxRad() * CONFIG.KEYBOARD_STEER_FRACTION; break;
+      case 'steerRight': controlState.wheelTarget = wheelMaxRad() * CONFIG.KEYBOARD_STEER_FRACTION; break;
+      case 'handbrake': controlState.handbrake = true; e.preventDefault(); logEvent('HANDBRAKE_DOWN'); break;
+      case 'horn': playHonk(); controlState.lastHonkTime = performance.now() / 1000; break;
+      case 'signalLeft':
         controlState.signalLeft = !controlState.signalLeft; controlState.signalRight = false;
         controlState.lastSignalOnTime = performance.now() / 1000;
         logEvent('SIGNAL', { side: 'left', on: controlState.signalLeft });
         break;
-      case 'e':
+      case 'signalRight':
         controlState.signalRight = !controlState.signalRight; controlState.signalLeft = false;
         controlState.lastSignalOnTime = performance.now() / 1000;
         logEvent('SIGNAL', { side: 'right', on: controlState.signalRight });
         break;
-      case 'l': // 'L' also doubles as an all-off "lights" key
+      case 'signalOff':
         controlState.signalLeft = false; controlState.signalRight = false;
         logEvent('SIGNAL', { side: 'both', on: false });
         break;
     }
   });
 
+  // No modifier check on release: a key pressed alone must still be released if Ctrl was
+  // pressed in the meantime, or the pedal would stay stuck down.
   window.addEventListener('keyup', (e) => {
-    switch (e.key.toLowerCase()) {
-      case 's': case 'arrowdown': controlState.brakeHeld = false; logEvent('BRAKE_UP'); break;
-      case 'a': case 'arrowleft': if (controlState.wheelTarget < 0) controlState.wheelTarget = 0; break;
-      case 'd': case 'arrowright': if (controlState.wheelTarget > 0) controlState.wheelTarget = 0; break;
-      case ' ': controlState.handbrake = false; logEvent('HANDBRAKE_UP'); break;
+    switch (actionOf(e.key)) {
+      case 'brake': controlState.brakeHeld = false; logEvent('BRAKE_UP'); break;
+      case 'steerLeft': if (controlState.wheelTarget < 0) controlState.wheelTarget = 0; break;
+      case 'steerRight': if (controlState.wheelTarget > 0) controlState.wheelTarget = 0; break;
+      case 'handbrake': controlState.handbrake = false; logEvent('HANDBRAKE_UP'); break;
     }
   });
 

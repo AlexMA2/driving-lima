@@ -257,8 +257,29 @@ body[data-screen="scenarios"] #scenarioScreen { display: block; }
 #globalConfigBtn:hover { background: rgba(255,255,255,0.2); transform: rotate(60deg); }
 body[data-screen="game"] #globalConfigBtn { display: none; }
 #globalConfigBox { width: min(600px, 94vw); max-width: none; text-align: left; }
-#globalConfigHint { font-size: 13px; opacity: .75; line-height: 1.5; margin-bottom: 14px; }
-#globalConfigBody { max-height: 58vh; overflow-y: auto; padding-right: 8px; margin-bottom: 18px; }
+#globalConfigHint { font-size: 13px; opacity: .75; line-height: 1.5; margin-bottom: 14px; min-height: 2.6em; }
+#globalConfigBody { height: 52vh; overflow-y: auto; padding-right: 8px; margin-bottom: 18px; }
+#globalConfigTabs { display: flex; gap: 6px; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.14); }
+.dialogBox .cfgTab {
+  background: none; border: none; border-bottom: 3px solid transparent; border-radius: 0; margin-bottom: -1px;
+  color: rgba(255,255,255,0.6); padding: 10px 16px; font-size: 14px; font-weight: 700; letter-spacing: .3px; cursor: pointer;
+}
+.dialogBox .cfgTab:hover { color: #fff; }
+.dialogBox .cfgTab.selected { color: #ffb36b; border-bottom-color: #ff9800; }
+
+/* Key bindings tab */
+.keyRow { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.keyRow .sfHead { margin-bottom: 0; }
+.keySlots { display: flex; gap: 8px; flex: none; }
+.dialogBox .keySlot {
+  min-width: 92px; padding: 7px 12px; border-radius: 8px; font-size: 13px; font-weight: 800; color: #fff; cursor: pointer;
+  background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-bottom-width: 3px;
+}
+.dialogBox .keySlot:hover { background: rgba(255,255,255,0.18); }
+.dialogBox .keySlot.empty { opacity: .55; font-weight: 600; }
+.dialogBox .keySlot.listening { opacity: 1; border-color: #ff9800; background: rgba(255,152,0,0.2); animation: keyPulse 1s ease-in-out infinite; }
+@keyframes keyPulse { 50% { background: rgba(255,152,0,0.4); } }
+.keyNote { font-size: 12.5px; color: #ffcc80; background: rgba(255,152,0,0.12); border-radius: 8px; padding: 8px 12px; margin-bottom: 14px; }
 
 /* ---- Tutorial panel ---- */
 #tutorialPanel {

@@ -37,6 +37,8 @@ Al pulsar **JUGAR** se elige un escenario; al seleccionarlo aparecen **CONFIGURA
 
 ## Controles
 
+Estas son las teclas por defecto; todas se pueden cambiar en **Configuración → Teclas**.
+
 | Control | Acción |
 |---|---|
 | Mouse (arrastrar) | Girar el volante (se auto-centra al soltar) |
@@ -48,20 +50,25 @@ Al pulsar **JUGAR** se elige un escenario; al seleccionarlo aparecen **CONFIGURA
 | `L` | Apagar direccionales |
 | `H` | Bocina |
 | `R` / `Esc` | Reiniciar / volver al menú |
-| `Ctrl+L` | Registro de depuración |
+| `Ctrl+L` | Registro de depuración (fija) |
 
 ## Configuración
 
 - **Por escenario** (botón *CONFIGURAR*): duración, límite de velocidad, cantidad de tráfico,
   % de conductores imprudentes y educados, autos que te rebasan, autos malogrados en tu
-  carril, peatones, cebras, tamaño del espacio y guía de referencias (estacionamiento), y opciones de **rendimiento** (resolución, sombras y su calidad,
-  distancia de visión, espejos laterales, contador de FPS).
-- **Controles globales** (engranaje arriba a la derecha, solo en los menús): paso y tiempos
-  del acelerador, soltado automático, inversión de la rueda, rampas y fuerza del freno, freno
-  motor, freno de mano, giro del volante, respuesta y autocentrado, giro con teclado, fuerza
-  del motor y velocidad máxima.
+  carril, peatones, cebras, y tamaño del espacio y guía de referencias (estacionamiento).
+- **Global** (engranaje arriba a la derecha, solo en los menús), en tres pestañas:
+  - **Movimiento**: paso y tiempos del acelerador, soltado automático, inversión de la rueda,
+    rampas y fuerza del freno, freno motor, freno de mano, giro del volante, respuesta y
+    autocentrado, giro con teclado, fuerza del motor y velocidad máxima.
+  - **Teclas**: cada acción tiene una tecla principal y una alternativa. Haz clic en una y
+    pulsa la nueva (`Esc` cancela, `Retroceso` la borra). Si la tecla ya se usaba en otra
+    acción, se la quita a esa. Los textos del tutorial, la ayuda y los avisos muestran tus teclas.
+  - **Rendimiento**: resolución de render, distancia de visión, sombras y su calidad, espejos
+    laterales, calidad y frecuencia de actualización de los espejos, y **mostrar FPS**.
+    Se aplican al empezar la siguiente partida.
 
-Todo se guarda en `localStorage`.
+Cada pestaña tiene su propio botón *Restaurar pestaña*. Todo se guarda en `localStorage`.
 
 ## Reglas de tránsito implementadas
 
@@ -96,7 +103,7 @@ Dos escenarios sin tráfico ni límite de tiempo. Un panel guía muestra los pas
 referencia (parachoques, espejos, ángulo de 45°, líneas de la plaza) y medidas en vivo; se puede
 apagar desde **CONFIGURAR** junto con el tamaño del espacio (amplio / normal / justo). Terminas
 al quedar dentro de las líneas, paralelo y detenido unos 2 segundos. La reversa se activa
-manteniendo `S` con el auto casi detenido y avanza a paso de tortuga (máx. 6 km/h).
+manteniendo el freno (`S` por defecto) con el auto casi detenido y avanza a paso de tortuga (máx. 6 km/h).
 
 ## Estructura del proyecto
 
@@ -104,7 +111,7 @@ manteniendo `S` con el auto casi detenido y avanza a paso de tortuga (máx. 6 km
 src/
 ├── main.js                  # Arma el mundo del escenario y corre el loop principal
 ├── config.js                # Parámetros (física, IA), multas y definición de escenarios
-├── state/                   # gameState.js (estado de la partida), settings.js (configuración guardada)
+├── state/                   # gameState.js (estado de la partida), settings.js (ajustes guardados), keybindings.js (teclas reasignables)
 ├── core/                    # renderer, escena, física (cannon-es) y ajustes de rendimiento
 ├── assets/                  # Vehículos, props y primitivas procedurales
 ├── world/
@@ -121,5 +128,5 @@ src/
 │   ├── cockpit.js, instrumentCluster.js   # Tablero 3D y relojes (canvas)
 │   ├── pedestrians.js, scriptedCars.js, player.js, ...
 ├── systems/                 # input, reglas, cámara/espejos, audio, tutorial y estacionamiento (guías por pasos)
-└── ui/                      # menú, diálogos de configuración, HUD, formulario de ajustes
+└── ui/                      # menú, diálogos de configuración (global con pestañas), HUD, formularios de ajustes y de teclas
 ```

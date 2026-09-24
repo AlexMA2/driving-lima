@@ -1,5 +1,6 @@
 import { renderer, camera, mirrorCamera, leftMirrorCamera, rightMirrorCamera } from './renderer.js';
 import { scene, sun } from './scene.js';
+import { setMirrorQuality, setMirrorRefresh } from '../systems/cameraRig.js';
 
 // Applies the player's performance settings (see state/settings.js) to the renderer, lights,
 // fog and mirrors. Run before the world is built; call refreshMaterials() afterwards so
@@ -19,10 +20,15 @@ export function applyPerformance(perf) {
 
   scene.fog.near = perf.viewDistance * 0.23;
   scene.fog.far = perf.viewDistance;
+  // Past the fog's far distance everything is exactly the sky colour, so drawing it is wasted work:
+  // the far plane sits right there and frustum culling drops all those objects (the mirrors too).
   [camera, mirrorCamera, leftMirrorCamera, rightMirrorCamera].forEach(c => {
-    c.far = perf.viewDistance * 1.9;
+    c.far = perf.viewDistance * 1.05;
     c.updateProjectionMatrix();
   });
+
+  setMirrorQuality(perf.mirrorQuality);
+  setMirrorRefresh(perf.mirrorRefresh);
 
   // A hidden mirror has a zero-size rect, which the mirror renderer skips (see systems/cameraRig.js).
   ['leftMirrorViewport', 'rightMirrorViewport'].forEach(id => {

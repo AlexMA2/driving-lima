@@ -5,6 +5,7 @@ import { chassisBody, playerMesh } from '../entities/player.js';
 import { inSchoolZone } from '../world/schoolZone.js';
 import { updateIndicatorSound } from '../systems/audio.js';
 import { getLogText, clearLog } from '../systems/debugLog.js';
+import { keyLabels, escapeHtml } from '../state/keybindings.js';
 
 const zoneTagEl = document.getElementById('zoneTag');
 const timerValEl = document.getElementById('timerVal');
@@ -17,14 +18,47 @@ function formatMMSS(totalSeconds) {
   return `${mm}:${ss}`;
 }
 
+// DOM writes dirty layout, and the mirrors/HUD sit on top of a WebGL canvas that redraws every
+// frame: only touch an element when its value actually changed.
+const shown = { zone: null, time: '', warn: null };
+
+function setTimer() {
+  const text = formatMMSS(gameState.timeLeft);
+  if (text !== shown.time) { shown.time = text; timerValEl.textContent = text; }
+}
+
 export function refreshHud() {
-  timerValEl.textContent = formatMMSS(gameState.timeLeft);
+  setTimer();
+}
+
+// The controls list, rebuilt each time the dialog opens so it shows the player's own keys.
+function controlsHelpHtml() {
+  const rows = [
+    ['Mouse (arrastrar)', 'Girar el volante (dirección hidráulica, se auto-centra al soltar)'],
+    [keyLabels('steerLeft'), 'Girar el volante a la izquierda con el teclado'],
+    [keyLabels('steerRight'), 'Girar el volante a la derecha con el teclado'],
+    ['Rueda del mouse ↑', 'Acelerar (sube la posición del acelerador y se mantiene)'],
+    ['Rueda del mouse ↓', 'Desacelerar (baja la posición del acelerador y se mantiene)'],
+    [keyLabels('brake'), 'Freno (mantener; casi detenido, sigue presionando para meter reversa, que avanza a paso de tortuga)'],
+    [keyLabels('handbrake'), 'Freno de mano'],
+    [`${keyLabels('signalLeft')} / ${keyLabels('signalRight')}`, 'Direccionales (izquierda / derecha)'],
+    [keyLabels('signalOff'), 'Apagar direccionales'],
+    [keyLabels('horn'), 'Bocina'],
+    [keyLabels('restart'), 'Reiniciar la partida'],
+    [keyLabels('menu'), 'Volver al menú principal'],
+    ['CTRL+L', 'Abrir el registro de depuración'],
+  ];
+  return rows.map(([keys, what]) => `<div><b>${escapeHtml(keys)}</b> — ${what}</div>`).join('');
 }
 
 export function initDialogs() {
   const dialog = document.getElementById('instructionsDialog');
-  document.getElementById('helpBtn').addEventListener('click', () => dialog.classList.add('show'));
-  document.getElementById('controlsBtn').addEventListener('click', () => dialog.classList.add('show'));
+  const showControls = () => {
+    document.getElementById('controlsList').innerHTML = controlsHelpHtml();
+    dialog.classList.add('show');
+  };
+  document.getElementById('helpBtn').addEventListener('click', showControls);
+  document.getElementById('controlsBtn').addEventListener('click', showControls);
   document.getElementById('closeInstructions').addEventListener('click', () => dialog.classList.remove('show'));
   dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.classList.remove('show'); });
 
@@ -58,7 +92,8 @@ export function initDialogs() {
 // (entities/instrumentCluster.js); this keeps the rest of the HUD current and returns the
 // shared blink phase so the cluster's arrows and the car's lamps flash together.
 export function updateHudPerFrame() {
-  zoneTagEl.style.display = inSchoolZone(chassisBody.position.z) ? 'block' : 'none';
+  const inZone = inSchoolZone(chassisBody.position.z);
+  if (inZone !== shown.zone) { shown.zone = inZone; zoneTagEl.style.display = inZone ? 'block' : 'none'; }
 
   const blink = Math.floor(performance.now() / 350) % 2 === 0;
   const blinkActive = (controlState.signalLeft || controlState.signalRight) && blink;
@@ -67,8 +102,9 @@ export function updateHudPerFrame() {
   playerMesh.userData.indicators.left.forEach(m => { m.material.emissiveIntensity = controlState.signalLeft && blink ? 1 : 0; });
   playerMesh.userData.indicators.right.forEach(m => { m.material.emissiveIntensity = controlState.signalRight && blink ? 1 : 0; });
 
-  timerValEl.textContent = formatMMSS(gameState.timeLeft);
-  timerRowEl.classList.toggle('warn', gameState.timeLeft <= 15);
+  setTimer();
+  const warn = gameState.timeLeft <= 15;
+  if (warn !== shown.warn) { shown.warn = warn; timerRowEl.classList.toggle('warn', warn); }
 
   return blink;
 }

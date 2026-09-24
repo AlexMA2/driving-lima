@@ -4,6 +4,7 @@ import { PARKING } from '../world/parkingLot.js';
 import { controlState } from './input.js';
 import { triggerInfraction } from './rules.js';
 import { showToast } from '../ui/hud.js';
+import { kbdHtml } from '../state/keybindings.js';
 
 // The parking exercises (world/parkingLot.js builds the ground). Each run is a short list of
 // steps shown in the guide panel — the classic reference-point method for that manoeuvre — while
@@ -12,7 +13,7 @@ import { showToast } from '../ui/hud.js';
 // Conventions: north is -Z, the player starts heading north, the kerb / bays are on the right (+X).
 // `yaw` is the nose's heading: 0 = north, positive = turned toward the west (three.js rotation.y).
 
-const kbd = (k) => `<kbd>${k}</kbd>`;
+const kbd = kbdHtml; // takes an action id, e.g. kbd('signalRight')
 const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 const deg = (rad) => Math.round(THREE.MathUtils.radToDeg(rad));
 const cm = (m) => `${Math.round(m * 100)} cm`;
@@ -64,7 +65,7 @@ const PARALLEL_STEPS = () => {
   return [
     {
       id: 'align', title: '1. Ponte a la par del auto de adelante',
-      text: `Activa la direccional derecha ${kbd('E')} y avanza despacio por el carril derecho, pasando el espacio libre. Detente <b>al lado del auto de adelante</b>, a <b>50–100 cm</b> de él y con <b>tu parachoques trasero a la altura del suyo</b>. Baja el acelerador con la rueda del mouse (↓) para ir lento.`,
+      text: `Activa la direccional derecha ${kbd('signalRight')} y avanza despacio por el carril derecho, pasando el espacio libre. Detente <b>al lado del auto de adelante</b>, a <b>50–100 cm</b> de él y con <b>tu parachoques trasero a la altura del suyo</b>. Baja el acelerador con la rueda del mouse (↓) para ir lento.`,
       hint: () => {
         const gap = frontCarSideX - maxOf(pose.corners, 'x');
         const dz = pose.rear.z - P.zF;
@@ -77,25 +78,25 @@ const PARALLEL_STEPS = () => {
     },
     {
       id: 'reverse', title: '2. Retrocede con el volante a la derecha',
-      text: `Mantén ${kbd('S')} hasta que el auto se detenga y siga presionado: entra la reversa. Gira el volante <b>todo a la derecha</b> (mantén ${kbd('D')}) y retrocede despacio hasta formar unos <b>45°</b> con la vereda. En el <b>espejo derecho</b> verás cómo la esquina trasera de tu auto se acerca a la vereda.`,
+      text: `Mantén ${kbd('brake')} hasta que el auto se detenga y siga presionado: entra la reversa. Gira el volante <b>todo a la derecha</b> (mantén ${kbd('steerRight')}) y retrocede despacio hasta formar unos <b>45°</b> con la vereda. En el <b>espejo derecho</b> verás cómo la esquina trasera de tu auto se acerca a la vereda.`,
       hint: () => `Ángulo con la vereda: ${deg(Math.abs(pose.yaw))}° (objetivo ~45°)`,
       done: () => pose.yaw > 0.7,
     },
     {
       id: 'straight', title: '3. Endereza y sigue retrocediendo',
-      text: `Suelta ${kbd('D')} para <b>enderezar el volante</b> y retrocede en línea recta hasta que <b>el frente de tu auto haya pasado el parachoques trasero</b> del auto de adelante (míralo en el espejo izquierdo: ya no tapa tu camino).`,
+      text: `Suelta ${kbd('steerRight')} para <b>enderezar el volante</b> y retrocede en línea recta hasta que <b>el frente de tu auto haya pasado el parachoques trasero</b> del auto de adelante (míralo en el espejo izquierdo: ya no tapa tu camino).`,
       hint: () => (pose.fr.z > P.zF + 0.4 ? '✔ Tu frente ya libró al auto de adelante' : 'Sigue retrocediendo en línea recta…'),
       done: () => pose.fr.z > P.zF + 0.4,
     },
     {
       id: 'left', title: '4. Volante a la izquierda para acomodarte',
-      text: `Gira el volante <b>todo a la izquierda</b> (mantén ${kbd('A')}) mientras sigues retrocediendo despacio: el auto se acomoda paralelo a la vereda. Suelta ${kbd('A')} cuando quede recto.`,
+      text: `Gira el volante <b>todo a la izquierda</b> (mantén ${kbd('steerLeft')}) mientras sigues retrocediendo despacio: el auto se acomoda paralelo a la vereda. Suelta ${kbd('steerLeft')} cuando quede recto.`,
       hint: () => `Ángulo con la vereda: ${deg(Math.abs(pose.yaw))}°`,
       done: () => Math.abs(pose.yaw) < 0.14,
     },
     {
       id: 'finish', title: '5. Ajusta y detente',
-      text: `Termina dentro de las líneas, <b>paralelo</b> y a <b>menos de 60 cm de la vereda</b>. Si hace falta, avanza y retrocede en trechos cortos. Cuando estés bien, quédate detenido unos 2 segundos (puedes usar ${kbd('Espacio')}).`,
+      text: `Termina dentro de las líneas, <b>paralelo</b> y a <b>menos de 60 cm de la vereda</b>. Si hace falta, avanza y retrocede en trechos cortos. Cuando estés bien, quédate detenido unos 2 segundos (puedes usar ${kbd('handbrake')}).`,
       hint: () => parallelMetrics().hint,
       done: () => false,
     },
@@ -125,7 +126,7 @@ const PERPENDICULAR_STEPS = () => {
   return [
     {
       id: 'pass', title: '1. Pasa la plaza y detente',
-      text: `Activa la direccional derecha ${kbd('E')} y avanza despacio, <b>pegado a la fila de autos</b> (a menos de 1 m de las líneas). Pasa la plaza libre y detente cuando <b>tu parachoques trasero quede a la altura de la 2.ª línea</b> contando desde la plaza libre: en el <b>espejo derecho</b> verás esa línea justo en la esquina trasera de tu auto.`,
+      text: `Activa la direccional derecha ${kbd('signalRight')} y avanza despacio, <b>pegado a la fila de autos</b> (a menos de 1 m de las líneas). Pasa la plaza libre y detente cuando <b>tu parachoques trasero quede a la altura de la 2.ª línea</b> contando desde la plaza libre: en el <b>espejo derecho</b> verás esa línea justo en la esquina trasera de tu auto.`,
       hint: () => {
         const dz = pose.rear.z - idealRearBumperZ;
         const gap = P.aisleX - maxOf(pose.corners, 'x');
@@ -136,13 +137,13 @@ const PERPENDICULAR_STEPS = () => {
     },
     {
       id: 'swing', title: '2. Retrocede con el volante a tope a la derecha',
-      text: `Mantén ${kbd('S')} para meter la reversa y gira el volante <b>todo a la derecha</b> (mantén ${kbd('D')}). Retrocede despacio: el frente de tu auto barre el pasillo mientras la cola entra a la plaza. Mira <b>ambos espejos</b>: las líneas de la plaza deben quedar a los costados de tu auto.`,
+      text: `Mantén ${kbd('brake')} para meter la reversa y gira el volante <b>todo a la derecha</b> (mantén ${kbd('steerRight')}). Retrocede despacio: el frente de tu auto barre el pasillo mientras la cola entra a la plaza. Mira <b>ambos espejos</b>: las líneas de la plaza deben quedar a los costados de tu auto.`,
       hint: () => `Ángulo con el pasillo: ${deg(pose.yaw)}° (objetivo ~80°)`,
       done: () => pose.yaw > Math.PI / 2 - 0.3,
     },
     {
       id: 'straight', title: '3. Endereza y retrocede hasta el tope',
-      text: `Cuando el auto esté casi recto en la plaza, <b>endereza el volante</b> (suelta ${kbd('D')}) y retrocede despacio hasta acercarte al tope. Comprueba que hay el mismo espacio a cada lado en los espejos y <b>detente ~2 s</b> dentro de las líneas.`,
+      text: `Cuando el auto esté casi recto en la plaza, <b>endereza el volante</b> (suelta ${kbd('steerRight')}) y retrocede despacio hasta acercarte al tope. Comprueba que hay el mismo espacio a cada lado en los espejos y <b>detente ~2 s</b> dentro de las líneas.`,
       hint: () => perpendicularMetrics().hint,
       done: () => false,
     },

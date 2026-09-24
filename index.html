@@ -28,7 +28,7 @@
   <div id="wreckBanner">
     <b>AUTO INMOVILIZADO</b>
     <span>Chocaste contra la vereda y el auto ya no se puede mover.</span>
-    <small>Presiona <kbd>R</kbd> para reiniciar o <kbd>Esc</kbd> para volver al menú.</small>
+    <small>Presiona <kbd data-action="restart">R</kbd> para reiniciar o <kbd data-action="menu">Esc</kbd> para volver al menú.</small>
   </div>
 
   <div id="toastContainer"></div>
@@ -44,20 +44,7 @@
 <div id="instructionsDialog" class="dialogOverlay">
   <div class="dialogBox">
     <h2>Controles</h2>
-    <div class="rules">
-      <div><b>Mouse (arrastrar)</b> — Girar el volante (dirección hidráulica, se auto-centra al soltar)</div>
-      <div><b>A / D</b> o Flechas — Girar el volante con teclado</div>
-      <div><b>Rueda del mouse ↑</b> — Acelerar (sube la posición del acelerador y se mantiene)</div>
-      <div><b>Rueda del mouse ↓</b> — Desacelerar (baja la posición del acelerador y se mantiene)</div>
-      <div><b>S / ↓</b> — Freno (mantener; casi detenido, sigue presionando para meter reversa, que avanza a paso de tortuga)</div>
-      <div><b>ESPACIO</b> — Freno de mano</div>
-      <div><b>Q / E</b> — Direccionales (izquierda / derecha)</div>
-      <div><b>L</b> — Apagar direccionales</div>
-      <div><b>H</b> — Bocina</div>
-      <div><b>R</b> — Reiniciar la partida</div>
-      <div><b>ESC</b> — Volver al menú principal</div>
-      <div><b>CTRL+L</b> — Abrir el registro de depuración</div>
-    </div>
+    <div class="rules" id="controlsList"></div>
     <button id="closeInstructions">Cerrar</button>
   </div>
 </div>
@@ -177,17 +164,18 @@
   </div>
 </div>
 
-<button id="globalConfigBtn" type="button" title="Configuración de controles" aria-label="Configuración de controles">
+<button id="globalConfigBtn" type="button" title="Configuración" aria-label="Configuración">
   <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6a.5.5 0 0 0 .1-.6l-2-3.5a.5.5 0 0 0-.6-.2l-2.5 1a7.4 7.4 0 0 0-1.7-1l-.4-2.6a.5.5 0 0 0-.5-.4h-4a.5.5 0 0 0-.5.4l-.4 2.6a7.4 7.4 0 0 0-1.7 1l-2.5-1a.5.5 0 0 0-.6.2l-2 3.5a.5.5 0 0 0 .1.6L4.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6a.5.5 0 0 0-.1.6l2 3.5c.1.2.4.3.6.2l2.5-1c.5.4 1.1.7 1.7 1l.4 2.6c0 .2.2.4.5.4h4c.3 0 .5-.2.5-.4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.5 1c.2.1.5 0 .6-.2l2-3.5a.5.5 0 0 0-.1-.6L19.4 13ZM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7Z"/></svg>
 </button>
 
 <div id="globalConfigDialog" class="dialogOverlay">
   <div class="dialogBox" id="globalConfigBox">
-    <h2>Configuración de controles</h2>
-    <p id="globalConfigHint">Ajusta la sensibilidad del acelerador, los frenos y el volante. Los cambios se guardan y valen para todos los escenarios.</p>
+    <h2>Configuración</h2>
+    <div id="globalConfigTabs" role="tablist"></div>
+    <p id="globalConfigHint"></p>
     <div id="globalConfigBody"></div>
     <div id="configActions">
-      <button id="globalConfigReset" type="button" class="secondary">Restaurar valores</button>
+      <button id="globalConfigReset" type="button" class="secondary" title="Restaura solo la pestaña que estás viendo">Restaurar pestaña</button>
       <button id="globalConfigClose" type="button">Listo</button>
     </div>
   </div>

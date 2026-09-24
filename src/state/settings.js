@@ -1,9 +1,10 @@
 import { CONFIG, SCENARIOS } from '../config.js';
 
-// Player-adjustable settings, persisted in localStorage. Two independent groups:
+// Player-adjustable settings, persisted in localStorage. Three independent groups:
 //  - per-scenario settings (traffic, drivers, rules, duration) keyed by scenario id
-//  - performance settings, shared by every scenario
-// Each group is described by a declarative field list, which the config dialog turns into a
+//  - global settings, shared by every scenario: control feel (movement) and performance
+//  - key bindings, which live in state/keybindings.js
+// Each group is described by a declarative field list, which a config dialog turns into a
 // form (ui/settingsForm.js) and the game reads back through resolveScenario()/getPerformance().
 
 const SCENARIO_KEY = 'dls_scenario_settings_v1';
@@ -90,27 +91,38 @@ export const SCENARIO_FIELDS = [
 
 export const PERFORMANCE_FIELDS = [
   {
-    key: 'renderScale', section: 'Rendimiento', type: 'range', label: 'Resolución de render', min: 50, max: 100, step: 10, unit: '%',
+    key: 'renderScale', section: 'Imagen', type: 'range', label: 'Resolución de render', min: 50, max: 100, step: 10, unit: '%',
     default: 100, help: 'Bajarla es lo que más FPS gana en equipos modestos.',
   },
   {
-    key: 'shadows', section: 'Rendimiento', type: 'toggle', label: 'Sombras', default: true,
+    key: 'viewDistance', section: 'Imagen', type: 'choice', label: 'Distancia de visión',
+    options: [{ value: 140, label: 'Corta' }, { value: 200, label: 'Media' }, { value: 260, label: 'Larga' }], default: 260,
+    help: 'Todo lo que queda más allá se deja de dibujar.',
+  },
+  {
+    key: 'shadows', section: 'Sombras', type: 'toggle', label: 'Sombras', default: true,
     help: 'Desactivarlas mejora bastante los FPS.',
   },
   {
-    key: 'shadowQuality', section: 'Rendimiento', type: 'choice', label: 'Calidad de sombras',
+    key: 'shadowQuality', section: 'Sombras', type: 'choice', label: 'Calidad de sombras',
     options: [{ value: 512, label: 'Baja' }, { value: 1024, label: 'Media' }, { value: 2048, label: 'Alta' }], default: 2048,
     enabledWhen: values => values.shadows,
   },
   {
-    key: 'viewDistance', section: 'Rendimiento', type: 'choice', label: 'Distancia de visión',
-    options: [{ value: 140, label: 'Corta' }, { value: 200, label: 'Media' }, { value: 260, label: 'Larga' }], default: 260,
-  },
-  {
-    key: 'sideMirrors', section: 'Rendimiento', type: 'toggle', label: 'Espejos laterales', default: true,
+    key: 'sideMirrors', section: 'Espejos', type: 'toggle', label: 'Espejos laterales', default: true,
     help: 'Cada espejo es una vista extra que se dibuja en cada cuadro. Sin ellos no podrás revisar tus costados.',
   },
-  { key: 'showFps', section: 'Rendimiento', type: 'toggle', label: 'Mostrar FPS', default: false },
+  {
+    key: 'mirrorQuality', section: 'Espejos', type: 'choice', label: 'Calidad de los espejos',
+    options: [{ value: 'low', label: 'Baja' }, { value: 'medium', label: 'Media' }, { value: 'high', label: 'Alta' }], default: 'high',
+    help: 'Resolución y suavizado de lo que se ve en los espejos.',
+  },
+  {
+    key: 'mirrorRefresh', section: 'Espejos', type: 'choice', label: 'Actualización de los espejos',
+    options: [{ value: 1, label: 'Cada cuadro' }, { value: 2, label: 'Cada 2 cuadros' }, { value: 3, label: 'Cada 3 cuadros' }], default: 1,
+    help: 'Con menos actualizaciones los espejos van a saltos, pero se ahorra bastante trabajo.',
+  },
+  { key: 'showFps', section: 'Pantalla', type: 'toggle', label: 'Mostrar FPS', default: false, help: 'Muestra los cuadros por segundo en un rincón durante la partida.' },
 ];
 
 // ---- Control feel (global, applied straight onto CONFIG) ----

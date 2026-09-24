@@ -11,6 +11,7 @@ import { CROSSWALKS } from '../world/crosswalks.js';
 import { RB, ARMS, ringInfo, wrapAngle } from '../world/roundabout.js';
 import { COURSE, setTutorialLight } from '../world/tutorialCourse.js';
 import { showToast } from '../ui/hud.js';
+import { kbdHtml, refreshKbds } from '../state/keybindings.js';
 
 // The guided tutorial: a fixed list of steps, each with an instruction shown in the panel at the
 // top of the screen and a completion test evaluated every frame. The course itself (world/
@@ -18,7 +19,7 @@ import { showToast } from '../ui/hud.js';
 // traffic light) are driven from here, at the moment a step needs them — nothing is random.
 
 const LEFT = COURSE.lanes.left, RIGHT = COURSE.lanes.right;
-const kbd = (k) => `<kbd>${k}</kbd>`;
+const kbd = kbdHtml; // takes an action id; showStep() re-labels the caps with the player's current keys
 const laneOf = (x) => (x > 0.3 && x < 3.5 ? 'left' : x >= 3.5 && x < 7 ? 'right' : null);
 const wheelLock = () => THREE.MathUtils.degToRad(CONFIG.WHEEL_MAX_ANGLE_DEG);
 const angleBetween = (a, b) => Math.min(wrapAngle(a - b), wrapAngle(b - a));
@@ -51,7 +52,7 @@ const STEPS = [
   },
   {
     id: 'steer', title: 'Gira el volante',
-    text: `Arrastra el mouse alrededor del volante, o usa ${kbd('A')} / ${kbd('D')}, para girar un poco a la <b>izquierda</b> y luego a la <b>derecha</b>. Al soltarlo se centra solo.`,
+    text: `Arrastra el mouse alrededor del volante, o usa ${kbd('steerLeft')} / ${kbd('steerRight')}, para girar un poco a la <b>izquierda</b> y luego a la <b>derecha</b>. Al soltarlo se centra solo.`,
     hint: (ctx, s) => `Izquierda ${s.left ? '✔' : '·'}   Derecha ${s.right ? '✔' : '·'}`,
     update(ctx, s) {
       if (controlState.wheelAngle < -wheelLock() * 0.3) s.left = true;
@@ -61,7 +62,7 @@ const STEPS = [
   },
   {
     id: 'brake', title: 'Frena',
-    text: `Mantén ${kbd('S')} para frenar hasta <b>detenerte por completo</b>. Baja también el acelerador con la rueda del mouse (hacia abajo).`,
+    text: `Mantén ${kbd('brake')} para frenar hasta <b>detenerte por completo</b>. Baja también el acelerador con la rueda del mouse (hacia abajo).`,
     hint: (ctx) => `Velocidad: ${Math.round(ctx.kmh)} km/h`,
     update(ctx, s, dt) {
       s.still = ctx.kmh < 1.5 ? (s.still ?? 0) + dt : 0;
@@ -70,7 +71,7 @@ const STEPS = [
   },
   {
     id: 'signals', title: 'Direccionales',
-    text: `Activa la direccional izquierda con ${kbd('Q')} y la derecha con ${kbd('E')}. Cada tecla la enciende o la apaga. Aparecen como flechas verdes en el tablero, entre los relojes.`,
+    text: `Activa la direccional izquierda con ${kbd('signalLeft')} y la derecha con ${kbd('signalRight')}. Cada tecla la enciende o la apaga. Aparecen como flechas verdes en el tablero, entre los relojes.`,
     hint: (ctx, s) => `Izquierda ${s.left ? '✔' : '·'}   Derecha ${s.right ? '✔' : '·'}`,
     update(ctx, s) {
       if (controlState.signalLeft) s.left = true;
@@ -80,12 +81,12 @@ const STEPS = [
   },
   {
     id: 'signalsOff', title: 'Apaga las direccionales',
-    text: `Presiona ${kbd('L')} para apagarlas (o vuelve a pulsar la misma tecla). Las direccionales no se apagan solas.`,
+    text: `Presiona ${kbd('signalOff')} para apagarlas (o vuelve a pulsar la misma tecla). Las direccionales no se apagan solas.`,
     update: () => !controlState.signalLeft && !controlState.signalRight,
   },
   {
     id: 'horn', title: 'Bocina',
-    text: `Toca la bocina con ${kbd('H')}. Úsala solo cuando de verdad haga falta.`,
+    text: `Toca la bocina con ${kbd('horn')}. Úsala solo cuando de verdad haga falta.`,
     enter: (ctx, s) => { s.since = ctx.now; },
     update: (ctx, s) => controlState.lastHonkTime > s.since,
   },
@@ -97,7 +98,7 @@ const STEPS = [
   },
   laneChangeStep({
     id: 'laneLeft', title: 'Cambio de carril: izquierda',
-    text: `Antes de cambiar de carril: <b>1)</b> mira el espejo izquierdo, <b>2)</b> activa la direccional izquierda ${kbd('Q')}, <b>3)</b> pasa al carril izquierdo cuando esté libre.`,
+    text: `Antes de cambiar de carril: <b>1)</b> mira el espejo izquierdo, <b>2)</b> activa la direccional izquierda ${kbd('signalLeft')}, <b>3)</b> pasa al carril izquierdo cuando esté libre.`,
     toLane: 'left', signalKey: 'signalLeft', signalName: 'la izquierda (Q)',
     enter(ctx, s) {
       // a car comes up the left lane from behind: the lesson is to see it in the mirror and wait
@@ -111,7 +112,7 @@ const STEPS = [
   }),
   laneChangeStep({
     id: 'laneRight', title: 'Regresa al carril derecho',
-    text: `Ahora al revés: mira el espejo derecho, activa la direccional derecha ${kbd('E')} y vuelve al carril derecho.`,
+    text: `Ahora al revés: mira el espejo derecho, activa la direccional derecha ${kbd('signalRight')} y vuelve al carril derecho.`,
     toLane: 'right', signalKey: 'signalRight', signalName: 'la derecha (E)',
   }),
   {
@@ -135,7 +136,7 @@ const STEPS = [
   },
   {
     id: 'hazard', title: 'Auto malogrado',
-    text: `Un auto se malogró en tu carril. Mira el espejo izquierdo, señaliza con ${kbd('Q')} y <b>rodéalo por el carril izquierdo</b>. Cuidado: puede venir un auto por detrás.`,
+    text: `Un auto se malogró en tu carril. Mira el espejo izquierdo, señaliza con ${kbd('signalLeft')} y <b>rodéalo por el carril izquierdo</b>. Cuidado: puede venir un auto por detrás.`,
     waypoint: { x: RIGHT, z: COURSE.stalledZ },
     enter() { spawnStalledCar(RIGHT, COURSE.stalledZ); },
     hint: (ctx, s) => (s.car && s.car.z > ctx.p.z - 6 ? '⚠ Auto por el carril izquierdo: espera a que pase.' : ''),
@@ -149,7 +150,7 @@ const STEPS = [
   },
   laneChangeStep({
     id: 'laneBack', title: 'Vuelve a tu carril',
-    text: `Ya lo pasaste. Mira el espejo derecho, activa la direccional derecha ${kbd('E')} y regresa al carril derecho.`,
+    text: `Ya lo pasaste. Mira el espejo derecho, activa la direccional derecha ${kbd('signalRight')} y regresa al carril derecho.`,
     toLane: 'right', signalKey: 'signalRight', signalName: 'la derecha (E)',
   }),
   {
@@ -190,7 +191,7 @@ const STEPS = [
   },
   {
     id: 'turnRight', title: 'Gira a la derecha',
-    text: `Activa la direccional derecha ${kbd('E')} <b>antes</b> de girar y toma la calle de la derecha. Gira sin invadir el otro carril.`,
+    text: `Activa la direccional derecha ${kbd('signalRight')} <b>antes</b> de girar y toma la calle de la derecha. Gira sin invadir el otro carril.`,
     waypoint: { x: 20, z: COURSE.light.z + 1.75 },
     update(ctx, s) {
       // the turn starts as the car leaves the avenue's right edge
@@ -220,7 +221,7 @@ const STEPS = [
   },
   {
     id: 'turnLeft', title: 'Gira a la izquierda',
-    text: `Activa la direccional izquierda ${kbd('Q')} <b>antes</b> de girar y toma la calle hacia la rotonda. Cede el paso si viene alguien.`,
+    text: `Activa la direccional izquierda ${kbd('signalLeft')} <b>antes</b> de girar y toma la calle hacia la rotonda. Cede el paso si viene alguien.`,
     waypoint: { x: COURSE.ring.cx + 1.75, z: COURSE.light.z - 22 },
     update(ctx, s) {
       // the left turn starts once the car reaches the middle of the crossing
@@ -233,7 +234,7 @@ const STEPS = [
   },
   {
     id: 'roundabout', title: 'Rotonda',
-    text: `Entra por la derecha (en la rotonda se gira en <b>sentido antihorario</b>), cede el paso, toma la <b>segunda salida</b> —siempre recto— y activa la derecha ${kbd('E')} antes de salir.`,
+    text: `Entra por la derecha (en la rotonda se gira en <b>sentido antihorario</b>), cede el paso, toma la <b>segunda salida</b> —siempre recto— y activa la derecha ${kbd('signalRight')} antes de salir.`,
     waypoint: { x: COURSE.ring.cx, z: COURSE.ring.cz - 55 },
     hint: (ctx, s) => (s.exitArm === 'S' ? 'Saliste por donde entraste: da otra vuelta y toma la segunda salida.' : ''),
     update(ctx, s) {
@@ -284,7 +285,9 @@ function showStep(i) {
   const step = STEPS[i];
   document.getElementById('tutStepNo').textContent = step.final ? '¡LISTO!' : `PASO ${i + 1} / ${STEPS.length - 1}`;
   document.getElementById('tutTitle').textContent = step.title;
-  document.getElementById('tutText').innerHTML = step.text;
+  const textEl = document.getElementById('tutText');
+  textEl.innerHTML = step.text;
+  refreshKbds(textEl);
   document.getElementById('tutProgressFill').style.width = `${(i / (STEPS.length - 1)) * 100}%`;
   document.getElementById('tutHint').textContent = '';
   if (step.waypoint) {

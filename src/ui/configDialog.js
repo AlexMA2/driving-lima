@@ -1,14 +1,11 @@
 import { SCENARIOS, PARKING_SIZES } from '../config.js';
-import {
-  SCENARIO_FIELDS, PERFORMANCE_FIELDS,
-  getScenarioSettings, saveScenarioSettings, resetScenarioSettings,
-  getPerformance, savePerformance, resetPerformance,
-} from '../state/settings.js';
+import { SCENARIO_FIELDS, getScenarioSettings, saveScenarioSettings, resetScenarioSettings } from '../state/settings.js';
 import { renderSettingsForm } from './settingsForm.js';
 
 // The per-scenario settings dialog opened from the scenario menu's CONFIGURAR button:
-// match settings (duration, limit, traffic, drivers) for the picked scenario plus the shared
-// performance options. Edits are saved as they're made, so closing the dialog just hides it.
+// match settings (duration, limit, traffic, drivers) for the picked scenario. Controls, keys and
+// performance are global and live in the gear dialog (ui/globalConfigDialog.js). Edits are saved
+// as they're made, so closing the dialog just hides it.
 
 const dialogEl = () => document.getElementById('configDialog');
 
@@ -31,13 +28,8 @@ export function openScenarioConfig(scenarioId, onClose) {
 
   const scenarioFields = SCENARIO_FIELDS.filter(f => !f.show || f.show(scenario));
   let scenarioValues = getScenarioSettings(scenarioId);
-  let perfValues = getPerformance();
 
-  const render = () => {
-    body.innerHTML = '<div id="cfgScenarioForm"></div><div id="cfgPerformanceForm"></div>';
-    renderSettingsForm(body.querySelector('#cfgScenarioForm'), scenarioFields, scenarioValues, () => saveScenarioSettings(scenarioId, scenarioValues));
-    renderSettingsForm(body.querySelector('#cfgPerformanceForm'), PERFORMANCE_FIELDS, perfValues, () => savePerformance(perfValues));
-  };
+  const render = () => renderSettingsForm(body, scenarioFields, scenarioValues, () => saveScenarioSettings(scenarioId, scenarioValues));
   render();
 
   const close = () => {
@@ -47,7 +39,6 @@ export function openScenarioConfig(scenarioId, onClose) {
   };
   document.getElementById('configReset').onclick = () => {
     scenarioValues = resetScenarioSettings(scenarioId);
-    perfValues = resetPerformance();
     render();
   };
   document.getElementById('configClose').onclick = close;

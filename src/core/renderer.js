@@ -7,10 +7,15 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+// The scene is drawn up to four times a frame (main view + three mirrors). By default every one
+// of those draws would redo the sun's shadow map; instead main.js requests it once per frame.
+renderer.shadowMap.autoUpdate = false;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 // far=500 (not 1000) buys noticeably better depth-buffer precision over the visible range;
-// scene.fog already fades everything to sky color well before that anyway.
+// scene.fog already fades everything to sky color well before that anyway — and applyPerformance()
+// (core/performance.js) then pulls the far plane in to where the fog is total, so nothing
+// invisible is drawn.
 export const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 500);
 
 // Mirror cameras (rendered into their small DOM-rect viewports, see systems/cameraRig.js).
