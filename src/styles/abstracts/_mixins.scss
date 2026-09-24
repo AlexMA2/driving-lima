@@ -46,15 +46,21 @@
   }
 }
 
-// A keyboard key cap, for the key hints inside text.
-@mixin key-cap($min-width: 22px) {
+// A keyboard key cap, for the key hints inside text and the controls dialog: a light, bevelled top face with a
+// darker edge underneath, so it reads as a key on the dark panels.
+@mixin key-cap($min-width: 22px, $depth: 3px) {
   display: inline-block;
   min-width: $min-width;
   text-align: center;
   border-radius: 5px;
-  background: tint(0.16);
-  border: 1px solid tint(0.35);
-  border-bottom-width: 2px;
+  color: #23262f;
+  text-shadow: none;
+  background: linear-gradient(180deg, #fdfdfe, #d3d6df);
+  border: 1px solid #a3a8b8;
+  border-bottom: $depth solid #7d8296;
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 2px 4px rgba(0, 0, 0, 0.4);
   font-family: inherit;
   font-weight: 800;
 }

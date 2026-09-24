@@ -1,0 +1,55 @@
+@use '../abstracts/variables' as *;
+@use '../abstracts/mixins' as *;
+
+// Keyboard key caps and the mouse icon (ui/keycap.ts), as they are drawn in the controls dialog.
+
+.keycap {
+  @include key-cap(42px, 5px);
+  padding: 7px 12px 5px;
+  border-radius: 8px;
+  font-size: 15px;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition:
+    transform 0.06s,
+    border-bottom-width 0.06s,
+    background 0.06s;
+
+  &--wide {
+    min-width: 64px;
+    font-size: 13px;
+  }
+
+  &--space {
+    min-width: 128px;
+    font-size: 13px;
+  }
+
+  &--none {
+    color: tint(0.55);
+    background: none;
+    border: 1px dashed tint(0.3);
+    box-shadow: none;
+  }
+
+  // the key is being held down right now: the cap sinks and lights up
+  &.pressed {
+    transform: translateY(3px);
+    border-bottom-width: 2px;
+    background: linear-gradient(180deg, #ffd59a, #ffb04a);
+    border-color: #c77a12;
+    box-shadow: 0 0 12px rgba(255, 152, 0, 0.7);
+  }
+}
+
+.keyOr {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.6;
+}
+
+.mouseIcon {
+  width: 30px;
+  height: 45px;
+  color: $color-accent-soft;
+}
