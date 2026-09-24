@@ -9,6 +9,10 @@ import { loadScenarios } from '../app/screens';
 
 const element = document.getElementById('startScreen');
 
+// The author's LinkedIn profile, base64-encoded. It is not in index.html and the button is not a link, so a scraper
+// reading the page finds no address: it is decoded and opened only on a click. (This keeps bots off; it is not secret.)
+const LINKEDIN = 'aHR0cHM6Ly93d3cubGlua2VkaW4uY29tL2luL2FsZXhtYW1hbmkv';
+
 function wire(home: HTMLElement): void {
   const start = home.querySelector<HTMLElement>('#startBtn');
   start?.addEventListener('click', () => { void goTo('scenarios'); });
@@ -19,6 +23,10 @@ function wire(home: HTMLElement): void {
 
   home.querySelector('#controlsBtn')?.addEventListener('click', () => {
     void import('../dialogs/controls').then(m => m.openControlsDialog());
+  });
+
+  home.querySelector('#linkedinBtn')?.addEventListener('click', () => {
+    window.open(atob(LINKEDIN), '_blank', 'noopener,noreferrer');
   });
 }
 

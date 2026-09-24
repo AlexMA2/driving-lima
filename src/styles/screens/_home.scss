@@ -196,6 +196,19 @@
   @include ghost-button(8px 20px);
 }
 
+#linkedinBtn {
+  @include ghost-button(8px 16px);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-color: rgba(10, 102, 194, 0.7);
+  font-size: 12.5px;
+
+  &:hover {
+    background: rgba(10, 102, 194, 0.28);
+  }
+}
+
 @media (max-width: 900px) {
   #startScreen {
     align-items: flex-start;
