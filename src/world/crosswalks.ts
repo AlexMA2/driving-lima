@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { scene } from '../core/scene';
-import { buildSign } from '../assets/props';
+import { buildSign, buildSchoolPlate, buildSignPost } from '../assets/props';
 import type { Amount } from '../state/settings';
 
 // Registry of marked pedestrian crossings ("cebras"). A crosswalk is described by its centre,
@@ -16,6 +16,7 @@ export interface Crosswalk {
   roadHalf: number;
   walkHalf: number;
   pedsOnRoad: number;
+  school?: boolean; // a crossing in the school zone: schoolchildren use it (entities/pedestrians.ts)
 }
 
 export const CROSSWALKS: Crosswalk[] = [];
@@ -43,9 +44,9 @@ export function includeCandidate(index: number, level: Amount): boolean {
 }
 
 // `build: false` registers a crossing whose stripes already exist (the avenue's intersections).
-// `sign` adds "PASO PEATONAL" signs on both approaches.
-export function addCrosswalk({ cx, cz, axis, roadHalf, walkHalf, build = true, sign = false }: Omit<Crosswalk, 'pedsOnRoad'> & { build?: boolean; sign?: boolean }): Crosswalk {
-  const cw: Crosswalk = { cx, cz, axis, roadHalf, walkHalf, pedsOnRoad: 0 };
+// `sign` adds "PASO PEATONAL" signs on both approaches (the school warning sign at a school crossing).
+export function addCrosswalk({ cx, cz, axis, roadHalf, walkHalf, school, build = true, sign = false }: Omit<Crosswalk, 'pedsOnRoad'> & { build?: boolean; sign?: boolean }): Crosswalk {
+  const cw: Crosswalk = { cx, cz, axis, roadHalf, walkHalf, pedsOnRoad: 0, school };
   CROSSWALKS.push(cw);
   if (build) queueStripes(cw);
   if (sign) placeSigns(cw);
@@ -80,7 +81,7 @@ function placeSigns(cw: Crosswalk): void {
   // one sign per direction of travel, on the kerb before the crossing, facing oncoming drivers
   const offset = cw.roadHalf + 0.9, back = 9;
   const make = (x: number, z: number, rotY: number): void => {
-    const s = buildSign('PASO\nPEATONAL', 0xffd54a, 'rect');
+    const s = cw.school ? buildSignPost([{ plate: buildSchoolPlate(), y: 2.4 }], 2.9) : buildSign('PASO\nPEATONAL', 0xffd54a, 'rect');
     s.position.set(x, 0, z);
     s.rotation.y = rotY;
     scene.add(s);

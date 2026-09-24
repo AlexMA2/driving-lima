@@ -5,10 +5,13 @@ import { scene } from '../core/scene';
 import { PLAYER_LANES, ONCOMING_LANES, ROAD_HALF_WIDTH } from './road';
 
 export const SCHOOL_ZONE = { start: -1000, end: -1180 };
+// The zebras inside the zone (registered in world/lineCrosswalks.ts): where the schoolchildren cross.
+export const SCHOOL_CROSSINGS = [-1045, -1135];
 
-// The zone is announced the way Peruvian roads do it, with no on-screen help: the "zona escolar" warning
-// pentagon above a 30 km/h limit sign before it, the word "ZONA ESCOLAR" painted in each lane at its mouth, and
-// the ordinary limit again once it ends. Signs stand on the right kerb of each direction of travel.
+// The zone is announced the way Peruvian roads do it, with no on-screen help: the "zona escolar" warning pentagon
+// above a 30 km/h limit sign before it, the word "ZONA ESCOLAR" painted in each lane at its mouth, and the ordinary
+// limit again once it ends. Inside it, the two school crossings get their own warning signs (world/crosswalks.ts).
+// Signs stand on the right kerb of each direction of travel.
 const SIGN_OFFSET = 0.6; // m from the road's edge
 const APPROACH = 30;     // m before the zone that its signs stand
 

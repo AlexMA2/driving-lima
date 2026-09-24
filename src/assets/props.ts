@@ -249,13 +249,22 @@ export function buildStopSign() {
   return g;
 }
 
-export function buildPedestrian(shirtColor: THREE.ColorRepresentation) {
+export const CHILD_SCALE = 0.72; // a schoolchild next to an adult: about 1.0 m against 1.45 m
+
+// `child` builds a schoolchild: the same figure at a smaller scale, in a school shirt and with a backpack (on the
+// side the figure faces away from, +Z: pedestrians walk towards -Z at rotation 0).
+export function buildPedestrian(shirtColor: THREE.ColorRepresentation, child = false) {
   const g = new THREE.Group();
   const legs = box(0.28, 0.7, 0.2, 0x2b2b3a); legs.position.y = 0.35;
   const torso = box(0.32, 0.5, 0.22, shirtColor); torso.position.y = 0.95;
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 10), new THREE.MeshStandardMaterial({ color: 0xe0b088 }));
   head.position.y = 1.32;
   g.add(legs, torso, head);
+  if (child) {
+    const pack = box(0.26, 0.34, 0.14, 0xc62828); pack.position.set(0, 1.0, 0.18);
+    g.add(pack);
+    g.scale.setScalar(CHILD_SCALE);
+  }
   g.traverse(o => { if (o instanceof THREE.Mesh) { o.castShadow = true; } });
   return g;
 }

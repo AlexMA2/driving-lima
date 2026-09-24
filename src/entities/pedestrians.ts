@@ -7,7 +7,7 @@ import { world, propMaterial } from '../core/physics';
 import { ROAD_HALF_WIDTH } from '../world/road';
 import { CROSSWALKS, type Crosswalk } from '../world/crosswalks';
 import type { ResolvedScenario } from '../state/settings';
-import { buildPedestrian } from '../assets/props';
+import { buildPedestrian, CHILD_SCALE } from '../assets/props';
 import { chassisBody } from './player';
 import { distanceBetween as distanceTo } from '../utils/cannonThree';
 import { triggerInfraction } from '../systems/rules';
@@ -31,6 +31,7 @@ export interface Pedestrian {
   yieldChecked: boolean;
   onRoad: boolean;
   pos: THREE.Vector3;
+  bodyY: number;          // height of the collider's centre: half its height
   hit?: boolean;
   hitTimer?: number;
 }
@@ -51,6 +52,7 @@ let maxPedestrians = CONFIG.PEDESTRIAN_TARGET_COUNT;
 let allowJaywalkers = true;
 
 const SHIRTS = [0xd32f2f, 0x1976d2, 0x388e3c, 0xffa000, 0x5d4037];
+const SCHOOL_SHIRTS = [0xf5f5f5, 0xf5f5f5, 0x90caf9]; // white school shirts, some in light blue
 
 export function initPedestrians(scenario: ResolvedScenario): void {
   maxPedestrians = scenario.pedestrians ?? CONFIG.PEDESTRIAN_TARGET_COUNT;
@@ -70,20 +72,27 @@ function worldPos(p: Pedestrian, out: THREE.Vector3): THREE.Vector3 {
   return out;
 }
 
+export interface SpawnOptions {
+  child?: boolean;   // a schoolchild: smaller, in a school shirt and with a backpack
+  lateral?: number;  // metres to one side of the crossing's line, so a group walks side by side
+  lag?: number;      // metres already walked, so a group does not set off in a single rank
+}
+
 // `crosswalk` may be a registry entry or a plain descriptor for a jaywalking line
 // ({ axis, center, fixed, roadHalf, walkHalf }); `dir` is +1 or -1 along the walking axis.
-export function spawnPedestrian(crosswalk: WalkLine, dir = choice([-1, 1]), speed = rand(1.1, 1.7)): Pedestrian {
+export function spawnPedestrian(crosswalk: WalkLine, dir = choice([-1, 1]), speed = rand(1.1, 1.7), { child = false, lateral = 0, lag = 0 }: SpawnOptions = {}): Pedestrian {
   const axis = crosswalk.axis;
   const center = (axis === 'x' ? (crosswalk.cx ?? crosswalk.center) : (crosswalk.cz ?? crosswalk.center)) as number;
-  const fixed = (crosswalk.fixed ?? (axis === 'x' ? crosswalk.cz : crosswalk.cx)) as number;
-  const mesh = buildPedestrian(choice(SHIRTS));
+  const fixed = ((crosswalk.fixed ?? (axis === 'x' ? crosswalk.cz : crosswalk.cx)) as number) + lateral;
+  const mesh = buildPedestrian(choice(child ? SCHOOL_SHIRTS : SHIRTS), child);
+  const scale = child ? CHILD_SCALE : 1;
   scene.add(mesh);
 
   // A kinematic body has infinite mass: with normal contact response a pedestrian strolling into the side of a
   // stopped car would shove it across the road, and a car that hit one would stop dead as against a wall. So the
   // pedestrian only *reports* touches (systems/rules.ts decides whether they cost a fine) and never pushes.
   const body = new CANNON.Body({ mass: 0, type: CANNON.Body.KINEMATIC, material: propMaterial });
-  body.addShape(new CANNON.Box(new CANNON.Vec3(0.2, 0.65, 0.2)));
+  body.addShape(new CANNON.Box(new CANNON.Vec3(0.2 * scale, 0.65 * scale, 0.2 * scale)));
   body.collisionResponse = false;
   body.userData = { isPenalized: true, type: 'pedestrian' };
   world.addBody(body);
@@ -91,13 +100,13 @@ export function spawnPedestrian(crosswalk: WalkLine, dir = choice([-1, 1]), spee
   const p: Pedestrian = {
     mesh, body, axis, dir, speed, center, fixed,
     roadHalf: crosswalk.roadHalf, walkHalf: crosswalk.walkHalf,
-    u: center - dir * crosswalk.walkHalf,
+    u: center - dir * (crosswalk.walkHalf - lag),
     cw: CROSSWALKS.includes(crosswalk as Crosswalk) ? (crosswalk as Crosswalk) : null,
-    yieldChecked: false, onRoad: false, pos: new THREE.Vector3(),
+    yieldChecked: false, onRoad: false, pos: new THREE.Vector3(), bodyY: 0.65 * scale,
   };
   worldPos(p, p.pos);
   mesh.position.copy(p.pos);
-  body.position.set(p.pos.x, 0.65, p.pos.z);
+  body.position.set(p.pos.x, p.bodyY, p.pos.z);
   body.userData.onHit = () => knockDown(p);
   pedestrianPool.push(p);
   return p;
@@ -115,22 +124,39 @@ function knockDown(p: Pedestrian): void {
   p.mesh.position.y = 0.15;
 }
 
-function spawnIfNeeded(dt: number): void {
-  if (pedestrianPool.length >= maxPedestrians || rng() >= CONFIG.PEDESTRIAN_SPAWN_CHANCE_PER_SEC * dt) return;
-  const pl = chassisBody.position;
-
-  if (allowJaywalkers && rng() < 0.4) {
-    const fixed = pl.z - rand(25, 90);
-    spawnPedestrian({ axis: 'x', center: 0, fixed, roadHalf: ROAD_HALF_WIDTH, walkHalf: ROAD_HALF_WIDTH + CONFIG.SIDEWALK_WIDTH - 0.3 });
-    return;
+// A few schoolchildren set off together across a school crossing.
+function spawnSchoolchildren(cw: Crosswalk): void {
+  const dir = choice([-1, 1]);
+  const count = 2 + Math.floor(rng() * 2);
+  const speed = rand(1.0, 1.3);
+  for (let i = 0; i < count; i++) {
+    spawnPedestrian(cw, dir, speed + rand(-0.1, 0.15), { child: true, lateral: (i - (count - 1) / 2) * 0.55, lag: rand(0, 0.8) });
   }
+}
+
+const SCHOOL_BOOST = 3; // schoolchildren turn up this many times as often as other pedestrians
+
+function spawnIfNeeded(dt: number): void {
+  if (pedestrianPool.length >= maxPedestrians || rng() >= CONFIG.PEDESTRIAN_SPAWN_CHANCE_PER_SEC * SCHOOL_BOOST * dt) return;
+  const pl = chassisBody.position;
 
   // a free zebra somewhere ahead-ish: close enough to matter, far enough to see the pedestrian set off
   const candidates = CROSSWALKS.filter(cw => {
     const d = Math.hypot(cw.cx - pl.x, cw.cz - pl.z);
     return cw.pedsOnRoad === 0 && d > 30 && d < 110 && !pedestrianPool.some(p => p.cw === cw);
   });
-  if (candidates.length) spawnPedestrian(choice(candidates));
+  const schoolCandidates = candidates.filter(cw => cw.school);
+  if (!schoolCandidates.length && rng() >= 1 / SCHOOL_BOOST) return; // the boosted rate is only for a school's crossings
+
+  if (allowJaywalkers && !schoolCandidates.length && rng() < 0.4) {
+    const fixed = pl.z - rand(25, 90);
+    spawnPedestrian({ axis: 'x', center: 0, fixed, roadHalf: ROAD_HALF_WIDTH, walkHalf: ROAD_HALF_WIDTH + CONFIG.SIDEWALK_WIDTH - 0.3 });
+    return;
+  }
+
+  if (!candidates.length) return;
+  const cw = choice(schoolCandidates.length && rng() < 0.75 ? schoolCandidates : candidates);
+  if (cw.school) spawnSchoolchildren(cw); else spawnPedestrian(cw);
 }
 
 export function updatePedestrians(dt: number): void {
@@ -149,7 +175,7 @@ export function updatePedestrians(dt: number): void {
     const prev = p.pos.clone();
     p.u += p.dir * p.speed * dt;
     worldPos(p, p.pos);
-    p.body.position.set(p.pos.x, 0.65, p.pos.z);
+    p.body.position.set(p.pos.x, p.bodyY, p.pos.z);
     p.body.velocity.set((p.pos.x - prev.x) / dt, 0, (p.pos.z - prev.z) / dt);
     p.mesh.position.copy(p.pos);
     p.mesh.rotation.y = p.axis === 'x' ? (p.dir > 0 ? Math.PI / 2 : -Math.PI / 2) : (p.dir > 0 ? Math.PI : 0);
