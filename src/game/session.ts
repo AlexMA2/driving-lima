@@ -9,6 +9,7 @@ import { initPedestrians } from '../entities/pedestrians';
 import { buildCockpit, updateCockpit } from '../entities/cockpit';
 import { controlState, initInput, initSteerAssist, applyVehicleControls } from '../systems/input';
 import { initRules, setupCollisionListener, checkSpeedRule } from '../systems/rules';
+import { keepCarDrivable } from '../systems/carRecovery';
 import { updateCameraRig, renderMirrorViewports, layoutMirrors } from '../systems/cameraRig';
 import { initAudio, updateEngineSound, suspendAudio, resumeAudio } from '../systems/audio';
 import { gameState } from '../state/gameState';
@@ -123,6 +124,7 @@ function run(scenario: ResolvedScenario, layout: LayoutRuntime, hudRoot: HTMLEle
 
     applyVehicleControls(dt);
     world.step(1 / 60, dt, 5);
+    keepCarDrivable(dt);
     syncPlayerMesh();
 
     const speedKmh = chassisBody.velocity.length() * 3.6;
