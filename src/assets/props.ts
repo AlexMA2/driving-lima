@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { box, cyl, type StdMesh } from './primitives';
 
 export function buildCone() {
@@ -10,18 +11,48 @@ export function buildCone() {
   return g;
 }
 
+// A "rompemuelle": a low hump across the whole road, painted with alternating yellow and black bars like the real
+// ones. Its crest is 0.24 above the ground plane the physics uses: the asphalt's visible top is at y=0.10 (see
+// world/road.ts) and the collider in world/speedBumps.ts rises 0.14 above the plane, so the car climbs what is drawn.
+const BUMP_LENGTH = 1.0;   // along the road
+const BUMP_HEIGHT = 0.14;  // above the asphalt's top face
+const BUMP_BAR = 0.5;      // width of one painted bar
+const ASPHALT_TOP = 0.10;
+
 export function buildSpeedBump(width: number) {
-  const g = new THREE.Group();
-  const bump = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.18, 0.18, width, 10, 1, false, 0, Math.PI),
-    new THREE.MeshStandardMaterial({ color: 0xffd54a, roughness: 0.9 })
-  );
-  bump.rotation.z = Math.PI / 2;
-  bump.rotation.y = Math.PI / 2;
-  bump.position.y = 0.02;
-  bump.castShadow = true; bump.receiveShadow = true;
-  g.add(bump);
-  return g;
+  // The hump's profile (a circular segment) in the road's z axis, then extruded along x one bar at a time.
+  const half = BUMP_LENGTH / 2;
+  const radius = (half * half + BUMP_HEIGHT * BUMP_HEIGHT) / (2 * BUMP_HEIGHT);
+  const profile = new THREE.Shape();
+  profile.moveTo(-half, 0);
+  const steps = 8;
+  for (let i = 0; i <= steps; i++) {
+    const z = -half + (BUMP_LENGTH * i) / steps;
+    profile.lineTo(z, Math.sqrt(radius * radius - z * z) + BUMP_HEIGHT - radius);
+  }
+  profile.lineTo(half, 0);
+
+  const bars = Math.max(1, Math.round(width / BUMP_BAR));
+  const barWidth = width / bars;
+  const parts: [THREE.BufferGeometry[], THREE.BufferGeometry[]] = [[], []];
+  for (let i = 0; i < bars; i++) {
+    const g = new THREE.ExtrudeGeometry(profile, { depth: barWidth, bevelEnabled: false });
+    g.rotateY(Math.PI / 2); // the extrusion (+z) now runs along +x, the profile's x along -z
+    g.translate(-width / 2 + i * barWidth, 0, 0);
+    parts[i % 2].push(g);
+  }
+
+  const group = new THREE.Group();
+  ([0xffd54a, 0x1c1c1c] as const).forEach((color, k) => {
+    const merged = mergeGeometries(parts[k], false);
+    parts[k].forEach(g => g.dispose());
+    if (!merged) return;
+    const mesh = new THREE.Mesh(merged, new THREE.MeshStandardMaterial({ color, roughness: 0.8 }));
+    mesh.position.y = ASPHALT_TOP - 0.005; // sunk a hair into the asphalt so there is no gap at the edges
+    mesh.castShadow = true; mesh.receiveShadow = true;
+    group.add(mesh);
+  });
+  return group;
 }
 
 // flipFacing: callers that swing the arm to the road's other side with `rotation.y = Math.PI`

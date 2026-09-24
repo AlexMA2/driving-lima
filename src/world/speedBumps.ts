@@ -4,7 +4,7 @@ import { world, propMaterial } from '../core/physics';
 import { buildSpeedBump, buildSign } from '../assets/props';
 import { ROAD_HALF_WIDTH } from './road';
 
-// Unmarked "rompemuelas" — the physics body itself gives the RaycastVehicle a real bounce;
+// "Rompemuelles" — painted humps across the road (assets/props.ts). The physics body itself gives the RaycastVehicle a real bounce;
 // `triggered` is used separately by systems/rules.ts to apply the over-speed penalty once per pass.
 export const SPEED_BUMPS = [-560, -960, -1480, -2050, -2680].map(z => ({
   z, width: ROAD_HALF_WIDTH * 2 - 0.4, triggered: false,
