@@ -53,8 +53,8 @@ export const CONFIG = {
   // ---- Brake pedal (press / hold / release, ramped — not instant on/off) ----
   BRAKE_RAMP_UP: 0.45,          // seconds to go 0 -> 1 while held
   BRAKE_RAMP_DOWN: 0.35,        // seconds to go 1 -> 0 after release
-  REVERSE_SPEED_THRESHOLD_KMH: 3, // must be nearly stopped before brake-hold engages reverse
-  REVERSE_MAX_KMH: 6,           // reverse gear's top speed: it eases off as the car nears it (a crawl, for parking)
+  REVERSE_SPEED_THRESHOLD_KMH: 3, // must be nearly stopped before pressing the brake key engages reverse (R)
+  REVERSE_MAX_KMH: 20,          // reverse gear's top speed: it eases off as the car nears it
   CRAWL_HOLD_KMH: 4,            // below this, with no throttle/brake/handbrake, the car settles instead of coasting on
   ENGINE_BRAKE: 0.15,           // fraction of BRAKE_FORCE applied when coasting with no throttle, brake or handbrake
   KEYBOARD_STEER_FRACTION: 1,   // how much of the wheel's lock A/D turn to (1 = full lock)

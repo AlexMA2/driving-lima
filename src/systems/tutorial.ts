@@ -112,7 +112,7 @@ const STEPS: Step[] = [
   },
   {
     id: 'brake', title: 'Frena',
-    text: `Mantén ${kbd('brake')} para frenar hasta <b>detenerte por completo</b>. Baja también el acelerador con la rueda del mouse (hacia abajo).`,
+    text: `Mantén ${kbd('brake')} para frenar hasta <b>detenerte por completo</b>. Baja también el acelerador con la rueda del mouse (hacia abajo). Al detenerte con ${kbd('brake')} presionado se mete la reversa <b>R</b>; para volver a avanzar (<b>D</b>) presiona ${kbd('drive')}.`,
     hint: (ctx) => `Velocidad: ${Math.round(ctx.kmh)} km/h`,
     update(ctx, s, dt) {
       s.still = ctx.kmh < 1.5 ? (s.still ?? 0) + dt : 0;
@@ -142,7 +142,7 @@ const STEPS: Step[] = [
   },
   {
     id: 'drive', title: 'A rodar',
-    text: `Acelera y avanza por el <b>carril derecho</b> hasta la columna verde. Mantente en <b>40 km/h o menos</b>: es el límite de este recorrido.`,
+    text: `Acelera y avanza por el <b>carril derecho</b> hasta la columna verde. Mantente en <b>40 km/h o menos</b>: es el límite de este recorrido. Si el tablero marca <b>R</b>, presiona ${kbd('drive')} para volver a <b>D</b>.`,
     waypoint: { x: RIGHT, z: COURSE.driveGateZ },
     update: (ctx) => ctx.p.z < COURSE.driveGateZ,
   },

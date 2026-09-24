@@ -19,9 +19,10 @@ function controlsHelpHtml(): string {
       [keys('steerRight'), 'Girar el volante a la derecha con el teclado'],
     ]],
     ['Acelerador y frenos', [
-      [mouseHtml('up'), 'Rueda del mouse hacia arriba: acelerar (sube la posición del acelerador y se mantiene)'],
+      [mouseHtml('up'), 'Rueda del mouse hacia arriba: acelerar (sube la posición del acelerador y se mantiene). En reversa (R), acelera hacia atrás'],
       [mouseHtml('down'), 'Rueda del mouse hacia abajo: desacelerar (baja la posición del acelerador y se mantiene)'],
-      [keys('brake'), 'Freno (mantener; casi detenido, sigue presionando para meter reversa, que avanza a paso de tortuga)'],
+      [keys('brake'), 'Freno (mantener). Con el auto casi detenido mete la reversa (R)'],
+      [keys('drive'), 'Volver a la marcha hacia adelante (D)'],
       [keys('handbrake'), 'Freno de mano'],
     ]],
     ['Luces y bocina', [

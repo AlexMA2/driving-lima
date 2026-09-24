@@ -8,7 +8,7 @@ import { escapeHtml } from '../utils/html';
 const KEYS_KEY = 'dls_keybindings_v1';
 
 export type ActionId =
-  | 'brake' | 'steerLeft' | 'steerRight' | 'handbrake' | 'horn'
+  | 'brake' | 'drive' | 'steerLeft' | 'steerRight' | 'handbrake' | 'horn'
   | 'signalLeft' | 'signalRight' | 'signalOff'
   | 'restart' | 'menu';
 
@@ -23,7 +23,8 @@ export interface KeyAction {
 type Bindings = Record<ActionId, string[]>;
 
 export const KEY_ACTIONS: KeyAction[] = [
-  { id: 'brake', section: 'Conducción', label: 'Freno / reversa', help: 'Mantenlo pisado; casi detenido, sigue presionando para meter la reversa.', defaults: ['s', 'arrowdown'] },
+  { id: 'brake', section: 'Conducción', label: 'Freno / reversa (R)', help: 'Frena mientras lo mantienes. Con el auto casi detenido mete la reversa (R): la rueda del mouse acelera hacia atrás.', defaults: ['s', 'arrowdown'] },
+  { id: 'drive', section: 'Conducción', label: 'Avanzar (D)', help: 'Vuelve a la marcha hacia adelante (D) desde la reversa.', defaults: ['w', 'arrowup'] },
   { id: 'steerLeft', section: 'Conducción', label: 'Girar a la izquierda', defaults: ['a', 'arrowleft'] },
   { id: 'steerRight', section: 'Conducción', label: 'Girar a la derecha', defaults: ['d', 'arrowright'] },
   { id: 'handbrake', section: 'Conducción', label: 'Freno de mano', defaults: [' '] },

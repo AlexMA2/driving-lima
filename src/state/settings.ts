@@ -208,7 +208,7 @@ export const CONTROL_FIELDS: SettingField[] = [
   { key: 'BRAKE_FORCE', section: 'Freno', type: 'range', label: 'Fuerza del freno', min: 10, max: 90, step: 1, unit: '' },
   { key: 'ENGINE_BRAKE', section: 'Freno', type: 'range', label: 'Freno motor', min: 0, max: 0.5, step: 0.01, unit: '', format: v => v.toFixed(2), help: 'Cuánto frena el auto solo al soltar el acelerador.' },
   { key: 'HANDBRAKE_FORCE', section: 'Freno', type: 'range', label: 'Fuerza del freno de mano', min: 20, max: 120, step: 1, unit: '' },
-  { key: 'REVERSE_SPEED_THRESHOLD_KMH', section: 'Freno', type: 'range', label: 'Velocidad para engranar reversa', min: 0, max: 10, step: 1, unit: ' km/h', help: 'Por debajo de esta velocidad, mantener el freno pasa a retroceder.' },
+  { key: 'REVERSE_SPEED_THRESHOLD_KMH', section: 'Freno', type: 'range', label: 'Velocidad para engranar reversa', min: 1, max: 10, step: 1, unit: ' km/h', help: 'Por debajo de esta velocidad, al presionar el freno (S) se mete la reversa (R). Más rápido, solo frena.' },
 
   { key: 'WHEEL_MAX_ANGLE_DEG', section: 'Volante', type: 'range', label: 'Giro total del volante', min: 180, max: 720, step: 10, unit: '°', help: 'Grados que puede girar el volante hacia cada lado.' },
   { key: 'MAX_STEER', section: 'Volante', type: 'range', label: 'Ángulo máximo de las ruedas', min: 0.2, max: 0.8, step: 0.01, unit: '', format: v => v.toFixed(2) + ' rad' },

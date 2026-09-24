@@ -17,6 +17,10 @@ export const controlState = {
   // OS auto-repeat, so the ramps below are the only source of "how much" pedal is applied.
   brakeHeld: false, handbrake: false,
 
+  // Automatic gearbox selector: D drives forward, R backward — the accelerator (below) pushes the car whichever way
+  // the gear says. The brake key engages R once the car is (nearly) stopped, the drive key goes back to D.
+  gear: 'D' as 'D' | 'R',
+
   // The accelerator is the mouse scroll wheel, like a hand-throttle: each notch nudges
   // throttleTarget up/down and it stays there (no key to hold) — `throttle` glides toward it
   // so a big jump still isn't instant. Speed naturally "holds" once the wheel stops moving.
@@ -29,6 +33,16 @@ export const controlState = {
 
   signalLeft: false, signalRight: false, lastSignalOnTime: -999,
 };
+
+// Changes gear and lets go of the accelerator: a throttle left up in D must not shove the car the other way the
+// moment R is engaged.
+function shiftTo(gear: 'D' | 'R'): void {
+  if (controlState.gear === gear) return;
+  controlState.gear = gear;
+  controlState.throttleTarget = 0;
+  controlState.throttle = 0;
+  logEvent('GEAR', { gear, speedKmh: chassisBody.velocity.length() * 3.6 });
+}
 
 // Letting go of the last steering key hands the wheel back (unless the mouse is holding it).
 function releaseKeyboardSteer() {
@@ -66,6 +80,7 @@ export function initInput(): void {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     switch (actionOf(e.key)) {
       case 'brake': controlState.brakeHeld = true; logEvent('BRAKE_DOWN'); break;
+      case 'drive': shiftTo('D'); break;
       case 'steerLeft': controlState.keyLeft = true; break;
       case 'steerRight': controlState.keyRight = true; break;
       case 'handbrake': controlState.handbrake = true; e.preventDefault(); logEvent('HANDBRAKE_DOWN'); break;
@@ -248,6 +263,10 @@ export function applyVehicleControls(dt: number): void {
 
   const speedKmh = chassisBody.velocity.length() * 3.6;
 
+  // Like a real automatic, R only engages once the car is (nearly) stopped: pressing the brake key at speed just
+  // brakes, and R comes in as soon as it has slowed enough with the key still down.
+  if (controlState.brakeHeld && speedKmh < CONFIG.REVERSE_SPEED_THRESHOLD_KMH) shiftTo('R');
+
   // The chassis' angular damping is what keeps it from spinning out at speed, but at a crawl it just
   // fights the tyres: the car would swing much wider than its steering angle says, which makes
   // parking impossible. So it fades out as the car slows down.
@@ -277,20 +296,16 @@ export function applyVehicleControls(dt: number): void {
   // city/road is generated in) given our wheel connection layout — verified empirically.
   const forceCap = speedKmh < CONFIG.MAX_SPEED_KMH ? CONFIG.ENGINE_FORCE : 0;
 
-  // Brake pedal: real braking while rolling forward at speed; once nearly stopped (or already
-  // backing up), holding it smoothly eases into reverse instead (same pedal, like an automatic).
-  // Reverse gear tops out at a crawl and never brakes the car it is driving: braking the front
-  // wheels while backing up would kill the steering, which is what parking is all about.
-  const nearlyStopped = speedKmh < CONFIG.REVERSE_SPEED_THRESHOLD_KMH;
-  const backingUp = forwardSpeed() < -0.3;
-  let brakeForce = 0, reverseForce = 0;
-  if (controlState.brake > 0) {
-    if (nearlyStopped || backingUp) {
-      const room = THREE.MathUtils.clamp(1 - speedKmh / CONFIG.REVERSE_MAX_KMH, 0, 1);
-      reverseForce = -forceCap * 0.55 * controlState.brake * room;
-    } else brakeForce = CONFIG.BRAKE_FORCE * controlState.brake;
+  // The accelerator drives the rear wheels forward in D and backward in R. Reverse is weaker than drive and eases
+  // off as the car nears its (much lower) top speed; while the car is still rolling forward it has all its force,
+  // so it also brakes.
+  let brakeForce = CONFIG.BRAKE_FORCE * controlState.brake;
+  let engineForce = forceCap * controlState.throttle;
+  if (controlState.gear === 'R') {
+    const backSpeedKmh = Math.max(0, -forwardSpeed()) * 3.6;
+    const room = THREE.MathUtils.clamp(1 - backSpeedKmh / CONFIG.REVERSE_MAX_KMH, 0, 1);
+    engineForce = -CONFIG.ENGINE_FORCE * 0.55 * controlState.throttle * room;
   }
-  const engineForce = controlState.throttle > 0 ? forceCap * controlState.throttle : reverseForce;
   vehicle.applyEngineForce(engineForce, 2);
   vehicle.applyEngineForce(engineForce, 3);
 

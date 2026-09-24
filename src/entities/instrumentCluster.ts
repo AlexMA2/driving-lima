@@ -168,9 +168,8 @@ const drawLowBeam = (ctx: Ctx): void => {
 export interface ClusterState {
   dt: number;
   speedKmh: number;
-  forwardMs: number;
+  reverse: boolean; // the selector is in R
   throttle: number;
-  brakeHeld: boolean;
   handbrake: boolean;
   signalLeft: boolean;
   signalRight: boolean;
@@ -205,7 +204,7 @@ export function createCluster(): Cluster {
     const dt = Math.min(d.dt || 0.016, 0.1);
     odometer += (d.speedKmh / 3600) * dt;
 
-    const reversing = d.forwardMs < -0.25 || (d.brakeHeld && d.speedKmh < 3 && d.throttle <= 0);
+    const reversing = d.reverse;
     const moving = d.speedKmh > 1;
     let targetRpm: number;
     if (reversing) targetRpm = Math.max(IDLE_RPM, d.speedKmh * REVERSE_RATIO) + d.throttle * 300;
@@ -263,6 +262,6 @@ export function createCluster(): Cluster {
     texture.needsUpdate = true;
   }
 
-  update({ dt: 0.016, speedKmh: 0, forwardMs: 0, throttle: 0, brakeHeld: false, handbrake: false, signalLeft: false, signalRight: false, blink: false });
+  update({ dt: 0.016, speedKmh: 0, reverse: false, throttle: 0, handbrake: false, signalLeft: false, signalRight: false, blink: false });
   return { mesh, update };
 }

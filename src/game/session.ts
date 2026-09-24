@@ -4,7 +4,7 @@ import { batchStatic } from '../core/batching';
 import { scene, updateSun } from '../core/scene';
 import { world } from '../core/physics';
 import { applyPerformance, refreshMaterials, updateFps } from '../core/performance';
-import { createPlayer, chassisBody, syncPlayerMesh, forwardSpeed } from '../entities/player';
+import { createPlayer, chassisBody, syncPlayerMesh } from '../entities/player';
 import { initPedestrians } from '../entities/pedestrians';
 import { buildCockpit, updateCockpit } from '../entities/cockpit';
 import { controlState, initInput, initSteerAssist, applyVehicleControls } from '../systems/input';
@@ -139,8 +139,8 @@ function run(scenario: ResolvedScenario, layout: LayoutRuntime, hudRoot: HTMLEle
       dt,
       wheelAngle: controlState.wheelAngle,
       signalLeft: controlState.signalLeft, signalRight: controlState.signalRight, blink,
-      speedKmh, forwardMs: forwardSpeed(),
-      throttle: controlState.throttle, brakeHeld: controlState.brakeHeld,
+      speedKmh, reverse: controlState.gear === 'R',
+      throttle: controlState.throttle,
       handbrake: controlState.handbrake,
     });
     updateEngineSound(speedKmh, controlState.throttle);
