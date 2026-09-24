@@ -1,0 +1,53 @@
+@use '../abstracts/variables' as *;
+@use '../abstracts/mixins' as *;
+
+// Dialog overlay and box (dialogs/dialog.ts). A dialog is in the page only while it is open, so there is no
+// hidden state to style.
+
+.dialogOverlay {
+  @include fixed-fill;
+  background: night(0.75);
+  z-index: $z-dialog;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dialogBox {
+  background: $color-panel;
+  border: 1px solid tint(0.15);
+  border-radius: 14px;
+  padding: 26px 30px;
+  max-width: 460px;
+  color: $color-text;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+
+  h2 {
+    margin-bottom: 14px;
+  }
+
+  .rules {
+    text-align: left;
+    background: tint(0.06);
+    padding: 16px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.9;
+    margin-bottom: 18px;
+  }
+
+  button {
+    background: $gradient-primary;
+    border: none;
+    color: $color-text;
+    font-weight: 700;
+    padding: 10px 26px;
+    border-radius: 24px;
+    font-size: 14px;
+    cursor: pointer;
+
+    &.secondary {
+      background: tint(0.12);
+    }
+  }
+}

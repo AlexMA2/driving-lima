@@ -1,0 +1,60 @@
+@use 'variables' as *;
+
+// A full-viewport layer.
+@mixin fixed-fill {
+  position: fixed;
+  inset: 0;
+}
+
+// An outlined, transparent button (the "back" and "see controls" buttons).
+@mixin ghost-button($padding: 8px 18px) {
+  background: none;
+  border: 1px solid tint(0.25);
+  color: $color-text;
+  opacity: 0.85;
+  cursor: pointer;
+  padding: $padding;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+
+  &:hover {
+    background: tint(0.1);
+    opacity: 1;
+  }
+}
+
+// A dark translucent HUD pill or panel.
+@mixin hud-glass($alpha: 0.55) {
+  background: ink($alpha);
+}
+
+// A round or pill-shaped button that sits over the game view.
+@mixin hud-button($height: 42px) {
+  position: absolute;
+  bottom: 20px;
+  pointer-events: auto;
+  height: $height;
+  border: 2px solid tint(0.4);
+  background: ink(0.6);
+  color: $color-text;
+  font-weight: 800;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(30, 34, 48, 0.8);
+  }
+}
+
+// A keyboard key cap, for the key hints inside text.
+@mixin key-cap($min-width: 22px) {
+  display: inline-block;
+  min-width: $min-width;
+  text-align: center;
+  border-radius: 5px;
+  background: tint(0.16);
+  border: 1px solid tint(0.35);
+  border-bottom-width: 2px;
+  font-family: inherit;
+  font-weight: 800;
+}

@@ -1,0 +1,53 @@
+@use '../abstracts/variables' as *;
+
+// The debug log dialog (dialogs/log.ts).
+
+#logDialogBox {
+  max-width: 640px;
+  width: 90vw;
+}
+
+#logHint {
+  font-size: 13px;
+  opacity: 0.8;
+  line-height: 1.5;
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+#logText {
+  text-align: left;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid tint(0.12);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-family: $font-mono;
+  font-size: 12px;
+  line-height: 1.6;
+  max-height: 42vh;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-bottom: 16px;
+}
+
+#logActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+
+  button {
+    padding: 9px 18px;
+    font-size: 13px;
+  }
+
+  [data-act='clear'],
+  [data-act='close'] {
+    background: tint(0.12);
+
+    &:hover {
+      background: tint(0.2);
+    }
+  }
+}

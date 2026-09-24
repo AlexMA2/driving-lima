@@ -1,0 +1,35 @@
+// CRITICAL CSS: everything the first screen (the home screen) needs to paint, and nothing else.
+//
+// This file is not imported by any script. The Vite plugin in vite.config.ts compiles it and inlines the result
+// in a <style> tag of index.html, so the home screen renders on first paint without a stylesheet request. Every
+// other stylesheet is imported by the module that needs it (a screen, a dialog, the game) and is fetched together
+// with that module's lazily loaded chunk.
+//
+// Keep it that way: a rule only belongs here if it is used by what index.html ships.
+
+@use 'base/reset';
+@use 'screens/home';
+@use 'components/gear-button';
+
+// A restart reloads the page straight into the game (see app/autostart.ts): the inline script in index.html
+// marks <html>, so the home screen is never flashed, and a loading note shows until the game replaces it.
+html.autostart {
+  #startScreen,
+  #globalConfigBtn {
+    display: none;
+  }
+
+  body::after {
+    content: 'Cargando…';
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0b1020;
+    color: #fff;
+    font-size: 18px;
+    letter-spacing: 2px;
+    z-index: 40;
+  }
+}

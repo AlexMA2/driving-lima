@@ -1,0 +1,43 @@
+@use '../abstracts/variables' as *;
+
+// The three mirror rectangles are laid over their real spot in the cabin by layoutMirrors()
+// (systems/cameraRig.ts). Their content is drawn by WebGL underneath (transparent background);
+// the thick dark border is the housing.
+#mirrorViewport,
+#leftMirrorViewport,
+#rightMirrorViewport {
+  position: absolute;
+  background: transparent;
+  box-sizing: border-box;
+  border: 6px solid #1a1b1f;
+  border-radius: 22px;
+  box-shadow:
+    0 0 0 1px tint(0.14),
+    inset 0 0 0 1px tint(0.1),
+    0 4px 12px rgba(0, 0, 0, 0.55);
+}
+
+#mirrorViewport {
+  top: 150px;
+  left: 900px;
+  width: 240px;
+  height: 84px;
+  border-radius: 16px;
+  border-width: 5px;
+}
+
+#leftMirrorViewport {
+  top: 380px;
+  left: 10px;
+  width: 190px;
+  height: 120px;
+  border-radius: 26px 16px 16px 30px;
+}
+
+#rightMirrorViewport {
+  top: 380px;
+  right: 10px;
+  width: 190px;
+  height: 120px;
+  border-radius: 16px 26px 30px 16px;
+}

@@ -1,0 +1,180 @@
+@use '../abstracts/variables' as *;
+@use '../abstracts/mixins' as *;
+
+// The driving HUD (game/hudTemplate.ts). Every piece is optional: which ones exist depends on the scenario.
+
+#hud {
+  @include fixed-fill;
+  pointer-events: none;
+  color: $color-text;
+  user-select: none;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+#timerPanel {
+  position: absolute;
+  left: 50%;
+  top: 12px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  @include hud-glass;
+  border: 2px solid tint(0.2);
+  border-radius: 14px;
+  padding: 7px 10px 7px 16px;
+  backdrop-filter: blur(3px);
+}
+
+#timerRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  transition: color 0.15s;
+
+  #timerIcon {
+    font-size: 18px;
+    opacity: 0.8;
+  }
+
+  &.warn {
+    color: $color-danger;
+    animation: timerPulse 1s ease-in-out infinite;
+  }
+}
+
+@keyframes timerPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+#finishBtn {
+  pointer-events: auto;
+  cursor: pointer;
+  white-space: nowrap;
+  background: tint(0.12);
+  border: 2px solid tint(0.25);
+  color: $color-text;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  padding: 7px 12px;
+  border-radius: 20px;
+
+  &:hover {
+    background: tint(0.22);
+  }
+}
+
+#zoneTag {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 68px;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255, 193, 7, 0.25);
+  border: 1px solid rgba(255, 193, 7, 0.6);
+  display: none; // shown while the car is inside the school zone
+}
+
+#fpsCounter {
+  position: absolute;
+  left: 14px;
+  top: 126px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  @include hud-glass;
+  font-variant-numeric: tabular-nums;
+}
+
+#toastContainer {
+  position: absolute;
+  top: 108px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+
+  // the instruction panel of the guided scenarios sits above the toasts
+  #hud.guided & {
+    top: 300px;
+  }
+}
+
+.toast {
+  background: rgba(30, 10, 10, 0.85);
+  border-left: 5px solid $color-danger;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  animation:
+    toastIn 0.25s ease-out,
+    toastOut 0.4s ease-in 2.6s forwards;
+  min-width: 260px;
+  text-align: left;
+
+  small {
+    display: block;
+    font-weight: 400;
+    opacity: 0.8;
+    font-size: 12px;
+    margin-top: 2px;
+  }
+
+  &.good {
+    border-left-color: $color-good;
+  }
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(-15px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toastOut {
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+#helpBtn {
+  @include hud-button;
+  right: 20px;
+  width: 42px;
+  border-radius: 50%;
+  font-size: 18px;
+}
+
+#logBtn {
+  @include hud-button;
+  right: 72px;
+  padding: 0 16px;
+  border-radius: 21px;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}

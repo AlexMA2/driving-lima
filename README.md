@@ -16,10 +16,13 @@ de reglas basado en el Reglamento Nacional de Tránsito (D.S. N° 016-2009-MTC).
 
 ```bash
 npm install
-npm run dev       # http://localhost:5173
-npm run build     # build de producción en dist/
-npm run preview   # sirve el build de producción
+npm run dev         # http://localhost:5173
+npm run typecheck   # TypeScript en modo estricto (src/ y vite.config.ts)
+npm run build       # typecheck + build de producción en dist/
+npm run preview     # sirve el build de producción
 ```
+
+El proyecto está escrito en **TypeScript** (modo `strict`) y **SCSS** sobre Vite.
 
 ## Escenarios
 
@@ -108,25 +111,43 @@ manteniendo el freno (`S` por defecto) con el auto casi detenido y avanza a paso
 ## Estructura del proyecto
 
 ```
+index.html                   # Solo la pantalla de inicio (lo primero que se ve); el resto se crea bajo demanda
+vite.config.ts               # Plugin de CSS crítico + partición de chunks (three / cannon-es aparte)
 src/
-├── main.js                  # Arma el mundo del escenario y corre el loop principal
-├── config.js                # Parámetros (física, IA), multas y definición de escenarios
-├── state/                   # gameState.js (estado de la partida), settings.js (ajustes guardados), keybindings.js (teclas reasignables)
-├── core/                    # renderer, escena, física (cannon-es) y ajustes de rendimiento
+├── main.ts                  # Punto de entrada mínimo: router, pantalla de inicio y engranaje
+├── app/                     # router.ts (pantallas), screens.ts (imports dinámicos), prefetch.ts, autostart.ts
+├── screens/                 # home.ts, scenarios.ts (selector), game.ts (HUD + arranque de la partida)
+├── dialogs/                 # dialog.ts + controles, registro, configuración global y por escenario (cada uno carga a demanda)
+├── game/
+│   ├── session.ts           # Lo común a toda partida: render, física, jugador, loop
+│   ├── layouts/             # line, grid, roundabout, tutorial, parking: lo propio de cada escenario (un chunk cada uno)
+│   ├── hudTemplate.ts, hud.ts, results.ts
+├── config.ts                # Parámetros (física, IA), multas y definición de escenarios
+├── state/                   # gameState.ts, settings.ts (ajustes guardados), keybindings.ts (teclas reasignables)
+├── core/                    # renderer, escena, física (cannon-es), batching y ajustes de rendimiento
 ├── assets/                  # Vehículos, props y primitivas procedurales
-├── world/
-│   ├── streetKit.js         # Calles con bordillos abiertos en cruces, suelo, edificios
-│   ├── road.js, gridCity.js, roundabout.js, tutorialCourse.js, parkingLot.js   # Un builder por layout
-│   ├── crosswalks.js        # Registro de cebras (rayas, señales, hueco para frenar)
-│   └── intersections.js, schoolZone.js, speedBumps.js, ...
-├── entities/
-│   ├── aiTraffic.js         # Tráfico de las avenidas (perfiles, rebases, esquivar autos malogrados)
-│   ├── roundaboutAi.js      # Tráfico que sigue rutas y cede el paso en la rotonda
-│   ├── drivers.js           # Perfiles de conductor: bueno / normal / imprudente
-│   ├── breakdowns.js        # Eventos de auto malogrado + rebase cronometrado
-│   ├── cabin.js             # Posición del ojo y de los espejos dentro del auto
-│   ├── cockpit.js, instrumentCluster.js   # Tablero 3D y relojes (canvas)
-│   ├── pedestrians.js, scriptedCars.js, player.js, ...
+├── world/                   # Un builder por layout (road, gridCity, roundabout, tutorialCourse, parkingLot) + streetKit, crosswalks, ...
+├── entities/                # Tráfico, peatones, jugador, cabina y tablero 3D
 ├── systems/                 # input, reglas, cámara/espejos, audio, tutorial y estacionamiento (guías por pasos)
-└── ui/                      # menú, diálogos de configuración (global con pestañas), HUD, formularios de ajustes y de teclas
+├── ui/                      # Formularios de ajustes y de teclas, iconos de escenarios, panel del tutorial
+├── styles/                  # SCSS: abstracts/ (variables, mixins), critical.scss, y una hoja por pantalla/componente
+├── types/                   # Ampliaciones de tipos (cannon-es)
+└── utils/
 ```
+
+## Carga y renderizado
+
+- **Solo se renderiza el HTML que la pantalla actual necesita.** `index.html` trae únicamente la pantalla
+  de inicio. El selector de escenarios, el HUD, los diálogos y los resultados los crea su propio módulo
+  cuando hacen falta y los retira del documento al salir. Dentro del HUD tampoco se dibuja lo que el
+  escenario no usa: sin cuenta regresiva en los ejercicios sin tiempo, sin la etiqueta de zona escolar
+  fuera de la avenida, sin contador de FPS ni espejos laterales si están desactivados, sin el panel de
+  instrucciones fuera del tutorial y el estacionamiento guiado.
+- **CSS crítico.** `src/styles/critical.scss` (reset, pantalla de inicio y engranaje) no lo importa ningún
+  script: el plugin de `vite.config.ts` lo compila y lo incrusta en un `<style>` de `index.html`, así que
+  la primera pantalla se pinta sin pedir hojas de estilo. Las demás hojas las importa el módulo que las
+  usa y viajan con su chunk.
+- **Carga diferida.** El selector, cada diálogo, la pantalla de juego y los resultados son chunks aparte.
+  El juego 3D (three.js, cannon-es y el código común) se descarga al elegir un escenario, mientras se
+  muestra el selector, y solo entonces se carga el layout de ese escenario (`game/layouts/*`).
+  Reiniciar o volver al inicio recarga la página (ver `app/autostart.ts`).

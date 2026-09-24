@@ -1,0 +1,124 @@
+@use '../abstracts/variables' as *;
+
+// The generic settings form (ui/settingsForm.ts): range sliders, on/off switches and segmented choices,
+// grouped in sections. Used by both configuration dialogs.
+
+.sfSection {
+  margin-bottom: 20px;
+
+  h3 {
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: $color-accent-soft;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid tint(0.12);
+  }
+}
+
+.sfRow {
+  margin-bottom: 14px;
+  transition: opacity 0.15s;
+
+  &.disabled {
+    opacity: 0.35;
+    pointer-events: none;
+  }
+
+  small {
+    display: block;
+    font-size: 11.5px;
+    line-height: 1.45;
+    opacity: 0.6;
+    margin-top: 4px;
+  }
+
+  input[type='range'] {
+    width: 100%;
+    accent-color: $color-accent;
+    cursor: pointer;
+  }
+}
+
+.sfHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 14px;
+  margin-bottom: 6px;
+
+  output {
+    font-weight: 800;
+    color: $color-accent-soft;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.sfInline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  .sfHead {
+    margin-bottom: 0;
+  }
+}
+
+.dialogBox .sfSwitch {
+  flex: none;
+  width: 46px;
+  height: 26px;
+  border-radius: 13px;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  position: relative;
+  background: tint(0.2);
+  transition: background 0.15s;
+
+  span {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: $color-text;
+    transition: transform 0.15s;
+  }
+
+  &.on {
+    background: $color-accent;
+
+    span {
+      transform: translateX(20px);
+    }
+  }
+}
+
+.sfChoice {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dialogBox .sfOpt {
+  background: tint(0.07);
+  border: 2px solid tint(0.14);
+  color: $color-text;
+  padding: 7px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+
+  &:hover {
+    background: tint(0.12);
+  }
+
+  &.selected {
+    border-color: $color-accent;
+    background: rgba(255, 152, 0, 0.16);
+  }
+}

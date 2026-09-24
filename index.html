@@ -4,59 +4,15 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Simulador de Manejo - Tránsito Limeño</title>
+<meta name="description" content="Simulador de manejo 3D ambientado en el tránsito urbano de Lima, Perú." />
+<!-- A restart reloads straight into the game (see src/app/autostart.ts): hide the home screen from the first paint. -->
+<script>try{if(sessionStorage.getItem('dls_autostart'))document.documentElement.classList.add('autostart')}catch(e){}</script>
 </head>
 <body data-screen="home">
 
-<canvas id="canvas"></canvas>
-
-<div id="hud">
-  <div id="timerPanel">
-    <div id="timerRow"><span id="timerIcon">⏱</span><span id="timerVal">03:00</span></div>
-    <button id="finishBtn" title="Terminar la partida">🏁 TERMINAR</button>
-  </div>
-  <div id="fpsCounter">-- FPS</div>
-  <div id="zoneTag">⚠ ZONA ESCOLAR - MÁX 30 KM/H</div>
-
-  <div id="tutorialPanel">
-    <div id="tutMeta"><span id="tutStepNo"></span><span id="tutKind">TUTORIAL</span></div>
-    <h3 id="tutTitle"></h3>
-    <p id="tutText"></p>
-    <p id="tutHint"></p>
-    <div id="tutProgress"><i id="tutProgressFill"></i></div>
-  </div>
-
-  <div id="toastContainer"></div>
-
-  <div id="mirrorViewport"></div>
-  <div id="leftMirrorViewport"></div>
-  <div id="rightMirrorViewport"></div>
-
-  <button id="logBtn" title="Registro de depuración (Ctrl+L)">LOG</button>
-  <button id="helpBtn" title="Instrucciones">?</button>
-</div>
-
-<div id="instructionsDialog" class="dialogOverlay">
-  <div class="dialogBox">
-    <h2>Controles</h2>
-    <div class="rules" id="controlsList"></div>
-    <button id="closeInstructions">Cerrar</button>
-  </div>
-</div>
-
-<div id="logDialog" class="dialogOverlay">
-  <div class="dialogBox" id="logDialogBox">
-    <h2>Registro de depuración</h2>
-    <p id="logHint">Cada acción (acelerador, freno, direccionales, infracciones) queda registrada aquí con marca de tiempo. Copia el texto y pégalo para reportar un error.</p>
-    <pre id="logText"></pre>
-    <div id="logActions">
-      <button id="refreshLogBtn">Actualizar</button>
-      <button id="copyLogBtn">Copiar log</button>
-      <button id="clearLogBtn">Limpiar</button>
-      <button id="closeLog">Cerrar</button>
-    </div>
-  </div>
-</div>
-
+<!-- Only the home screen is in the page at first: the scenario picker, the game HUD, the dialogs and the results
+     are created by their own modules when they are needed (see src/screens, src/dialogs, src/game). -->
+<div id="app">
 <div id="startScreen">
   <svg id="homeBg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
     <defs>
@@ -135,71 +91,12 @@
     </section>
   </div>
 </div>
-
-<div id="scenarioScreen">
-  <div id="scenarioInner">
-    <div id="scenarioHeader">
-      <button id="scenarioBackBtn" type="button" class="ghostBtn">&larr; Volver</button>
-      <div>
-        <h2>Elige tu escenario</h2>
-        <p>Cada uno pone a prueba una habilidad distinta.</p>
-      </div>
-    </div>
-
-    <div id="scenarioActionBar">
-      <div id="scenarioSelectedInfo"><span>Escenario seleccionado</span><b id="scenarioSelectedName"></b><small id="scenarioSummary"></small></div>
-      <div id="scenarioActions">
-        <button id="scenarioConfigBtn" type="button">CONFIGURAR</button>
-        <button id="scenarioPlayBtn" type="button">JUGAR</button>
-      </div>
-    </div>
-
-    <div id="scenarioGrid"></div>
-  </div>
 </div>
 
 <button id="globalConfigBtn" type="button" title="Configuración" aria-label="Configuración">
   <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6a.5.5 0 0 0 .1-.6l-2-3.5a.5.5 0 0 0-.6-.2l-2.5 1a7.4 7.4 0 0 0-1.7-1l-.4-2.6a.5.5 0 0 0-.5-.4h-4a.5.5 0 0 0-.5.4l-.4 2.6a7.4 7.4 0 0 0-1.7 1l-2.5-1a.5.5 0 0 0-.6.2l-2 3.5a.5.5 0 0 0 .1.6L4.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6a.5.5 0 0 0-.1.6l2 3.5c.1.2.4.3.6.2l2.5-1c.5.4 1.1.7 1.7 1l.4 2.6c0 .2.2.4.5.4h4c.3 0 .5-.2.5-.4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.5 1c.2.1.5 0 .6-.2l2-3.5a.5.5 0 0 0-.1-.6L19.4 13ZM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7Z"/></svg>
 </button>
 
-<div id="globalConfigDialog" class="dialogOverlay">
-  <div class="dialogBox" id="globalConfigBox">
-    <h2>Configuración</h2>
-    <div id="globalConfigTabs" role="tablist"></div>
-    <p id="globalConfigHint"></p>
-    <div id="globalConfigBody"></div>
-    <div id="configActions">
-      <button id="globalConfigReset" type="button" class="secondary" title="Restaura solo la pestaña que estás viendo">Restaurar pestaña</button>
-      <button id="globalConfigClose" type="button">Listo</button>
-    </div>
-  </div>
-</div>
-
-<div id="configDialog" class="dialogOverlay">
-  <div class="dialogBox" id="configBox">
-    <h2 id="configTitle">Configurar</h2>
-    <div id="configBody"></div>
-    <div id="configActions">
-      <button id="configReset" type="button" class="secondary">Restaurar valores</button>
-      <button id="configClose" type="button">Listo</button>
-    </div>
-  </div>
-</div>
-
-<div id="gameOverScreen">
-  <h1 id="resultsTitle">RESULTADOS</h1>
-  <div class="resultRow"><span>Tiempo Jugado</span><b id="resultTime">03:00</b></div>
-  <div id="resultsStats">
-    <h3>PAPELETAS EMITIDAS</h3>
-    <div id="resultsInfractions"></div>
-    <div id="resultsTotalRow"><span>TOTAL A PAGAR</span><b id="resultTotal">S/ 0</b></div>
-  </div>
-  <div id="resultsActions">
-    <button id="homeBtn">VOLVER AL INICIO</button>
-    <button id="restartBtn">REINTENTAR</button>
-  </div>
-</div>
-
-<script type="module" src="/src/main.js"></script>
+<script type="module" src="/src/main.ts"></script>
 </body>
 </html>

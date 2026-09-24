@@ -1,0 +1,40 @@
+// Design tokens shared by every stylesheet. Partials only: this file emits no CSS by itself.
+
+$font-ui: 'Segoe UI', Arial, sans-serif;
+$font-mono: 'Consolas', 'Courier New', monospace;
+
+// ---- colours ----
+$color-sky: #87ceeb;         // page background behind the 3D canvas
+$color-bg: #0b1020;          // menu background
+$color-panel: #14161f;       // dialogs
+$color-text: #fff;
+$color-accent: #ff9800;      // the orange used for selection, focus and totals
+$color-accent-soft: #ffb36b; // headings and values inside menus
+$color-accent-pale: #ffcc80; // hints
+$color-gold: #ffd54f;
+$color-danger: #ff5252;
+$color-good: #4caf50;
+$color-go: #4cff6b;          // "go" green: the tutorial's progress and the results' badges
+
+$gradient-hot: linear-gradient(135deg, #ff9800, #f44336);       // primary call to action
+$gradient-primary: linear-gradient(135deg, #2196f3, #1565c0);   // dialog buttons
+$gradient-title: linear-gradient(135deg, #ffb300, #ff5722);     // the coloured word in the home title
+
+// ---- stacking order of the fixed layers ----
+$z-screen: 50;   // home and scenario picker
+$z-gear: 55;     // the settings button over the menus
+$z-results: 60;  // end-of-run results
+$z-dialog: 70;   // dialogs, above everything
+
+// ---- translucent helpers ----
+@function tint($alpha) {
+  @return rgba(255, 255, 255, $alpha);
+}
+
+@function ink($alpha) {
+  @return rgba(10, 12, 20, $alpha);
+}
+
+@function night($alpha) {
+  @return rgba(5, 8, 15, $alpha);
+}

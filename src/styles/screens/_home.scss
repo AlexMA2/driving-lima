@@ -1,0 +1,230 @@
+@use '../abstracts/variables' as *;
+@use '../abstracts/mixins' as *;
+
+// The home screen. Its markup is in index.html and this stylesheet is inlined into the page (see
+// styles/critical.scss), so it paints without waiting for any script or stylesheet request.
+
+#startScreen {
+  @include fixed-fill;
+  background: $color-bg;
+  color: $color-text;
+  z-index: $z-screen;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 40px 6vw;
+}
+
+#homeBg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+#homeLayout {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1280px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(260px, 1fr);
+  gap: 56px;
+  align-items: center;
+}
+
+#homeLeft {
+  text-align: left;
+}
+
+#homeEyebrow {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: $color-accent-soft;
+  border: 1px solid rgba(255, 179, 107, 0.5);
+  border-radius: 20px;
+  padding: 5px 14px;
+  margin-bottom: 18px;
+}
+
+#homeTitle {
+  font-size: clamp(40px, 5.4vw, 76px);
+  line-height: 0.98;
+  font-weight: 900;
+  letter-spacing: -1.5px;
+  margin-bottom: 20px;
+
+  span {
+    background: $gradient-title;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
+#homeLead {
+  max-width: 560px;
+  font-size: 16px;
+  line-height: 1.65;
+  opacity: 0.82;
+  margin-bottom: 26px;
+}
+
+#featureCards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  max-width: 640px;
+}
+
+.featureCard {
+  background: tint(0.06);
+  border: 1px solid tint(0.12);
+  border-radius: 14px;
+  padding: 16px 18px;
+  backdrop-filter: blur(4px);
+  transition:
+    transform 0.15s,
+    border-color 0.15s,
+    background 0.15s;
+
+  &:hover {
+    transform: translateY(-3px);
+    border-color: rgba(255, 179, 107, 0.6);
+    background: tint(0.09);
+  }
+
+  h3 {
+    font-size: 15px;
+    margin-bottom: 5px;
+  }
+
+  p {
+    font-size: 12.5px;
+    line-height: 1.55;
+    opacity: 0.75;
+  }
+}
+
+.featureIcon {
+  width: 34px;
+  height: 34px;
+  color: $color-accent-soft;
+  margin-bottom: 10px;
+}
+
+#homeRight {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  text-align: center;
+}
+
+#startBtn {
+  position: relative;
+  width: 230px;
+  height: 230px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  color: $color-text;
+  background: radial-gradient(circle at 32% 28%, #ffb300, #ff5722 62%, #d32f2f);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  box-shadow:
+    0 12px 40px rgba(244, 67, 54, 0.5),
+    inset 0 -8px 20px rgba(0, 0, 0, 0.2);
+  transition:
+    transform 0.15s,
+    filter 0.15s;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -14px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 152, 0, 0.55);
+    animation: playPulse 2.2s ease-out infinite;
+  }
+
+  &:hover {
+    transform: scale(1.06);
+    filter: brightness(1.1);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  .playIcon {
+    width: 84px;
+    height: 84px;
+    margin-left: 8px;
+  }
+}
+
+@keyframes playPulse {
+  0% {
+    transform: scale(0.94);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1.22);
+    opacity: 0;
+  }
+}
+
+#homeHint {
+  font-size: 14px;
+  opacity: 0.75;
+  letter-spacing: 0.3px;
+}
+
+#controlsBtn {
+  @include ghost-button(8px 20px);
+}
+
+@media (max-width: 900px) {
+  #startScreen {
+    align-items: flex-start;
+  }
+
+  #homeLayout {
+    grid-template-columns: 1fr;
+    gap: 36px;
+  }
+
+  #homeRight {
+    order: -1;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  #startBtn {
+    width: 150px;
+    height: 150px;
+    font-size: 18px;
+
+    .playIcon {
+      width: 52px;
+      height: 52px;
+    }
+  }
+
+  #featureCards {
+    grid-template-columns: 1fr;
+  }
+}

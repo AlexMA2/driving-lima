@@ -1,0 +1,236 @@
+@use '../abstracts/variables' as *;
+@use '../abstracts/mixins' as *;
+
+// The scenario picker (screens/scenarios.ts): loaded with that screen, not with the home page.
+
+.ghostBtn {
+  @include ghost-button;
+}
+
+#scenarioScreen {
+  @include fixed-fill;
+  z-index: $z-screen;
+  overflow-y: auto;
+  color: $color-text;
+  background: radial-gradient(ellipse at 20% 0%, #24284a 0%, $color-bg 60%);
+  padding: 34px 6vw 50px;
+}
+
+#scenarioInner {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+#scenarioHeader {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin-bottom: 22px;
+
+  h2 {
+    font-size: 30px;
+    font-weight: 800;
+  }
+
+  p {
+    font-size: 14px;
+    opacity: 0.7;
+    margin-top: 2px;
+  }
+}
+
+// Created when the first scenario is picked; until then there is nothing to act on.
+#scenarioActionBar {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.16), rgba(244, 67, 54, 0.12));
+  border: 1px solid rgba(255, 152, 0, 0.5);
+  border-radius: 16px;
+  padding: 14px 20px;
+  animation: barIn 0.25s ease-out;
+}
+
+@keyframes barIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+#scenarioSelectedInfo {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 160px;
+
+  span {
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    opacity: 0.65;
+    text-transform: uppercase;
+  }
+
+  b {
+    font-size: 20px;
+  }
+
+  small {
+    font-size: 12px;
+    opacity: 0.7;
+    margin-top: 2px;
+    min-height: 1em;
+  }
+}
+
+#scenarioActions {
+  display: flex;
+  gap: 10px;
+
+  button {
+    border: none;
+    color: $color-text;
+    font-weight: 800;
+    font-size: 14px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    padding: 12px 30px;
+    border-radius: 26px;
+    transition:
+      filter 0.15s,
+      transform 0.15s;
+
+    &:hover {
+      filter: brightness(1.12);
+      transform: translateY(-1px);
+    }
+
+    &:disabled {
+      cursor: progress;
+      filter: saturate(0.6);
+      transform: none;
+    }
+  }
+}
+
+#scenarioPlayBtn {
+  background: $gradient-hot;
+  box-shadow: 0 6px 18px rgba(244, 67, 54, 0.4);
+}
+
+#scenarioConfigBtn {
+  background: tint(0.14);
+}
+
+#scenarioGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 18px;
+}
+
+.scenarioCard {
+  cursor: pointer;
+  text-align: left;
+  border-radius: 16px;
+  overflow: hidden;
+  outline: none;
+  background: tint(0.06);
+  border: 2px solid tint(0.12);
+  transition:
+    transform 0.15s,
+    border-color 0.15s,
+    background 0.15s;
+
+  &:hover,
+  &:focus-visible {
+    transform: translateY(-4px);
+    background: tint(0.1);
+  }
+
+  &.selected {
+    border-color: $color-accent;
+    background: rgba(255, 152, 0, 0.14);
+    box-shadow: 0 8px 26px rgba(255, 152, 0, 0.22);
+  }
+
+  h3 {
+    font-size: 16px;
+  }
+
+  p {
+    font-size: 12.5px;
+    opacity: 0.78;
+    line-height: 1.55;
+  }
+}
+
+.scenarioArt {
+  position: relative;
+  aspect-ratio: 200 / 110;
+  background: #1a1f3a;
+
+  svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.scenarioBadge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: $color-go;
+  color: #0b2b12;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.scenarioBody {
+  padding: 14px 16px 16px;
+}
+
+.scenarioTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.difficulty {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 12px;
+  white-space: nowrap;
+
+  &.d1 {
+    background: rgba(76, 175, 80, 0.25);
+    color: #8be48f;
+  }
+
+  &.d2 {
+    background: rgba(255, 193, 7, 0.22);
+    color: $color-gold;
+  }
+
+  &.d3 {
+    background: rgba(244, 67, 54, 0.25);
+    color: #ff8a80;
+  }
+}

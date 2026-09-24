@@ -1,0 +1,74 @@
+@use '../abstracts/variables' as *;
+
+// The two configuration dialogs: the per-scenario one (dialogs/scenarioConfig.ts) and the global one behind the
+// gear button (dialogs/globalConfig.ts).
+
+#configBox {
+  width: min(560px, 94vw);
+  max-width: none;
+  text-align: left;
+}
+
+#configBody {
+  max-height: 64vh;
+  overflow-y: auto;
+  padding-right: 8px;
+  margin-bottom: 18px;
+}
+
+#configActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+#globalConfigBox {
+  width: min(600px, 94vw);
+  max-width: none;
+  text-align: left;
+}
+
+#globalConfigHint {
+  font-size: 13px;
+  opacity: 0.75;
+  line-height: 1.5;
+  margin-bottom: 14px;
+  min-height: 2.6em;
+}
+
+#globalConfigBody {
+  height: 52vh;
+  overflow-y: auto;
+  padding-right: 8px;
+  margin-bottom: 18px;
+}
+
+#globalConfigTabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid tint(0.14);
+}
+
+.dialogBox .cfgTab {
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  margin-bottom: -1px;
+  color: tint(0.6);
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+
+  &:hover {
+    color: $color-text;
+  }
+
+  &.selected {
+    color: $color-accent-soft;
+    border-bottom-color: $color-accent;
+  }
+}

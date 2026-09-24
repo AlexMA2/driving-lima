@@ -1,0 +1,28 @@
+@use '../abstracts/variables' as *;
+
+// The settings button in the corner of the menu screens. It is put in the page only while a menu screen is
+// showing (see app/router.ts), so it never appears over the driving HUD.
+#globalConfigBtn {
+  position: fixed;
+  top: 18px;
+  right: 20px;
+  z-index: $z-gear;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: $color-text;
+  background: tint(0.1);
+  border: 1px solid tint(0.25);
+  transition:
+    background 0.15s,
+    transform 0.3s;
+
+  &:hover {
+    background: tint(0.2);
+    transform: rotate(60deg);
+  }
+}
