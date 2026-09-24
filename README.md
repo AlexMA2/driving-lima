@@ -3,9 +3,9 @@
 Simulador de manejo 3D ambientado en el tránsito urbano de Lima, Perú. Construido con
 [Three.js](https://threejs.org/) (render) y [cannon-es](https://pmndrs.github.io/cannon-es/)
 (física), con todos los modelos generados proceduralmente a partir de primitivas (sin
-assets `.gltf`/`.obj`). Incluye una IA de tráfico (combis y mototaxis que cambian de carril
-sin señalizar, autos que se malogran en plena vía), peatones que cruzan indebidamente, y un
-motor de reglas basado en el Reglamento Nacional de Tránsito peruano (D.S. N° 016-2009-MTC).
+assets `.gltf`/`.obj`). Cabina en primera persona con espejos, tráfico con conductores
+buenos, normales e imprudentes (combis y mototaxis incluidos), peatones en cebras y un motor
+de reglas basado en el Reglamento Nacional de Tránsito (D.S. N° 016-2009-MTC).
 
 ## Requisitos
 
@@ -16,88 +16,87 @@ motor de reglas basado en el Reglamento Nacional de Tránsito peruano (D.S. N° 
 
 ```bash
 npm install
-npm run dev
+npm run dev       # http://localhost:5173
+npm run build     # build de producción en dist/
+npm run preview   # sirve el build de producción
 ```
 
-Esto abre el simulador en `http://localhost:5173`. Vite recarga en caliente al editar
-cualquier archivo en `src/`.
+## Escenarios
 
-Otros comandos disponibles:
+Al pulsar **JUGAR** se elige un escenario; al seleccionarlo aparecen **CONFIGURAR** y **JUGAR**.
 
-```bash
-npm run build     # genera el build de producción en dist/
-npm run preview   # sirve el build de producción localmente para probarlo
-```
+| Escenario | Qué practicas |
+|---|---|
+| **Tutorial guiado** | Recorrido fijo paso a paso (sin azar): acelerador, volante, freno, direccionales, bocina, cambio de carril con auto que te rebasa, rompemuelas, cebra con peatón, auto malogrado, semáforo, giro a la derecha, PARE, giro a la izquierda y rotonda. Un panel indica qué hacer en cada momento |
+| **Recta Directa** | Avenida de 2 carriles por sentido: velocidad, señalización, distancias |
+| **Autopista Densa** | 3 carriles por sentido, tráfico denso e imprudente |
+| **Ciudad con Giros** | Cuadrícula con semáforos, giros y cebras |
+| **Rotondas** | Rotonda de cuatro accesos: ceder el paso, elegir salida y señalizarla |
 
 ## Controles
 
-| Tecla | Acción |
+| Control | Acción |
 |---|---|
-| `W` / `↑` | Acelerar |
-| `S` / `↓` | Frenar / Reversa |
-| `A` / `D` o `←` / `→` | Girar |
+| Mouse (arrastrar) | Girar el volante (se auto-centra al soltar) |
+| `A` / `D` o `←` / `→` | Girar el volante con teclado |
+| Rueda del mouse ↑ / ↓ | Subir / bajar el acelerador (se mantiene en su posición) |
+| `S` / `↓` | Freno (casi detenido, mantenerlo retrocede) |
 | `Espacio` | Freno de mano |
-| `Q` / `E` | Direccional izquierda / derecha |
-| `C` | Cambiar cámara (persecución en 3ra persona / capó) |
+| `Q` / `E` | Direccional izquierda / derecha (aparecen como flechas junto al velocímetro) |
 | `L` | Apagar direccionales |
+| `H` | Bocina |
+| `R` / `Esc` | Reiniciar / volver al menú |
+| `Ctrl+L` | Registro de depuración |
+
+## Configuración
+
+- **Por escenario** (botón *CONFIGURAR*): duración, límite de velocidad, cantidad de tráfico,
+  % de conductores imprudentes y educados, autos que te rebasan, autos malogrados en tu
+  carril, peatones, cebras, y opciones de **rendimiento** (resolución, sombras y su calidad,
+  distancia de visión, espejos laterales, contador de FPS).
+- **Controles globales** (engranaje arriba a la derecha, solo en los menús): paso y tiempos
+  del acelerador, soltado automático, inversión de la rueda, rampas y fuerza del freno, freno
+  motor, freno de mano, giro del volante, respuesta y autocentrado, giro con teclado, fuerza
+  del motor y velocidad máxima.
+
+Todo se guarda en `localStorage`.
 
 ## Reglas de tránsito implementadas
 
-| Código | Infracción | Condición | Penalidad |
-|---|---|---|---|
-| M20 | Exceso de velocidad | >50 km/h en zona urbana, >30 km/h en zona escolar | -20 pts |
-| G10 | Cambio de carril sin señalización | Cambiar de carril sin activar el direccional | -10 pts |
-| G28 | Cruce en luz roja | Cruzar una intersección con el semáforo en rojo | -15 pts |
-| G57 | No ceder el paso | No ceder el paso a un peatón cruzando | -10 pts |
-| — | Choque | Impacto con otro vehículo, obstáculo o peatón | -25 pts, +30% daño |
-| — | Rompemuelas a alta velocidad | Pasar un rompemuelas a >20 km/h | -5 pts, +10% daño |
+Las multas (en soles) se acumulan y se detallan al terminar la partida.
 
-El puntaje del conductor empieza en 100. Al llegar a 0 se muestra la pantalla de
-"Licencia Suspendida" y la simulación se detiene.
+| Código | Infracción | Multa |
+|---|---|---|
+| M20 | Exceso de velocidad (más de 6 km/h sobre el límite; 30 km/h en zona escolar) | S/ 20 |
+| G10 | Cambio de carril sin señalizar | S/ 10 |
+| G28 | Cruzar con luz roja | S/ 15 |
+| G57 | No ceder el paso a un peatón en una cebra | S/ 10 |
+| M12 | Conducir en sentido contrario (incluye circular al revés en una rotonda) | S/ 20 |
+| — | Choque | S/ 25 |
+| — | Rompemuelas a más de 20 km/h | S/ 5 |
+| — | Rotonda: no ceder el paso / salir sin señalizar | S/ 20 / S/ 10 |
+| — | Giro sin señalizar / no respetar el PARE (tutorial) | S/ 10 / S/ 20 |
 
 ## Estructura del proyecto
 
 ```
 src/
-├── main.js                 # Punto de entrada: arma el mundo y corre el loop principal
-├── style.css                # Estilos del HUD y las pantallas de inicio/game over
-├── config.js                 # Parámetros ajustables (física, IA, límites de velocidad)
-├── state/
-│   └── gameState.js          # Estado mutable compartido (puntaje, daño, game over)
-├── utils/
-│   └── rng.js                 # PRNG determinístico (mundo estable entre recargas)
-├── core/
-│   ├── renderer.js            # WebGLRenderer, cámara principal y de espejo
-│   ├── scene.js                # Escena, niebla, iluminación
-│   └── physics.js              # Mundo cannon-es y materiales de contacto
-├── assets/
-│   ├── primitives.js            # Helpers box()/cyl()
-│   ├── vehicles.js               # Sedán, mototaxi, combi (bajo poligonaje, procedural)
-│   └── props.js                   # Conos, rompemuelas, semáforos, señales, peatones
+├── main.js                  # Arma el mundo del escenario y corre el loop principal
+├── config.js                # Parámetros (física, IA), multas y definición de escenarios
+├── state/                   # gameState.js (estado de la partida), settings.js (configuración guardada)
+├── core/                    # renderer, escena, física (cannon-es) y ajustes de rendimiento
+├── assets/                  # Vehículos, props y primitivas procedurales
 ├── world/
-│   ├── road.js                     # Pista, veredas, líneas de carril
-│   ├── buildings.js                 # Fachadas urbanas (InstancedMesh)
-│   ├── intersections.js              # Semáforos y cruces peatonales
-│   ├── schoolZone.js                  # Zona escolar (límite de 30 km/h)
-│   ├── speedBumps.js                   # Rompemuelas no señalizados
-│   └── decorations.js                   # Señalética decorativa (PARE, etc.)
+│   ├── streetKit.js         # Calles con bordillos abiertos en cruces, suelo, edificios
+│   ├── road.js, gridCity.js, roundabout.js, tutorialCourse.js   # Un builder por layout
+│   ├── crosswalks.js        # Registro de cebras (rayas, señales, hueco para frenar)
+│   └── intersections.js, schoolZone.js, speedBumps.js, ...
 ├── entities/
-│   ├── player.js                        # Vehículo del jugador (RaycastVehicle)
-│   ├── breakdowns.js                     # Escenarios de "carro malogrado"
-│   ├── aiTraffic.js                       # Máquina de estados del tráfico IA
-│   └── pedestrians.js                      # Peatones que cruzan indebidamente
-├── systems/
-│   ├── input.js                             # Teclado y control del vehículo
-│   ├── rules.js                              # Motor de reglas / infracciones
-│   └── cameraRig.js                           # Cámara de persecución/capó + espejo
-└── ui/
-    └── hud.js                                  # Velocímetro, puntaje, toasts, HUD
+│   ├── aiTraffic.js         # Tráfico de las avenidas (perfiles, rebases, esquivar autos malogrados)
+│   ├── roundaboutAi.js      # Tráfico que sigue rutas y cede el paso en la rotonda
+│   ├── drivers.js           # Perfiles de conductor: bueno / normal / imprudente
+│   ├── breakdowns.js        # Eventos de auto malogrado + rebase cronometrado
+│   ├── pedestrians.js, scriptedCars.js, player.js, cockpit.js, ...
+├── systems/                 # input, reglas, cámara/espejos, audio, tutorial (motor de pasos)
+└── ui/                      # menú, diálogos de configuración, HUD, formulario de ajustes
 ```
-
-## Ajustar el comportamiento
-
-- **Física del vehículo** (aceleración, frenado, dirección): `src/config.js`
-- **Frecuencia de eventos de IA** (cambios de carril, paradas súbitas, peatones):
-  `src/config.js`
-- **Ubicación de semáforos, rompemuelas, zona escolar y autos malogrados**: los arrays al
-  inicio de cada archivo en `src/world/` y `src/entities/breakdowns.js`
