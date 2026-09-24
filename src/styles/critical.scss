@@ -10,6 +10,7 @@
 @use 'base/reset';
 @use 'screens/home';
 @use 'components/gear-button';
+@use 'components/ripple';
 
 // A restart reloads the page straight into the game (see app/autostart.ts): the inline script in index.html
 // marks <html>, so the home screen is never flashed, and a loading note shows until the game replaces it.

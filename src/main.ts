@@ -2,6 +2,7 @@ import { adoptScreen, goTo, registerScreen, setGearButton } from './app/router';
 import { takeAutostart } from './app/autostart';
 import { loadGame, loadScenarios } from './app/screens';
 import { screen as homeScreen } from './screens/home';
+import './ui/ripple';
 
 // The entry point is deliberately tiny. It carries the router and the home screen (whose markup is already in
 // index.html, painted with the inlined critical CSS), and nothing else: the scenario picker, the settings
