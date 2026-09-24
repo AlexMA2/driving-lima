@@ -1,11 +1,9 @@
 import * as THREE from 'three';
-import * as CANNON from 'cannon-es';
 import { CONFIG } from '../config.js';
 import { scene } from '../core/scene.js';
-import { world, propMaterial } from '../core/physics.js';
 import { box, cyl } from '../assets/primitives.js';
 import { buildTrafficLightPole, buildStopSign } from '../assets/props.js';
-import { buildGround, buildStreet, scatterBlockBuildings, updateLightMesh } from './streetKit.js';
+import { buildGround, buildStreet, barrier, scatterBlockBuildings, updateLightMesh } from './streetKit.js';
 import { setLaneLayout } from './road.js';
 import { buildRoundabout } from './roundabout.js';
 import { SPEED_BUMPS, buildSpeedBumps } from './speedBumps.js';
@@ -38,21 +36,6 @@ let trafficLight = null;
 // Sets the tutorial traffic light ('GREEN' | 'YELLOW' | 'RED').
 export function setTutorialLight(state) {
   if (trafficLight) updateLightMesh(trafficLight, state);
-}
-
-// A solid striped barrier: closes off dead ends so the player can't wander onto open ground.
-function barrier(cx, cz, width, depth) {
-  const base = box(width, 1, depth, 0xff6a00);
-  base.position.set(cx, 0.5, cz);
-  const band = box(width + 0.02, 0.25, depth + 0.02, 0xffffff);
-  band.position.set(cx, 0.85, cz);
-  scene.add(base, band);
-
-  const body = new CANNON.Body({ mass: 0, material: propMaterial });
-  body.addShape(new CANNON.Box(new CANNON.Vec3(width / 2, 1.2, depth / 2)));
-  body.position.set(cx, 0.6, cz);
-  body.userData = { isPenalized: false, isStatic: true };
-  world.addBody(body);
 }
 
 function buildFinishGantry(x, z) {

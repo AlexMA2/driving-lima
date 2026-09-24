@@ -7,52 +7,33 @@ canvas { display: block; touch-action: none; }
   text-shadow: 0 1px 3px rgba(0,0,0,.8);
 }
 
-#speedo {
-  position: absolute; left: 20px; bottom: 20px;
-  background: rgba(10,12,20,0.55); border: 2px solid rgba(255,255,255,0.2);
-  border-radius: 14px; padding: 8px 20px 14px; text-align: center; min-width: 160px;
-  backdrop-filter: blur(3px);
-}
-#gaugeSvg { display:block; margin: 0 auto -14px; }
-#needle { transition: transform .08s linear; }
-#speedVal { font-size: 38px; font-weight: 800; line-height: 1; }
-#speedUnit { font-size: 12px; opacity: .8; letter-spacing: 1px; }
-/* The speedo is centred on the steering wheel's screen height, so its lower half can sit below
-   the viewport: the turn-signal arrows flank its top edge instead, where they're always visible. */
-#gearRow { position: absolute; top: 12px; left: 0; right: 0; height: 0; }
-.turnArrow { position: absolute; top: 0; width: 46px; height: 33px; fill: rgba(255,255,255,0.16); transition: fill .06s, filter .06s; }
-#indL { left: -62px; }
-#indR { right: -62px; }
-.turnArrow.on { fill: #ffb300; filter: drop-shadow(0 0 8px #ffb300); }
-#handbrakeTag { color:#ff5252; font-weight:700; opacity:0; transition:opacity .15s; }
-#handbrakeTag.show { opacity:1; }
-
 #timerPanel {
-  position: absolute; right: 20px; top: 20px;
+  position: absolute; left: 50%; top: 12px; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 14px;
   background: rgba(10,12,20,0.55); border: 2px solid rgba(255,255,255,0.2);
-  border-radius: 14px; padding: 12px 18px; backdrop-filter: blur(3px); text-align: center;
+  border-radius: 14px; padding: 7px 10px 7px 16px; backdrop-filter: blur(3px);
 }
 #timerRow {
   display:flex; align-items:center; justify-content:center; gap:8px;
-  font-size: 26px; font-weight: 800; letter-spacing: .5px;
+  font-size: 24px; font-weight: 800; letter-spacing: .5px;
   transition: color .15s;
 }
-#timerRow #timerIcon { font-size: 19px; opacity: .8; }
+#timerRow #timerIcon { font-size: 18px; opacity: .8; }
 #timerRow.warn { color: #ff5252; animation: timerPulse 1s ease-in-out infinite; }
 @keyframes timerPulse { 0%,100% { opacity: 1; } 50% { opacity: .5; } }
 #finishBtn {
-  margin-top: 10px; width: 100%; pointer-events: auto; cursor: pointer;
+  pointer-events: auto; cursor: pointer; white-space: nowrap;
   background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.25); color:#fff;
-  font-weight: 700; font-size: 12px; letter-spacing: .5px; padding: 7px 10px; border-radius: 20px;
+  font-weight: 700; font-size: 12px; letter-spacing: .5px; padding: 7px 12px; border-radius: 20px;
 }
 #finishBtn:hover { background: rgba(255,255,255,0.22); }
 #zoneTag {
-  position: absolute; right: 20px; top: 108px; font-size:12px; padding:6px 10px; border-radius:8px;
+  position: absolute; left: 50%; transform: translateX(-50%); top: 68px; font-size:12px; padding:6px 10px; border-radius:8px;
   background:rgba(255,193,7,0.25); border:1px solid rgba(255,193,7,0.6); display:none;
 }
 
 #toastContainer {
-  position: absolute; top: 135px; left: 50%; transform: translateX(-50%);
+  position: absolute; top: 108px; left: 50%; transform: translateX(-50%);
   display: flex; flex-direction: column; gap: 8px; align-items: center;
 }
 .toast {
@@ -65,20 +46,17 @@ canvas { display: block; touch-action: none; }
 @keyframes toastIn { from { opacity:0; transform: translateY(-15px);} to {opacity:1; transform:translateY(0);} }
 @keyframes toastOut { to { opacity:0; transform: translateY(-10px); } }
 
-#mirrorViewport {
-  position:absolute; top: 20px; left: 50%; transform: translateX(-50%);
-  width: 260px; height: 90px; border: 3px solid rgba(255,255,255,0.35); border-radius: 8px;
-  overflow:hidden; background:transparent; box-shadow: 0 0 12px rgba(0,0,0,0.5);
+/* The three mirror rectangles are laid over their real spot in the cabin by layoutMirrors()
+   (systems/cameraRig.js). Their content is drawn by WebGL underneath (transparent background);
+   the thick dark border is the housing. */
+#mirrorViewport, #leftMirrorViewport, #rightMirrorViewport {
+  position: absolute; background: transparent; box-sizing: border-box;
+  border: 6px solid #1a1b1f; border-radius: 22px;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.14), inset 0 0 0 1px rgba(255,255,255,0.10), 0 4px 12px rgba(0,0,0,0.55);
 }
-#mirrorLabel { position:absolute; top:2px; left:50%; transform:translateX(-50%); font-size:10px; opacity:.7; letter-spacing:1px;}
-
-#leftMirrorViewport, #rightMirrorViewport {
-  position:absolute; top: 18px; width: 150px; height: 100px;
-  border: 3px solid rgba(255,255,255,0.3); border-radius: 10px 10px 4px 4px;
-  overflow:hidden; background:transparent; box-shadow: 0 0 10px rgba(0,0,0,0.5);
-}
-#leftMirrorViewport { left: 14px; }
-#rightMirrorViewport { right: 14px; }
+#mirrorViewport { top: 150px; left: 900px; width: 240px; height: 84px; border-radius: 16px; border-width: 5px; }
+#leftMirrorViewport { top: 380px; left: 10px; width: 190px; height: 120px; border-radius: 26px 16px 16px 30px; }
+#rightMirrorViewport { top: 380px; right: 10px; width: 190px; height: 120px; border-radius: 16px 26px 30px 16px; }
 
 #helpBtn {
   position: absolute; right: 20px; bottom: 20px; pointer-events: auto;
@@ -285,12 +263,12 @@ body[data-screen="game"] #globalConfigBtn { display: none; }
 /* ---- Tutorial panel ---- */
 #tutorialPanel {
   display: none; position: absolute; top: 122px; left: 50%; transform: translateX(-50%);
-  width: min(560px, 92vw); padding: 12px 18px 14px; text-align: left;
+  width: min(520px, 92vw); padding: 12px 18px 14px; text-align: left;
   background: rgba(10,12,20,0.8); border: 2px solid #ff9800; border-radius: 14px; backdrop-filter: blur(4px);
   box-shadow: 0 8px 26px rgba(0,0,0,0.45);
 }
-body.tutorial #tutorialPanel { display: block; }
-body.tutorial #toastContainer { top: 300px; }
+body.guided #tutorialPanel { display: block; }
+body.guided #toastContainer { top: 300px; }
 body.untimed #timerRow { display: none; }
 #tutMeta { display: flex; justify-content: space-between; font-size: 11px; font-weight: 800; letter-spacing: 1.5px; color: #ffb36b; margin-bottom: 4px; }
 #tutTitle { font-size: 18px; margin-bottom: 4px; }
@@ -346,3 +324,20 @@ body.untimed #timerRow { display: none; }
 #homeBtn:hover { background: rgba(255,255,255,0.2); }
 #restartBtn { background: linear-gradient(135deg,#2196f3,#1565c0); }
 #restartBtn:hover { filter: brightness(1.1); }
+
+/* ---- Wrecked car ---- */
+#wreckBanner {
+  display: none; position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%);
+  flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 18px 30px;
+  background: rgba(40,8,8,0.86); border: 2px solid #ff5252; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+  animation: wreckIn .3s ease-out;
+}
+body.wrecked #wreckBanner { display: flex; }
+#wreckBanner b { font-size: 26px; letter-spacing: 2px; color: #ff5252; }
+#wreckBanner span { font-size: 15px; }
+#wreckBanner small { font-size: 13px; opacity: .85; }
+#wreckBanner kbd {
+  display: inline-block; min-width: 22px; padding: 1px 7px; margin: 0 1px; border-radius: 5px; font-family: inherit; font-size: 12px; font-weight: 800;
+  background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.35); border-bottom-width: 2px;
+}
+@keyframes wreckIn { from { opacity: 0; transform: translate(-50%, -46%); } to { opacity: 1; transform: translate(-50%, -50%); } }

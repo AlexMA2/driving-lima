@@ -73,6 +73,17 @@ export const SCENARIO_FIELDS = [
     default: () => 'medium', help: 'Cantidad de cebras en la vía. Los conductores educados se detienen para los peatones; tú también debes hacerlo.',
     show: sc => !sc.scripted,
   },
+  {
+    key: 'parkingSpace', section: 'Estacionamiento', type: 'choice', label: 'Tamaño del espacio',
+    options: [{ value: 'wide', label: 'Amplio' }, { value: 'normal', label: 'Normal' }, { value: 'tight', label: 'Justo' }],
+    default: () => 'normal', help: 'Hueco entre los autos (paralelo) o ancho de la plaza (batería). Cuanto más justo, más precisión hace falta.',
+    show: sc => sc.layout === 'parking',
+  },
+  {
+    key: 'parkingGuide', section: 'Estacionamiento', type: 'toggle', label: 'Guía de referencias', default: true,
+    help: 'Muestra los pasos con sus puntos de referencia, las medidas de la maniobra y un rectángulo verde sobre el espacio.',
+    show: sc => sc.layout === 'parking',
+  },
 ];
 
 // ---- Performance settings ----
@@ -209,6 +220,8 @@ export function resolveScenario(scenarioId) {
     passing: s.passing,
     hazards: s.hazards,
     zebras: s.zebras,
+    parkingSpace: s.parkingSpace,
+    guide: s.parkingGuide,
     speedLimit: s.speedLimit,
     duration: s.duration,
     settings: s,

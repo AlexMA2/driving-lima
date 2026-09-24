@@ -145,13 +145,37 @@ export function checkSpeedBumpRule() {
   });
 }
 
-// ---- Collision detection (Collision code) ----
+// ---- Collision detection ----
+// What the chassis ran into decides what it costs:
+//  - a curb / sidewalk: a real crash (speed straight into it above CONFIG.CURB_CRASH_SPEED_KMH)
+//    wrecks the car for good — it stops and can't move again this run. Slower touches are
+//    harmless while driving, but in the parking scenarios even a scrape is a fault.
+//  - a parked car (parking scenarios): any touch is a fault, however gentle.
+//  - other traffic and pedestrians: a fine above a small impact speed.
+export function wreckPlayer() {
+  if (gameState.wrecked) return;
+  gameState.wrecked = true;
+  controlState.throttleTarget = 0;
+  controlState.brakeHeld = false;
+  document.body.classList.add('wrecked');
+  logEvent('WRECKED', { speedKmh: chassisBody.velocity.length() * 3.6 });
+  triggerInfraction('CURB_CRASH');
+}
+
 export function setupCollisionListener() {
   chassisBody.addEventListener('collide', (e) => {
     const other = e.body;
-    if (other.userData && other.userData.isPenalized) {
-      const relSpeed = e.contact.getImpactVelocityAlongNormal ? Math.abs(e.contact.getImpactVelocityAlongNormal()) : 1;
-      if (relSpeed > 0.8) { triggerInfraction('COLLISION'); playCrash(relSpeed); }
+    const data = other.userData;
+    if (!data) return;
+    const impact = e.contact.getImpactVelocityAlongNormal ? Math.abs(e.contact.getImpactVelocityAlongNormal()) : 1;
+
+    if (data.isCurb) {
+      if (impact * 3.6 > CONFIG.CURB_CRASH_SPEED_KMH) { playCrash(impact); wreckPlayer(); }
+      else if (scenarioLayout === 'parking' && !data.touchOk && impact > 0.1) triggerInfraction('PARK_CURB');
+    } else if (data.isParked) {
+      if (impact > 0.1) { playCrash(impact); triggerInfraction('PARK_CAR'); }
+    } else if (data.isPenalized) {
+      if (impact > 0.8) { triggerInfraction('COLLISION'); playCrash(impact); }
     }
   });
 }

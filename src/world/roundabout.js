@@ -196,7 +196,7 @@ function arcCurbColliders(radius, thickness, theta0, theta1) {
     body.addShape(new CANNON.Box(new CANNON.Vec3(chord / 2, 1, thickness / 2)));
     body.position.set(RB.cx + radius * Math.cos(th), 0.05, RB.cz + radius * Math.sin(th));
     body.quaternion.setFromEuler(0, -th - Math.PI / 2, 0);
-    body.userData = { isPenalized: false, isStatic: true };
+    body.userData = { isPenalized: false, isStatic: true, isCurb: true };
     world.addBody(body);
   }
 }
@@ -232,7 +232,7 @@ function buildIsland() {
   const body = new CANNON.Body({ mass: 0, material: propMaterial });
   body.addShape(new CANNON.Cylinder(RB.islandR + 0.5, RB.islandR + 0.5, 2, 28));
   body.position.set(RB.cx, 0.9, RB.cz);
-  body.userData = { isPenalized: false, isStatic: true };
+  body.userData = { isPenalized: false, isStatic: true, isCurb: true };
   world.addBody(body);
 }
 

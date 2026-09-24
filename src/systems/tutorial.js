@@ -70,7 +70,7 @@ const STEPS = [
   },
   {
     id: 'signals', title: 'Direccionales',
-    text: `Activa la direccional izquierda con ${kbd('Q')} y la derecha con ${kbd('E')}. Cada tecla la enciende o la apaga. Aparecen como flechas junto al velocímetro.`,
+    text: `Activa la direccional izquierda con ${kbd('Q')} y la derecha con ${kbd('E')}. Cada tecla la enciende o la apaga. Aparecen como flechas verdes en el tablero, entre los relojes.`,
     hint: (ctx, s) => `Izquierda ${s.left ? '✔' : '·'}   Derecha ${s.right ? '✔' : '·'}`,
     update(ctx, s) {
       if (controlState.signalLeft) s.left = true;

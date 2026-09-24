@@ -33,9 +33,10 @@ function noiseBuffer(duration) {
   return buf;
 }
 
-export function updateEngineSound(speedKmh, throttle) {
+export function updateEngineSound(speedKmh, throttle, off = false) {
   if (!ctx) return;
   const now = ctx.currentTime;
+  if (off) { engineGain.gain.setTargetAtTime(0, now, 0.15); return; }
   const rpmFreq = 55 + Math.min(speedKmh, 120) * 2.1 + throttle * 40;
   engineOsc.frequency.setTargetAtTime(rpmFreq, now, 0.08);
   const targetGain = 0.05 + throttle * 0.05 + Math.min(speedKmh / 100, 1) * 0.03;

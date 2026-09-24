@@ -1,4 +1,4 @@
-import { SCENARIOS } from '../config.js';
+import { SCENARIOS, PARKING_SIZES } from '../config.js';
 import {
   SCENARIO_FIELDS, PERFORMANCE_FIELDS,
   getScenarioSettings, saveScenarioSettings, resetScenarioSettings,
@@ -19,6 +19,7 @@ export function scenarioSummary(scenarioId) {
   const parts = [];
   if (!scenario.untimed) parts.push(`${Math.round(s.duration / 60)} min`);
   if (!scenario.scripted) parts.push(`tráfico ${s.traffic}%`, `${s.badDrivers}% imprudentes`);
+  if (scenario.layout === 'parking') parts.push(`espacio ${PARKING_SIZES[s.parkingSpace].label.toLowerCase()}`, s.parkingGuide ? 'con guía' : 'sin guía');
   return parts.join(' · ');
 }
 

@@ -127,7 +127,7 @@ export function buildRoad(scenario) {
     const curbBody = new CANNON.Body({ mass: 0, material: propMaterial });
     curbBody.addShape(new CANNON.Box(new CANNON.Vec3(CONFIG.SIDEWALK_WIDTH / 2, 1, roadLength / 2)));
     curbBody.position.set(side * (ROAD_HALF_WIDTH + CONFIG.SIDEWALK_WIDTH / 2), 0.05, -roadLength / 2);
-    curbBody.userData = { isPenalized: false, isStatic: true };
+    curbBody.userData = { isPenalized: false, isStatic: true, isCurb: true };
     world.addBody(curbBody);
   });
 

@@ -48,8 +48,21 @@ export const CONFIG = {
   BRAKE_RAMP_UP: 0.45,          // seconds to go 0 -> 1 while held
   BRAKE_RAMP_DOWN: 0.35,        // seconds to go 1 -> 0 after release
   REVERSE_SPEED_THRESHOLD_KMH: 3, // must be nearly stopped before brake-hold engages reverse
+  REVERSE_MAX_KMH: 6,           // reverse gear's top speed: it eases off as the car nears it (a crawl, for parking)
+  CRAWL_HOLD_KMH: 4,            // below this, with no throttle/brake/handbrake, the car settles instead of coasting on
   ENGINE_BRAKE: 0.15,           // fraction of BRAKE_FORCE applied when coasting with no throttle, brake or handbrake
   KEYBOARD_STEER_FRACTION: 1,   // how much of the wheel's lock A/D turn to (1 = full lock)
+
+  // ---- Crashes ----
+  CURB_CRASH_SPEED_KMH: 8,      // hitting a curb/sidewalk faster than this (speed straight into it) wrecks the car for good
+};
+
+// Parking exercises: gap between the two parked cars (parallel, metres, bumper to bumper) and
+// bay width (perpendicular). The car is 4.6 m long and 1.9 m wide.
+export const PARKING_SIZES = {
+  wide: { label: 'Amplio', slot: 8.4, bay: 3.0 },
+  normal: { label: 'Normal', slot: 7.0, bay: 2.5 },
+  tight: { label: 'Justo', slot: 6.3, bay: 2.3 },
 };
 
 // Penalties follow the Peruvian Reglamento Nacional de Transito (D.S. N 016-2009-MTC).
@@ -67,6 +80,10 @@ export const PENALTIES = {
   STOP_SIGN: { fine: 20, label: 'No respetó la señal de PARE' },
   RB_YIELD: { fine: 20, label: 'Rotonda: no cediste el paso' },
   RB_SIGNAL: { fine: 10, label: 'Rotonda: salida sin señalizar' },
+  CURB_CRASH: { fine: 25, label: 'Choque contra la vereda: auto inmovilizado' },
+  PARK_CAR: { fine: 25, label: 'Estacionamiento: tocaste un auto' },
+  PARK_CURB: { fine: 10, label: 'Estacionamiento: rozaste la vereda' },
+  PARK_SIGNAL: { fine: 10, label: 'Estacionamiento: maniobra sin señalizar' },
 };
 
 // ---- Scenario presets, picked on the start screen ----
@@ -74,6 +91,8 @@ export const PENALTIES = {
 // `layout: 'grid'` builds a real turnable street grid (world/gridCity.js).
 // `layout: 'roundabout'` builds a central roundabout with four arms (world/roundabout.js).
 // `layout: 'tutorial'` builds the fixed guided course (world/tutorialCourse.js, systems/tutorial.js).
+// `layout: 'parking'` builds a parking exercise, `parkingMode` 'parallel' or 'perpendicular'
+// (world/parkingLot.js, systems/parking.js).
 export const SCENARIOS = {
   tutorial: {
     id: 'tutorial',
@@ -149,5 +168,39 @@ export const SCENARIOS = {
     goodDrivers: 35,
     pedestrians: 3,
     speedLimit: 35,
+  },
+  parallel: {
+    id: 'parallel',
+    layout: 'parking',
+    parkingMode: 'parallel',
+    label: 'Estacionamiento en paralelo',
+    badge: 'Nuevo',
+    difficulty: 'Medio', difficultyLevel: 2,
+    description: 'Estaciona entre dos autos junto a la vereda con los puntos de referencia de siempre: parachoques, espejos y ángulo de 45°.',
+    laneCountPerSide: 1,
+    scripted: true,   // fixed practice ground, no traffic
+    untimed: true,    // it ends when you park (or press TERMINAR)
+    aiTargetCount: 0,
+    badDrivers: 0,
+    goodDrivers: 0,
+    pedestrians: 0,
+    speedLimit: 15,
+  },
+  perpendicular: {
+    id: 'perpendicular',
+    layout: 'parking',
+    parkingMode: 'perpendicular',
+    label: 'Estacionamiento en batería',
+    badge: 'Nuevo',
+    difficulty: 'Medio', difficultyLevel: 2,
+    description: 'Entra en reversa a una plaza entre dos autos, en un estacionamiento con pasillo. Usa las líneas de la plaza y los dos espejos.',
+    laneCountPerSide: 1,
+    scripted: true,
+    untimed: true,
+    aiTargetCount: 0,
+    badDrivers: 0,
+    goodDrivers: 0,
+    pedestrians: 0,
+    speedLimit: 15,
   },
 };

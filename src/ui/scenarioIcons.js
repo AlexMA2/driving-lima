@@ -95,4 +95,45 @@ const tutorial = `<svg viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg">
   <g transform="translate(166 60)"><rect x="0" y="0" width="2" height="28" fill="#eee"/><rect x="2" y="0" width="14" height="6" fill="#111"/><rect x="2" y="0" width="7" height="3" fill="#fff"/><rect x="9" y="3" width="7" height="3" fill="#fff"/></g>
 </svg>`;
 
-export const SCENARIO_ICONS = { tutorial, straight, highway, grid, roundabout };
+// Top-down street with a parking lane along the kerb: two parked cars, a gap, and the blue car
+// backing into it along its 45° path.
+const parallel = `<svg viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg">
+  <rect width="200" height="110" fill="#5b7148"/>
+  <rect x="0" y="0" width="200" height="16" fill="#b9b6ad"/><rect x="0" y="16" width="200" height="3" fill="#8f8c84"/>
+  <rect x="0" y="19" width="200" height="84" fill="#3a3a3f"/>
+  <rect x="0" y="103" width="200" height="7" fill="#b9b6ad"/>
+  <g fill="#ffcc00" opacity="0.9"><rect x="0" y="72.5" width="200" height="1.4"/><rect x="0" y="75" width="200" height="1.4"/></g>
+  <rect x="0" y="49" width="200" height="1.6" fill="#f2f2f2" opacity="0.85"/>
+  <g stroke="#f2f2f2" stroke-width="1.6" opacity="0.9"><line x1="58" y1="21" x2="58" y2="49"/><line x1="128" y1="21" x2="128" y2="49"/></g>
+  <rect x="59" y="22" width="68" height="26" fill="#2ecc71" opacity="0.22"/>
+  <g transform="translate(6 24)"><rect width="50" height="22" rx="5" fill="#cc2b2b"/><rect x="12" y="3" width="24" height="16" rx="3" fill="#8e1c1c"/></g>
+  <g transform="translate(132 24)"><rect width="50" height="22" rx="5" fill="#f9a825"/><rect x="12" y="3" width="24" height="16" rx="3" fill="#b57a0c"/></g>
+  <path d="M40 66 C 60 66 68 52 84 40" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="4 3" opacity="0.85"/>
+  <g transform="translate(66 22) rotate(-14 22 11)"><rect width="46" height="21" rx="5" fill="#1565c0"/><rect x="11" y="3" width="22" height="15" rx="3" fill="#64b5f6"/></g>
+  <g fill="#ff9800"><polygon points="76,34 88,34 82,26"/></g>
+</svg>`;
+
+// Top-down car park: aisle along the middle, bays above with parked cars and one free bay, and the
+// blue car reversing into it on a quarter turn.
+const perpendicular = `<svg viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg">
+  <rect width="200" height="110" fill="#5b7148"/>
+  <rect x="0" y="0" width="200" height="8" fill="#b9b6ad"/>
+  <rect x="0" y="8" width="200" height="102" fill="#3a3a3f"/>
+  <g stroke="#f2f2f2" stroke-width="1.6" opacity="0.9">
+    <line x1="20" y1="9" x2="20" y2="52"/><line x1="55" y1="9" x2="55" y2="52"/><line x1="90" y1="9" x2="90" y2="52"/>
+    <line x1="125" y1="9" x2="125" y2="52"/><line x1="160" y1="9" x2="160" y2="52"/><line x1="195" y1="9" x2="195" y2="52"/>
+  </g>
+  <rect x="91" y="10" width="33" height="41" fill="#2ecc71" opacity="0.22"/>
+  <g>
+    <g transform="translate(24 14)"><rect width="27" height="34" rx="5" fill="#cc2b2b"/><rect x="4" y="8" width="19" height="16" rx="3" fill="#8e1c1c"/></g>
+    <g transform="translate(59 14)"><rect width="27" height="34" rx="5" fill="#2e7d32"/><rect x="4" y="8" width="19" height="16" rx="3" fill="#1b4d1f"/></g>
+    <g transform="translate(129 14)"><rect width="27" height="34" rx="5" fill="#f9a825"/><rect x="4" y="8" width="19" height="16" rx="3" fill="#b57a0c"/></g>
+    <g transform="translate(164 14)"><rect width="27" height="34" rx="5" fill="#6a1b9a"/><rect x="4" y="8" width="19" height="16" rx="3" fill="#41105e"/></g>
+  </g>
+  <path d="M150 92 C 128 92 112 84 108 56" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="4 3" opacity="0.85"/>
+  <g transform="translate(94 40) rotate(4 13 17)"><rect width="27" height="34" rx="5" fill="#1565c0"/><rect x="4" y="9" width="19" height="14" rx="3" fill="#64b5f6"/></g>
+  <g transform="translate(150 80)"><rect width="34" height="20" rx="5" fill="#1565c0" opacity="0.55"/></g>
+  <g fill="#ff9800"><polygon points="103,64 113,64 108,72"/></g>
+</svg>`;
+
+export const SCENARIO_ICONS = { tutorial, straight, highway, grid, roundabout, parallel, perpendicular };

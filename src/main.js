@@ -15,10 +15,11 @@ import { buildLineCrosswalks } from './world/lineCrosswalks.js';
 import { buildGridCity, updateGridTrafficLights, updateGridAi, checkGridRedLight } from './world/gridCity.js';
 import { buildRoundabout } from './world/roundabout.js';
 import { buildTutorialCourse } from './world/tutorialCourse.js';
+import { buildParkingLot } from './world/parkingLot.js';
 
 import { initBreakdowns, updateBreakdowns } from './entities/breakdowns.js';
 import { updateScriptedCars } from './entities/scriptedCars.js';
-import { createPlayer, chassisBody, syncPlayerMesh } from './entities/player.js';
+import { createPlayer, chassisBody, syncPlayerMesh, forwardSpeed } from './entities/player.js';
 import { updateAi, initAiTraffic } from './entities/aiTraffic.js';
 import { initRoundaboutAi, updateRoundaboutAi } from './entities/roundaboutAi.js';
 import { updatePedestrians, initPedestrians } from './entities/pedestrians.js';
@@ -36,7 +37,8 @@ import {
   checkRoundaboutRules,
 } from './systems/rules.js';
 import { initTutorial, updateTutorial, laneRuleActive } from './systems/tutorial.js';
-import { updateCameraRig, renderMirrorViewports } from './systems/cameraRig.js';
+import { initParking, updateParking } from './systems/parking.js';
+import { updateCameraRig, renderMirrorViewports, layoutMirrors } from './systems/cameraRig.js';
 import { initAudio, updateEngineSound } from './systems/audio.js';
 
 import { refreshHud, updateHudPerFrame, initDialogs, showToast, showResults } from './ui/hud.js';
@@ -66,6 +68,8 @@ function buildWorld(scenarioId) {
     spawn = buildRoundabout(scenario);
   } else if (scenario.layout === 'tutorial') {
     spawn = buildTutorialCourse();
+  } else if (scenario.layout === 'parking') {
+    spawn = buildParkingLot(scenario);
   } else {
     buildRoad(scenario);
     buildBuildings(scenario);
@@ -86,6 +90,7 @@ function buildWorld(scenarioId) {
     initBreakdowns({ hazards: 'off' }); // the course stalls its one car itself, on cue
     initTutorial({ onDone: () => endGame('¡TUTORIAL COMPLETADO!') });
   }
+  if (scenario.layout === 'parking') initParking(scenario, { onDone: () => endGame('¡ESTACIONADO!') });
   buildCockpit();
   initInput();
   initAudio();
@@ -145,6 +150,8 @@ function animate() {
     if (laneRuleActive()) checkLaneChangeRule();
     checkSpeedBumpRule();
     checkRoundaboutRules();
+  } else if (scenario.layout === 'parking') {
+    updateParking(dt);
   } else {
     updateAi(dt);
     updatePedestrians(dt);
@@ -160,8 +167,15 @@ function animate() {
   updateCameraRig();
   updateSun(chassisBody.position);
   const blink = updateHudPerFrame();
-  updateCockpit(controlState.wheelAngle, controlState.signalLeft, controlState.signalRight, blink);
-  updateEngineSound(speedKmh, controlState.throttle);
+  updateCockpit({
+    dt,
+    wheelAngle: controlState.wheelAngle,
+    signalLeft: controlState.signalLeft, signalRight: controlState.signalRight, blink,
+    speedKmh, forwardMs: forwardSpeed(),
+    throttle: controlState.throttle, brakeHeld: controlState.brakeHeld,
+    handbrake: controlState.handbrake, wrecked: gameState.wrecked,
+  });
+  updateEngineSound(speedKmh, controlState.throttle, gameState.wrecked);
 
   // ---- main viewport ----
   renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
@@ -186,6 +200,7 @@ function startGame(scenarioId) {
   applyPerformance(getPerformance());
   buildWorld(scenarioId);
   refreshMaterials();
+  layoutMirrors();
   gameState.duration = scenario.duration;
   gameState.timeLeft = scenario.duration;
   document.body.classList.toggle('untimed', !!scenario.untimed);
@@ -208,7 +223,7 @@ initMenu({ onStart: startGame });
 initGlobalConfig();
 document.getElementById('restartBtn').addEventListener('click', restartGame);
 document.getElementById('homeBtn').addEventListener('click', goHome);
-document.getElementById('finishBtn').addEventListener('click', () => { if (started) endGame(scenario.untimed ? 'TUTORIAL TERMINADO' : undefined); });
+document.getElementById('finishBtn').addEventListener('click', () => { if (started) endGame(scenario.untimed ? (scenario.layout === 'parking' ? 'PRÁCTICA TERMINADA' : 'TUTORIAL TERMINADO') : undefined); });
 
 window.addEventListener('keydown', (e) => {
   if (!started) return;

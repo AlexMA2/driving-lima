@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
-import { vehicle, chassisBody } from '../entities/player.js';
+import { gameState } from '../state/gameState.js';
+import { vehicle, chassisBody, forwardSpeed } from '../entities/player.js';
 import { camera, canvas } from '../core/renderer.js';
 import { WHEEL_LOCAL_POS } from '../entities/cockpit.js';
 import { playHonk, playBrakeScreech } from './audio.js';
@@ -187,10 +188,28 @@ export function updateWheelAndPedals(dt) {
 
 let wasHardBraking = false;
 
+// A wrecked car (systems/rules.js wreckPlayer) is dead weight: no engine, every brake locked, and
+// whatever motion is left over from the impact is wiped out each frame so it never creeps off.
+function immobilize() {
+  controlState.throttleTarget = 0; controlState.throttle = 0; controlState.brake = 0;
+  for (let i = 0; i < 4; i++) vehicle.setBrake(CONFIG.HANDBRAKE_FORCE * 3, i);
+  vehicle.applyEngineForce(0, 2);
+  vehicle.applyEngineForce(0, 3);
+  chassisBody.velocity.x = 0;
+  chassisBody.velocity.z = 0;
+  chassisBody.angularVelocity.set(0, 0, 0);
+}
+
 export function applyVehicleControls(dt) {
   updateWheelAndPedals(dt);
+  if (gameState.wrecked) { immobilize(); return; }
 
   const speedKmh = chassisBody.velocity.length() * 3.6;
+
+  // The chassis' angular damping is what keeps it from spinning out at speed, but at a crawl it just
+  // fights the tyres: the car would swing much wider than its steering angle says, which makes
+  // parking impossible. So it fades out as the car slows down.
+  chassisBody.angularDamping = THREE.MathUtils.clamp(THREE.MathUtils.mapLinear(speedKmh, 8, 25, 0.05, 0.6), 0.05, 0.6);
 
   // Screech once on the press edge of a hard brake/handbrake at real speed, not every frame.
   const hardBraking = speedKmh > 25 && (controlState.handbrake || controlState.brake > 0.6);
@@ -211,19 +230,27 @@ export function applyVehicleControls(dt) {
   // city/road is generated in) given our wheel connection layout — verified empirically.
   const forceCap = speedKmh < CONFIG.MAX_SPEED_KMH ? CONFIG.ENGINE_FORCE : 0;
 
-  // Brake pedal: real braking while rolling at speed; once nearly stopped, holding it
-  // smoothly eases into reverse instead (same pedal, like an automatic).
+  // Brake pedal: real braking while rolling forward at speed; once nearly stopped (or already
+  // backing up), holding it smoothly eases into reverse instead (same pedal, like an automatic).
+  // Reverse gear tops out at a crawl and never brakes the car it is driving: braking the front
+  // wheels while backing up would kill the steering, which is what parking is all about.
   const nearlyStopped = speedKmh < CONFIG.REVERSE_SPEED_THRESHOLD_KMH;
+  const backingUp = forwardSpeed() < -0.3;
   let brakeForce = 0, reverseForce = 0;
   if (controlState.brake > 0) {
-    if (nearlyStopped) reverseForce = -forceCap * 0.55 * controlState.brake;
-    else brakeForce = CONFIG.BRAKE_FORCE * controlState.brake;
+    if (nearlyStopped || backingUp) {
+      const room = THREE.MathUtils.clamp(1 - speedKmh / CONFIG.REVERSE_MAX_KMH, 0, 1);
+      reverseForce = -forceCap * 0.55 * controlState.brake * room;
+    } else brakeForce = CONFIG.BRAKE_FORCE * controlState.brake;
   }
   const engineForce = controlState.throttle > 0 ? forceCap * controlState.throttle : reverseForce;
   vehicle.applyEngineForce(engineForce, 2);
   vehicle.applyEngineForce(engineForce, 3);
 
-  if (controlState.throttleTarget <= 0 && !controlState.brakeHeld && !controlState.handbrake) brakeForce = Math.max(brakeForce, CONFIG.BRAKE_FORCE * CONFIG.ENGINE_BRAKE);
+  if (controlState.throttleTarget <= 0 && !controlState.brakeHeld && !controlState.handbrake) {
+    const settle = speedKmh < CONFIG.CRAWL_HOLD_KMH ? 0.5 : CONFIG.ENGINE_BRAKE;
+    brakeForce = Math.max(brakeForce, CONFIG.BRAKE_FORCE * settle);
+  }
 
   const handbrakeForce = controlState.handbrake ? CONFIG.HANDBRAKE_FORCE : 0;
   vehicle.setBrake(brakeForce, 0);

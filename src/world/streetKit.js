@@ -104,12 +104,27 @@ export function buildStreet(orientation, fixed, lo, hi, laneCountPerSide, crossi
         : new CANNON.Vec3(len / 2, 1, CONFIG.SIDEWALK_WIDTH / 2);
       curbBody.addShape(new CANNON.Box(half));
       if (orientation === 'z') curbBody.position.set(fixed + off, 0.05, mid); else curbBody.position.set(mid, 0.05, fixed + off);
-      curbBody.userData = { isPenalized: false, isStatic: true };
+      curbBody.userData = { isPenalized: false, isStatic: true, isCurb: true };
       world.addBody(curbBody);
     });
   });
 
   return { orientation, fixed, lo, hi, laneCountPerSide };
+}
+
+// A solid striped barrier: closes off dead ends so the player can't wander onto open ground.
+export function barrier(cx, cz, width, depth) {
+  const base = box(width, 1, depth, 0xff6a00);
+  base.position.set(cx, 0.5, cz);
+  const band = box(width + 0.02, 0.25, depth + 0.02, 0xffffff);
+  band.position.set(cx, 0.85, cz);
+  scene.add(base, band);
+
+  const body = new CANNON.Body({ mass: 0, material: propMaterial });
+  body.addShape(new CANNON.Box(new CANNON.Vec3(width / 2, 1.2, depth / 2)));
+  body.position.set(cx, 0.6, cz);
+  body.userData = { isPenalized: false, isStatic: true };
+  world.addBody(body);
 }
 
 // Paints a traffic-light pole's three lamps for the given state ('RED' | 'YELLOW' | 'GREEN').

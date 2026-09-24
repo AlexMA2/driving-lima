@@ -32,6 +32,8 @@ Al pulsar **JUGAR** se elige un escenario; al seleccionarlo aparecen **CONFIGURA
 | **Autopista Densa** | 3 carriles por sentido, tráfico denso e imprudente |
 | **Ciudad con Giros** | Cuadrícula con semáforos, giros y cebras |
 | **Rotondas** | Rotonda de cuatro accesos: ceder el paso, elegir salida y señalizarla |
+| **Estacionamiento en paralelo** | Entrar en reversa a un hueco entre dos autos junto a la vereda: alinearse con el auto de adelante, 45° con el volante a la derecha, enderezar y acomodar con el volante a la izquierda |
+| **Estacionamiento en batería** | Entrar en reversa a una plaza de un estacionamiento con pasillo, entre dos autos, usando las líneas de la plaza y los dos espejos |
 
 ## Controles
 
@@ -40,9 +42,9 @@ Al pulsar **JUGAR** se elige un escenario; al seleccionarlo aparecen **CONFIGURA
 | Mouse (arrastrar) | Girar el volante (se auto-centra al soltar) |
 | `A` / `D` o `←` / `→` | Girar el volante con teclado |
 | Rueda del mouse ↑ / ↓ | Subir / bajar el acelerador (se mantiene en su posición) |
-| `S` / `↓` | Freno (casi detenido, mantenerlo retrocede) |
+| `S` / `↓` | Freno (casi detenido, mantenerlo mete la reversa, que avanza a paso de tortuga) |
 | `Espacio` | Freno de mano |
-| `Q` / `E` | Direccional izquierda / derecha (aparecen como flechas junto al velocímetro) |
+| `Q` / `E` | Direccional izquierda / derecha (flechas verdes en el tablero) |
 | `L` | Apagar direccionales |
 | `H` | Bocina |
 | `R` / `Esc` | Reiniciar / volver al menú |
@@ -52,7 +54,7 @@ Al pulsar **JUGAR** se elige un escenario; al seleccionarlo aparecen **CONFIGURA
 
 - **Por escenario** (botón *CONFIGURAR*): duración, límite de velocidad, cantidad de tráfico,
   % de conductores imprudentes y educados, autos que te rebasan, autos malogrados en tu
-  carril, peatones, cebras, y opciones de **rendimiento** (resolución, sombras y su calidad,
+  carril, peatones, cebras, tamaño del espacio y guía de referencias (estacionamiento), y opciones de **rendimiento** (resolución, sombras y su calidad,
   distancia de visión, espejos laterales, contador de FPS).
 - **Controles globales** (engranaje arriba a la derecha, solo en los menús): paso y tiempos
   del acelerador, soltado automático, inversión de la rueda, rampas y fuerza del freno, freno
@@ -76,6 +78,25 @@ Las multas (en soles) se acumulan y se detallan al terminar la partida.
 | — | Rompemuelas a más de 20 km/h | S/ 5 |
 | — | Rotonda: no ceder el paso / salir sin señalizar | S/ 20 / S/ 10 |
 | — | Giro sin señalizar / no respetar el PARE (tutorial) | S/ 10 / S/ 20 |
+| — | Choque contra la vereda (a más de 8 km/h): el auto queda inmovilizado hasta reiniciar | S/ 25 |
+| — | Estacionamiento: tocar un auto / rozar la vereda / maniobrar sin señalizar | S/ 25 / S/ 10 / S/ 10 |
+
+## Cabina y espejos
+
+- Vista desde el asiento del conductor (volante a la izquierda del auto): el volante y el tablero
+  quedan justo enfrente. El tablero tiene tacómetro, velocímetro, pantalla central (velocidad
+  digital, direccionales, marcha P R N D, odómetro y testigos), ventilas, pantalla táctil y consola.
+- Los espejos laterales están en las puertas y el retrovisor arriba, en el centro del parabrisas,
+  en el lugar donde estarían en un auto real. Muestran la imagen invertida como un espejo de
+  verdad, con un borde del propio auto a la vista como referencia.
+
+## Estacionamiento
+
+Dos escenarios sin tráfico ni límite de tiempo. Un panel guía muestra los pasos con sus puntos de
+referencia (parachoques, espejos, ángulo de 45°, líneas de la plaza) y medidas en vivo; se puede
+apagar desde **CONFIGURAR** junto con el tamaño del espacio (amplio / normal / justo). Terminas
+al quedar dentro de las líneas, paralelo y detenido unos 2 segundos. La reversa se activa
+manteniendo `S` con el auto casi detenido y avanza a paso de tortuga (máx. 6 km/h).
 
 ## Estructura del proyecto
 
@@ -88,7 +109,7 @@ src/
 ├── assets/                  # Vehículos, props y primitivas procedurales
 ├── world/
 │   ├── streetKit.js         # Calles con bordillos abiertos en cruces, suelo, edificios
-│   ├── road.js, gridCity.js, roundabout.js, tutorialCourse.js   # Un builder por layout
+│   ├── road.js, gridCity.js, roundabout.js, tutorialCourse.js, parkingLot.js   # Un builder por layout
 │   ├── crosswalks.js        # Registro de cebras (rayas, señales, hueco para frenar)
 │   └── intersections.js, schoolZone.js, speedBumps.js, ...
 ├── entities/
@@ -96,7 +117,9 @@ src/
 │   ├── roundaboutAi.js      # Tráfico que sigue rutas y cede el paso en la rotonda
 │   ├── drivers.js           # Perfiles de conductor: bueno / normal / imprudente
 │   ├── breakdowns.js        # Eventos de auto malogrado + rebase cronometrado
-│   ├── pedestrians.js, scriptedCars.js, player.js, cockpit.js, ...
-├── systems/                 # input, reglas, cámara/espejos, audio, tutorial (motor de pasos)
+│   ├── cabin.js             # Posición del ojo y de los espejos dentro del auto
+│   ├── cockpit.js, instrumentCluster.js   # Tablero 3D y relojes (canvas)
+│   ├── pedestrians.js, scriptedCars.js, player.js, ...
+├── systems/                 # input, reglas, cámara/espejos, audio, tutorial y estacionamiento (guías por pasos)
 └── ui/                      # menú, diálogos de configuración, HUD, formulario de ajustes
 ```

@@ -1,24 +1,14 @@
 import { PENALTIES } from '../config.js';
 import { gameState } from '../state/gameState.js';
-import { controlState, wheelScreenCenter } from '../systems/input.js';
+import { controlState } from '../systems/input.js';
 import { chassisBody, playerMesh } from '../entities/player.js';
 import { inSchoolZone } from '../world/schoolZone.js';
 import { updateIndicatorSound } from '../systems/audio.js';
 import { getLogText, clearLog } from '../systems/debugLog.js';
 
-const speedoEl = document.getElementById('speedo');
-const speedValEl = document.getElementById('speedVal');
 const zoneTagEl = document.getElementById('zoneTag');
-const handbrakeTagEl = document.getElementById('handbrakeTag');
-const indLEl = document.getElementById('indL');
-const indREl = document.getElementById('indR');
-const needleEl = document.getElementById('needle');
-const gaugeArcEl = document.getElementById('gaugeArc');
 const timerValEl = document.getElementById('timerVal');
 const timerRowEl = document.getElementById('timerRow');
-
-const GAUGE_MAX_KMH = 140;
-const GAUGE_ARC_LEN = 270; // matches the SVG path's approximate arc length (stroke-dasharray)
 
 function formatMMSS(totalSeconds) {
   const s = Math.max(0, Math.round(totalSeconds));
@@ -31,26 +21,12 @@ export function refreshHud() {
   timerValEl.textContent = formatMMSS(gameState.timeLeft);
 }
 
-// The speedometer/turn-signal cluster sits centered on screen at the steering wheel's own
-// screen-space height (WHEEL_LOCAL_POS projected through the camera, see systems/input.js),
-// like a real dashboard cluster viewed just past the wheel rim, instead of a fixed HUD corner.
-function positionSpeedoAtWheel() {
-  const pos = wheelScreenCenter();
-  speedoEl.style.left = '50%';
-  speedoEl.style.top = `${pos.y}px`;
-  speedoEl.style.bottom = 'auto';
-  speedoEl.style.transform = 'translate(-50%, -50%)';
-}
-
 export function initDialogs() {
   const dialog = document.getElementById('instructionsDialog');
   document.getElementById('helpBtn').addEventListener('click', () => dialog.classList.add('show'));
   document.getElementById('controlsBtn').addEventListener('click', () => dialog.classList.add('show'));
   document.getElementById('closeInstructions').addEventListener('click', () => dialog.classList.remove('show'));
   dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.classList.remove('show'); });
-
-  positionSpeedoAtWheel();
-  window.addEventListener('resize', positionSpeedoAtWheel);
 
   // Debug action log: a copyable dump of every input/rule event, meant to be pasted back for
   // diagnosing intermittent bugs (throttle not responding, a lane-change ticket firing while
@@ -78,21 +54,14 @@ export function initDialogs() {
   });
 }
 
+// The speedometer, gear and turn-signal arrows live in the 3D instrument cluster now
+// (entities/instrumentCluster.js); this keeps the rest of the HUD current and returns the
+// shared blink phase so the cluster's arrows and the car's lamps flash together.
 export function updateHudPerFrame() {
-  const speedKmh = chassisBody.velocity.length() * 3.6;
-  speedValEl.textContent = Math.round(speedKmh);
   zoneTagEl.style.display = inSchoolZone(chassisBody.position.z) ? 'block' : 'none';
-  handbrakeTagEl.classList.toggle('show', controlState.handbrake);
-
-  const frac = Math.min(speedKmh / GAUGE_MAX_KMH, 1);
-  needleEl.style.transform = `rotate(${-90 + frac * 180}deg)`;
-  gaugeArcEl.style.strokeDashoffset = `${GAUGE_ARC_LEN * (1 - frac)}`;
-  gaugeArcEl.style.stroke = frac > 0.8 ? '#ff5252' : frac > 0.55 ? '#ffc107' : '#4caf50';
 
   const blink = Math.floor(performance.now() / 350) % 2 === 0;
   const blinkActive = (controlState.signalLeft || controlState.signalRight) && blink;
-  indLEl.classList.toggle('on', controlState.signalLeft && blink);
-  indREl.classList.toggle('on', controlState.signalRight && blink);
   updateIndicatorSound(blinkActive);
 
   playerMesh.userData.indicators.left.forEach(m => { m.material.emissiveIntensity = controlState.signalLeft && blink ? 1 : 0; });
