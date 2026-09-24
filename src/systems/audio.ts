@@ -34,6 +34,15 @@ export function initAudio(): void {
   engineOsc.start();
 }
 
+// While the game is paused nothing should be making sound (or costing the audio thread anything).
+export function suspendAudio(): void {
+  if (ctx?.state === 'running') void ctx.suspend();
+}
+
+export function resumeAudio(): void {
+  if (ctx?.state === 'suspended') void ctx.resume();
+}
+
 function noiseBuffer(ctx: AudioContext, duration: number): AudioBuffer {
   const size = Math.floor(ctx.sampleRate * duration);
   const buf = ctx.createBuffer(1, size, ctx.sampleRate);

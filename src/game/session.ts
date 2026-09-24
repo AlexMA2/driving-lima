@@ -10,11 +10,13 @@ import { buildCockpit, updateCockpit } from '../entities/cockpit';
 import { controlState, initInput, initSteerAssist, applyVehicleControls } from '../systems/input';
 import { initRules, setupCollisionListener, checkSpeedRule } from '../systems/rules';
 import { updateCameraRig, renderMirrorViewports, layoutMirrors } from '../systems/cameraRig';
-import { initAudio, updateEngineSound } from '../systems/audio';
+import { initAudio, updateEngineSound, suspendAudio, resumeAudio } from '../systems/audio';
 import { gameState } from '../state/gameState';
+import { skipPausedTime } from '../state/gameClock';
 import { applyControls, getControls, type PerformanceSettings, type ResolvedScenario } from '../state/settings';
 import { actionOf } from '../state/keybindings';
 import { reloadAndRestart, reloadToHome } from '../app/autostart';
+import { showPauseDialog, hidePauseDialog } from '../dialogs/pause';
 import { bindHud, refreshHud, updateHudPerFrame, showToast } from './hud';
 import type { LayoutRuntime } from './layouts/types';
 
@@ -88,7 +90,12 @@ function run(scenario: ResolvedScenario, layout: LayoutRuntime, hudRoot: HTMLEle
   clock.getDelta();
   refreshHud();
 
+  let frame = 0;
+  let paused = false;
+  let pausedAt = 0;
+
   window.addEventListener('keydown', (e) => {
+    if (paused) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const action = actionOf(e.key);
     if (action === 'menu') reloadToHome();
@@ -96,7 +103,7 @@ function run(scenario: ResolvedScenario, layout: LayoutRuntime, hudRoot: HTMLEle
   });
 
   const animate = (): void => {
-    requestAnimationFrame(animate);
+    frame = requestAnimationFrame(animate);
     const rawDt = clock.getDelta();
     const dt = Math.min(rawDt, 0.05);
     if (gameState.gameOver) return; // the results screen covers the canvas: leave the last frame up instead of redrawing it
@@ -144,5 +151,31 @@ function run(scenario: ResolvedScenario, layout: LayoutRuntime, hudRoot: HTMLEle
     // ---- mirror viewports (rear + both wing mirrors) ----
     renderMirrorViewports();
   };
+
+  // The game is paused for as long as its window is not the one in use (another window or tab in front, the
+  // browser's own UI focused). The frame loop stops altogether, so a paused game costs no CPU or GPU time, and
+  // the sound is suspended too. Coming back resumes by itself.
+  const setPaused = (next: boolean): void => {
+    if (next === paused || gameState.gameOver) return; // the results screen has nothing left to pause
+    paused = next;
+    document.documentElement.classList.toggle('gamePaused', paused);
+    if (paused) {
+      cancelAnimationFrame(frame);
+      pausedAt = performance.now();
+      suspendAudio();
+      showPauseDialog();
+    } else {
+      hidePauseDialog();
+      skipPausedTime(performance.now() - pausedAt); // real-time timers do not count the pause
+      clock.getDelta(); // nor does the frame clock: the pause must not come back as one huge step
+      resumeAudio();
+      frame = requestAnimationFrame(animate);
+    }
+  };
+  window.addEventListener('blur', () => setPaused(true));
+  window.addEventListener('focus', () => setPaused(document.hidden));
+  document.addEventListener('visibilitychange', () => setPaused(document.hidden || !document.hasFocus()));
+
   animate();
+  if (document.hidden || !document.hasFocus()) setPaused(true); // started while another window had the focus
 }

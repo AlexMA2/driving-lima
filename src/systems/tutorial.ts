@@ -13,6 +13,7 @@ import { COURSE, setTutorialLight } from '../world/tutorialCourse';
 import { showToast } from '../game/hud';
 import { showTutorialStep, setTutorialHint } from '../ui/tutorialPanel';
 import { kbdHtml } from '../state/keybindings';
+import { gameNow } from '../state/gameClock';
 import type { ScriptedCar } from '../entities/scriptedCars';
 import type { Crosswalk } from '../world/crosswalks';
 import type { ArmId } from '../world/roundabout';
@@ -325,7 +326,7 @@ function buildWaypoint(): THREE.Mesh<THREE.CylinderGeometry, THREE.MeshBasicMate
 
 function currentContext(): StepContext {
   const p = chassisBody.position, v = chassisBody.velocity;
-  return { p, v, kmh: v.length() * 3.6, now: performance.now() / 1000 };
+  return { p, v, kmh: v.length() * 3.6, now: gameNow() };
 }
 
 function showStep(i: number): void {
@@ -367,7 +368,7 @@ export function updateTutorial(dt: number): void {
 
   // pulse the objective marker so it reads as "go here"
   if (waypointMesh?.visible) {
-    const t = performance.now() / 1000;
+    const t = gameNow();
     waypointMesh.material.opacity = 0.28 + 0.12 * Math.sin(t * 4);
     waypointMesh.scale.set(1 + 0.06 * Math.sin(t * 3), 1, 1 + 0.06 * Math.sin(t * 3));
   }

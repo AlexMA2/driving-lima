@@ -7,6 +7,7 @@ import { playHonk, playBrakeScreech } from './audio';
 import { logEvent } from './debugLog';
 import { actionOf } from '../state/keybindings';
 import { isOverlayOpen } from '../ui/overlays';
+import { gameNow } from '../state/gameClock';
 
 // Read live (not cached at load) so the global config can change the wheel's lock between games.
 const wheelMaxRad = () => THREE.MathUtils.degToRad(CONFIG.WHEEL_MAX_ANGLE_DEG);
@@ -23,7 +24,7 @@ export const controlState = {
 
   wheelAngle: 0, wheelTarget: 0, wheelDragging: false,
   keyLeft: false, keyRight: false, // steering keys held: the wheel is turned progressively while they are (see updateWheelAndPedals)
-  lastScrollTime: -999, // performance.now()/1000 of the latest accelerator scroll (for auto-release)
+  lastScrollTime: -999, // gameNow() of the latest accelerator scroll (for auto-release)
   lastHonkTime: -999,   // ...and of the latest horn press (the tutorial waits for it)
 
   signalLeft: false, signalRight: false, lastSignalOnTime: -999,
@@ -68,15 +69,15 @@ export function initInput(): void {
       case 'steerLeft': controlState.keyLeft = true; break;
       case 'steerRight': controlState.keyRight = true; break;
       case 'handbrake': controlState.handbrake = true; e.preventDefault(); logEvent('HANDBRAKE_DOWN'); break;
-      case 'horn': playHonk(); controlState.lastHonkTime = performance.now() / 1000; break;
+      case 'horn': playHonk(); controlState.lastHonkTime = gameNow(); break;
       case 'signalLeft':
         controlState.signalLeft = !controlState.signalLeft; controlState.signalRight = false;
-        controlState.lastSignalOnTime = performance.now() / 1000;
+        controlState.lastSignalOnTime = gameNow();
         logEvent('SIGNAL', { side: 'left', on: controlState.signalLeft });
         break;
       case 'signalRight':
         controlState.signalRight = !controlState.signalRight; controlState.signalLeft = false;
-        controlState.lastSignalOnTime = performance.now() / 1000;
+        controlState.lastSignalOnTime = gameNow();
         logEvent('SIGNAL', { side: 'right', on: controlState.signalRight });
         break;
       case 'signalOff':
@@ -127,7 +128,7 @@ export function initInput(): void {
     }
     const up = CONFIG.THROTTLE_INVERT_SCROLL ? e.deltaY > 0 : e.deltaY < 0;
     const delta = up ? CONFIG.THROTTLE_WHEEL_STEP : -CONFIG.THROTTLE_WHEEL_STEP;
-    controlState.lastScrollTime = performance.now() / 1000;
+    controlState.lastScrollTime = gameNow();
     const before = controlState.throttleTarget;
     controlState.throttleTarget = THREE.MathUtils.clamp(controlState.throttleTarget + delta, 0, 1);
     logEvent('THROTTLE_SCROLL', {
@@ -188,7 +189,7 @@ export function updateWheelAndPedals(dt: number): void {
 
   // Optional auto-release: once the wheel has been left alone for a moment, the accelerator
   // position eases back toward 0 (0 = the hand-throttle simply holds, the default).
-  if (CONFIG.THROTTLE_AUTO_RELEASE > 0 && performance.now() / 1000 - controlState.lastScrollTime > 0.4) {
+  if (CONFIG.THROTTLE_AUTO_RELEASE > 0 && gameNow() - controlState.lastScrollTime > 0.4) {
     controlState.throttleTarget = Math.max(0, controlState.throttleTarget - CONFIG.THROTTLE_AUTO_RELEASE * dt);
   }
 

@@ -1,0 +1,39 @@
+@use '../abstracts/variables' as *;
+
+// The "game paused" dialog (dialogs/pause.ts).
+
+#pauseDialog .dialogBox {
+  text-align: center;
+  padding: 30px 40px;
+
+  p {
+    font-size: 14px;
+    line-height: 1.6;
+    opacity: 0.85;
+  }
+
+  .pauseHint {
+    margin-top: 8px;
+    color: $color-accent-pale;
+    opacity: 1;
+  }
+}
+
+.pauseIcon {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 14px;
+
+  span {
+    width: 9px;
+    height: 30px;
+    border-radius: 3px;
+    background: $color-accent;
+  }
+}
+
+// A paused game is fully still: the HUD's own animations (the timer's pulse, the toasts) stop too.
+html.gamePaused #hud * {
+  animation-play-state: paused;
+}

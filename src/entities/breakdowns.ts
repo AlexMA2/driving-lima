@@ -9,6 +9,7 @@ import { PLAYER_LANES, laneDir } from '../world/road';
 import { chassisBody } from './player';
 import { stalledVehicles, type StalledVehicle } from './obstacles';
 import { spawnOvertaker } from './aiTraffic';
+import { gameNow } from '../state/gameClock';
 import type { Amount, ResolvedScenario } from '../state/settings';
 
 // "Carro malogrado" events. Every so often a car breaks down ahead of the player *in the lane
@@ -104,7 +105,7 @@ export function updateBreakdowns(): void {
   }
 
   if (spacing === null || chassisBody.position.z > nextTriggerZ) return;
-  const now = performance.now() / 1000;
+  const now = gameNow();
   if (now - lastEventTime < MIN_SECONDS_BETWEEN || chassisBody.velocity.length() < 3) return;
   lastEventTime = now;
   nextTriggerZ = chassisBody.position.z - spacing * rand(0.8, 1.25);

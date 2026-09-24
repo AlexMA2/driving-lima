@@ -9,6 +9,8 @@ export interface DialogOptions {
   boxId?: string;    // id for the dialog box, for styling
   html: string;      // the box's content
   onClose?: () => void;
+  // Whether Esc or a click outside the box closes it (default). A dialog that is only closed by code says false.
+  dismissable?: boolean;
 }
 
 export interface DialogHandle {
@@ -24,7 +26,7 @@ export function findDialog(id: string): DialogHandle | undefined {
   return [...openDialogs].find(d => d.overlay.id === id);
 }
 
-export function openDialog({ id, boxId, html, onClose }: DialogOptions): DialogHandle {
+export function openDialog({ id, boxId, html, onClose, dismissable = true }: DialogOptions): DialogHandle {
   const overlay = document.createElement('div');
   overlay.id = id;
   overlay.className = 'dialogOverlay';
@@ -34,7 +36,7 @@ export function openDialog({ id, boxId, html, onClose }: DialogOptions): DialogH
   const onKeyDown = (e: KeyboardEvent): void => {
     if (e.key !== 'Escape' || [...openDialogs].pop() !== handle) return;
     e.stopPropagation(); // Esc closes the dialog, it does not also leave the screen behind it
-    handle.close();
+    if (dismissable) handle.close();
   };
 
   const handle: DialogHandle = {
@@ -48,7 +50,7 @@ export function openDialog({ id, boxId, html, onClose }: DialogOptions): DialogH
     },
   };
 
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) handle.close(); });
+  if (dismissable) overlay.addEventListener('click', (e) => { if (e.target === overlay) handle.close(); });
   document.addEventListener('keydown', onKeyDown);
   openDialogs.add(handle);
   document.body.append(overlay);

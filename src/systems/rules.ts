@@ -1,6 +1,7 @@
 import type * as CANNON from 'cannon-es';
 import { CONFIG, PENALTIES, type Layout, type PenaltyCode } from '../config';
 import { gameState } from '../state/gameState';
+import { gameNow } from '../state/gameClock';
 import { chassisBody } from '../entities/player';
 import { LANE_X, ROAD_HALF_WIDTH } from '../world/road';
 import { INTERSECTIONS } from '../world/intersections';
@@ -17,7 +18,7 @@ const lastInfractionTime: Partial<Record<PenaltyCode, number>> = {};
 // into an itemized fine per rule plus a total (see screens/results.ts). Running up
 // fines no longer ends the match; only the timer (or the finish button) does.
 export function triggerInfraction(code: PenaltyCode): void {
-  const now = performance.now() / 1000;
+  const now = gameNow();
   const last = lastInfractionTime[code];
   if (last !== undefined && now - last < CONFIG.INFRACTION_COOLDOWN) {
     logEvent('INFRACTION_SKIPPED_COOLDOWN', { code, sinceLast: now - last });
@@ -65,7 +66,7 @@ export function checkLaneChangeRule(): void {
     logEvent('LANE_CHANGE_CHECK', {
       fromLane: prevLaneIndex, toLane: curLane,
       signalLeft: controlState.signalLeft, signalRight: controlState.signalRight,
-      signaledSinceSec: (performance.now() / 1000 - controlState.lastSignalOnTime),
+      signaledSinceSec: (gameNow() - controlState.lastSignalOnTime),
       signaled, ticketed: !signaled,
     });
     if (!signaled) triggerInfraction('G10');
