@@ -6,5 +6,6 @@ export const gameState = {
   gameOver: false,
   duration: CONFIG.DEFAULT_GAME_DURATION,  // seconds, set from the home screen's picker
   timeLeft: CONFIG.DEFAULT_GAME_DURATION,
+  elapsed: 0,          // seconds played, counted in every scenario (untimed ones have no countdown)
   infractionCounts: {}, // PENALTIES code -> number of times triggered this run (see systems/rules.js)
 };

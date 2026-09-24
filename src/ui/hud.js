@@ -104,9 +104,10 @@ export function updateHudPerFrame() {
   return blink;
 }
 
-export function showToast(title, sub) {
+// `kind` 'good' gives the toast the green accent (used for positive feedback, e.g. tutorial steps).
+export function showToast(title, sub, kind) {
   const el = document.createElement('div');
-  el.className = 'toast';
+  el.className = kind === 'good' ? 'toast good' : 'toast';
   el.innerHTML = `${title}${sub ? `<small>${sub}</small>` : ''}`;
   document.getElementById('toastContainer').appendChild(el);
   setTimeout(() => el.remove(), 3200);
@@ -114,7 +115,8 @@ export function showToast(title, sub) {
 
 // End-of-run results: every rule broken this run, its per-instance fine, a subtotal, and a
 // grand total — built from gameState.infractionCounts rather than a running score/damage tally.
-export function showResults() {
+export function showResults(title = 'RESULTADOS') {
+  document.getElementById('resultsTitle').textContent = title;
   const listEl = document.getElementById('resultsInfractions');
   listEl.innerHTML = '';
 
@@ -137,7 +139,6 @@ export function showResults() {
   }
 
   document.getElementById('resultTotal').textContent = `S/ ${total}`;
-  const elapsed = gameState.duration - Math.max(0, gameState.timeLeft);
-  document.getElementById('resultTime').textContent = formatMMSS(elapsed);
+  document.getElementById('resultTime').textContent = formatMMSS(gameState.elapsed);
   document.getElementById('gameOverScreen').style.display = 'flex';
 }

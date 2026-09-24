@@ -80,4 +80,19 @@ const roundabout = `<svg viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg
   <g transform="translate(126 68)"><rect width="9" height="6" rx="2" fill="#6a1b9a" transform="rotate(40 4.5 3)"/></g>
 </svg>`;
 
-export const SCENARIO_ICONS = { straight, highway, grid, roundabout };
+// A guided route across a top-down map: numbered checkpoints from the start car to the flag.
+const tutorial = `<svg viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg">
+  <rect width="200" height="110" fill="#5b7148"/>
+  <g fill="#d9c79e" opacity="0.9"><rect x="44" y="52" width="40" height="30"/><rect x="128" y="8" width="42" height="26"/><rect x="150" y="80" width="38" height="22"/></g>
+  <path d="M22 100 V32 H112 V74 H168" fill="none" stroke="#3a3a3f" stroke-width="15" stroke-linejoin="round"/>
+  <path d="M22 100 V32 H112 V74 H168" fill="none" stroke="#4cff6b" stroke-width="2.5" stroke-dasharray="6 5" stroke-linejoin="round"/>
+  <g font-family="Arial" font-size="10" font-weight="bold" text-anchor="middle" fill="#0b2b12">
+    <circle cx="22" cy="66" r="8" fill="#4cff6b"/><text x="22" y="69.5">1</text>
+    <circle cx="66" cy="32" r="8" fill="#4cff6b"/><text x="66" y="35.5">2</text>
+    <circle cx="112" cy="54" r="8" fill="#4cff6b"/><text x="112" y="57.5">3</text>
+  </g>
+  <g transform="translate(15 90)"><rect width="14" height="9" rx="2" fill="#1e88e5"/><rect x="3" y="-3" width="8" height="5" rx="1.5" fill="#64b5f6"/></g>
+  <g transform="translate(166 60)"><rect x="0" y="0" width="2" height="28" fill="#eee"/><rect x="2" y="0" width="14" height="6" fill="#111"/><rect x="2" y="0" width="7" height="3" fill="#fff"/><rect x="9" y="3" width="7" height="3" fill="#fff"/></g>
+</svg>`;
+
+export const SCENARIO_ICONS = { tutorial, straight, highway, grid, roundabout };

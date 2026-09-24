@@ -63,6 +63,8 @@ export const PENALTIES = {
   M12: { fine: 20, label: 'M12: Conducir en Sentido Contrario' },
   COLLISION: { fine: 25, label: 'Choque detectado' },
   BUMP: { fine: 5, label: 'Rompemuelas a alta velocidad' },
+  TURN_SIGNAL: { fine: 10, label: 'Giro sin señalizar' },
+  STOP_SIGN: { fine: 20, label: 'No respetó la señal de PARE' },
   RB_YIELD: { fine: 20, label: 'Rotonda: no cediste el paso' },
   RB_SIGNAL: { fine: 10, label: 'Rotonda: salida sin señalizar' },
 };
@@ -71,7 +73,24 @@ export const PENALTIES = {
 // `layout: 'line'` scenarios reuse the single long avenue (world/road.js).
 // `layout: 'grid'` builds a real turnable street grid (world/gridCity.js).
 // `layout: 'roundabout'` builds a central roundabout with four arms (world/roundabout.js).
+// `layout: 'tutorial'` builds the fixed guided course (world/tutorialCourse.js, systems/tutorial.js).
 export const SCENARIOS = {
+  tutorial: {
+    id: 'tutorial',
+    layout: 'tutorial',
+    label: 'Tutorial guiado',
+    badge: 'Empieza aquí',
+    difficulty: 'Fácil', difficultyLevel: 1,
+    description: 'Un recorrido paso a paso: control del auto, espejos y direccionales, cambios de carril, giros, semáforo, PARE, cebra y rotonda.',
+    laneCountPerSide: 2,
+    scripted: true,   // fixed course, no random traffic: the config dialog only offers performance
+    untimed: true,    // no countdown; it ends when the last step is done
+    aiTargetCount: 0,
+    badDrivers: 0,
+    goodDrivers: 0,
+    pedestrians: 0,
+    speedLimit: 40,
+  },
   straight: {
     id: 'straight',
     layout: 'line',

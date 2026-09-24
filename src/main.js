@@ -14,8 +14,10 @@ import { buildSpeedBumps } from './world/speedBumps.js';
 import { buildLineCrosswalks } from './world/lineCrosswalks.js';
 import { buildGridCity, updateGridTrafficLights, updateGridAi, checkGridRedLight } from './world/gridCity.js';
 import { buildRoundabout } from './world/roundabout.js';
+import { buildTutorialCourse } from './world/tutorialCourse.js';
 
 import { initBreakdowns, updateBreakdowns } from './entities/breakdowns.js';
+import { updateScriptedCars } from './entities/scriptedCars.js';
 import { createPlayer, chassisBody, syncPlayerMesh } from './entities/player.js';
 import { updateAi, initAiTraffic } from './entities/aiTraffic.js';
 import { initRoundaboutAi, updateRoundaboutAi } from './entities/roundaboutAi.js';
@@ -33,6 +35,7 @@ import {
   checkWrongWayRule,
   checkRoundaboutRules,
 } from './systems/rules.js';
+import { initTutorial, updateTutorial, laneRuleActive } from './systems/tutorial.js';
 import { updateCameraRig, renderMirrorViewports } from './systems/cameraRig.js';
 import { initAudio, updateEngineSound } from './systems/audio.js';
 
@@ -61,6 +64,8 @@ function buildWorld(scenarioId) {
     spawn = buildGridCity(scenario);
   } else if (scenario.layout === 'roundabout') {
     spawn = buildRoundabout(scenario);
+  } else if (scenario.layout === 'tutorial') {
+    spawn = buildTutorialCourse();
   } else {
     buildRoad(scenario);
     buildBuildings(scenario);
@@ -77,6 +82,10 @@ function buildWorld(scenarioId) {
   initPedestrians(scenario);
   if (scenario.layout === 'roundabout') initRoundaboutAi(scenario); // after the player exists so spawns keep clear of it
   if (scenario.layout === 'line') initBreakdowns(scenario);
+  if (scenario.layout === 'tutorial') {
+    initBreakdowns({ hazards: 'off' }); // the course stalls its one car itself, on cue
+    initTutorial({ onDone: () => endGame('¡TUTORIAL COMPLETADO!') });
+  }
   buildCockpit();
   initInput();
   initAudio();
@@ -90,10 +99,10 @@ function buildWorld(scenarioId) {
   }
 }
 
-function endGame() {
+function endGame(title) {
   if (gameState.gameOver) return;
   gameState.gameOver = true;
-  showResults();
+  showResults(title);
 }
 
 function animate() {
@@ -103,11 +112,14 @@ function animate() {
   if (!started || gameState.gameOver) { renderer.render(scene, camera); return; }
   updateFps(rawDt);
 
-  gameState.timeLeft = Math.max(0, gameState.timeLeft - dt);
-  if (gameState.timeLeft <= 0) {
-    endGame();
-    renderer.render(scene, camera);
-    return;
+  gameState.elapsed += dt;
+  if (!scenario.untimed) {
+    gameState.timeLeft = Math.max(0, gameState.timeLeft - dt);
+    if (gameState.timeLeft <= 0) {
+      endGame();
+      renderer.render(scene, camera);
+      return;
+    }
   }
 
   applyVehicleControls(dt);
@@ -124,6 +136,14 @@ function animate() {
   } else if (scenario.layout === 'roundabout') {
     updateRoundaboutAi(dt);
     updatePedestrians(dt);
+    checkRoundaboutRules();
+  } else if (scenario.layout === 'tutorial') {
+    updateScriptedCars(dt);
+    updatePedestrians(dt);
+    updateBreakdowns();
+    updateTutorial(dt);
+    if (laneRuleActive()) checkLaneChangeRule();
+    checkSpeedBumpRule();
     checkRoundaboutRules();
   } else {
     updateAi(dt);
@@ -168,6 +188,7 @@ function startGame(scenarioId) {
   refreshMaterials();
   gameState.duration = scenario.duration;
   gameState.timeLeft = scenario.duration;
+  document.body.classList.toggle('untimed', !!scenario.untimed);
   started = true;
   clock.getDelta();
   refreshHud();
@@ -187,7 +208,7 @@ initMenu({ onStart: startGame });
 initGlobalConfig();
 document.getElementById('restartBtn').addEventListener('click', restartGame);
 document.getElementById('homeBtn').addEventListener('click', goHome);
-document.getElementById('finishBtn').addEventListener('click', () => { if (started) endGame(); });
+document.getElementById('finishBtn').addEventListener('click', () => { if (started) endGame(scenario.untimed ? 'TUTORIAL TERMINADO' : undefined); });
 
 window.addEventListener('keydown', (e) => {
   if (!started) return;

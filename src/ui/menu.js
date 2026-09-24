@@ -12,7 +12,7 @@ export function setScreen(name) {
 function renderScenarioCards(gridEl) {
   gridEl.innerHTML = Object.values(SCENARIOS).map(s => `
     <article class="scenarioCard" data-scenario="${s.id}" tabindex="0">
-      <div class="scenarioArt">${SCENARIO_ICONS[s.id] ?? ''}</div>
+      <div class="scenarioArt">${SCENARIO_ICONS[s.id] ?? ''}${s.badge ? `<span class="scenarioBadge">${s.badge}</span>` : ''}</div>
       <div class="scenarioBody">
         <div class="scenarioTitleRow"><h3>${s.label}</h3><span class="difficulty d${s.difficultyLevel}">${s.difficulty}</span></div>
         <p>${s.description}</p>

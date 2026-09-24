@@ -282,6 +282,36 @@ body[data-screen="game"] #globalConfigBtn { display: none; }
 #globalConfigHint { font-size: 13px; opacity: .75; line-height: 1.5; margin-bottom: 14px; }
 #globalConfigBody { max-height: 58vh; overflow-y: auto; padding-right: 8px; margin-bottom: 18px; }
 
+/* ---- Tutorial panel ---- */
+#tutorialPanel {
+  display: none; position: absolute; top: 122px; left: 50%; transform: translateX(-50%);
+  width: min(560px, 92vw); padding: 12px 18px 14px; text-align: left;
+  background: rgba(10,12,20,0.8); border: 2px solid #ff9800; border-radius: 14px; backdrop-filter: blur(4px);
+  box-shadow: 0 8px 26px rgba(0,0,0,0.45);
+}
+body.tutorial #tutorialPanel { display: block; }
+body.tutorial #toastContainer { top: 300px; }
+body.untimed #timerRow { display: none; }
+#tutMeta { display: flex; justify-content: space-between; font-size: 11px; font-weight: 800; letter-spacing: 1.5px; color: #ffb36b; margin-bottom: 4px; }
+#tutTitle { font-size: 18px; margin-bottom: 4px; }
+#tutText { font-size: 14px; line-height: 1.55; opacity: .92; }
+#tutText b { color: #ffd54f; }
+#tutText kbd {
+  display: inline-block; min-width: 22px; text-align: center; padding: 1px 7px; margin: 0 1px; border-radius: 5px;
+  background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.35); border-bottom-width: 2px;
+  font-family: inherit; font-size: 12px; font-weight: 800;
+}
+#tutHint { font-size: 13px; font-weight: 700; color: #ffcc80; margin-top: 6px; min-height: 0; }
+#tutHint:empty { display: none; }
+#tutProgress { height: 4px; background: rgba(255,255,255,0.15); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+#tutProgress i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #ff9800, #4cff6b); transition: width .4s; }
+
+.scenarioArt { position: relative; }
+.scenarioBadge {
+  position: absolute; top: 10px; left: 10px; font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
+  padding: 4px 10px; border-radius: 12px; background: #4cff6b; color: #0b2b12; box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
 #fpsCounter {
   position: absolute; left: 14px; top: 126px; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 6px;
   background: rgba(10,12,20,0.55); display: none; font-variant-numeric: tabular-nums;

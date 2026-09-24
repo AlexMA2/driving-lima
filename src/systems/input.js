@@ -21,6 +21,7 @@ export const controlState = {
 
   wheelAngle: 0, wheelTarget: 0, wheelDragging: false,
   lastScrollTime: -999, // performance.now()/1000 of the latest accelerator scroll (for auto-release)
+  lastHonkTime: -999,   // ...and of the latest horn press (the tutorial waits for it)
 
   signalLeft: false, signalRight: false, lastSignalOnTime: -999,
 };
@@ -66,7 +67,7 @@ export function initInput() {
       case 'a': case 'arrowleft': controlState.wheelTarget = -wheelMaxRad() * CONFIG.KEYBOARD_STEER_FRACTION; break;
       case 'd': case 'arrowright': controlState.wheelTarget = wheelMaxRad() * CONFIG.KEYBOARD_STEER_FRACTION; break;
       case ' ': controlState.handbrake = true; e.preventDefault(); logEvent('HANDBRAKE_DOWN'); break;
-      case 'h': playHonk(); break;
+      case 'h': playHonk(); controlState.lastHonkTime = performance.now() / 1000; break;
       case 'q':
         controlState.signalLeft = !controlState.signalLeft; controlState.signalRight = false;
         controlState.lastSignalOnTime = performance.now() / 1000;
