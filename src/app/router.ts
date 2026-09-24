@@ -46,6 +46,13 @@ function syncGearButton(name: ScreenName): void {
 }
 
 let current: { name: ScreenName; unmount(): void } | null = null;
+
+// A screen whose markup is already in the page when the app boots (the home screen ships in index.html) counts as
+// mounted from the start. Without this, a boot that goes straight to another screen (a restart, see
+// app/autostart.ts) would never take it out of the document and it would show up over that screen.
+export function adoptScreen<N extends ScreenName>(name: N, screen: Screen<N>): void {
+  current = { name, unmount: () => screen.unmount() };
+}
 let navigation = 0; // a newer `goTo` supersedes one still loading
 
 export function goTo(name: 'home' | 'scenarios'): Promise<void>;

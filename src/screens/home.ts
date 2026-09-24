@@ -4,9 +4,10 @@ import { loadScenarios } from '../app/screens';
 
 // The home screen is the one screen whose markup ships in index.html: it is what the player sees first, so it
 // is painted from the HTML and the inlined critical CSS before any script has run. This module only brings it
-// to life. Leaving the screen takes the element out of the document (it is kept, not rebuilt, for the way back).
+// to life (when it is imported, which is at boot). Leaving the screen takes the element out of the document (it is
+// kept, not rebuilt, for the way back).
 
-let element: HTMLElement | null = null;
+const element = document.getElementById('startScreen');
 
 function wire(home: HTMLElement): void {
   const start = home.querySelector<HTMLElement>('#startBtn');
@@ -21,13 +22,11 @@ function wire(home: HTMLElement): void {
   });
 }
 
+if (element) wire(element);
+
 export const screen: Screen<'home'> = {
   mount(root) {
-    if (!element) {
-      element = document.getElementById('startScreen');
-      if (!element) return;
-      wire(element);
-    }
+    if (!element) return;
     if (!element.isConnected) root.append(element);
     prefetchWhenIdle(loadScenarios);
   },

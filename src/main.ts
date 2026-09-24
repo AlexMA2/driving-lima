@@ -1,4 +1,4 @@
-import { goTo, registerScreen, setGearButton } from './app/router';
+import { adoptScreen, goTo, registerScreen, setGearButton } from './app/router';
 import { takeAutostart } from './app/autostart';
 import { loadGame, loadScenarios } from './app/screens';
 import { screen as homeScreen } from './screens/home';
@@ -9,6 +9,7 @@ import { screen as homeScreen } from './screens/home';
 // are fetched when the player first needs them.
 
 registerScreen('home', async () => ({ screen: homeScreen }));
+adoptScreen('home', homeScreen); // its markup is in index.html already
 registerScreen('scenarios', loadScenarios);
 registerScreen('game', loadGame);
 
