@@ -46,5 +46,6 @@ export function hudHtml(o: HudOptions): string {
 
   <button id="logBtn" title="Registro de depuración (Ctrl+L)">LOG</button>
   <button id="helpBtn" title="Instrucciones">?</button>
+  <div id="helpHint" role="status" aria-live="polite"><div class="helpHintBody">¿No sabes cómo moverte?<b>Mira las teclas</b></div></div>
 </div>`;
 }

@@ -18,6 +18,7 @@ import { actionOf } from '../state/keybindings';
 import { reloadAndRestart, reloadToHome } from '../app/autostart';
 import { showPauseDialog, hidePauseDialog } from '../dialogs/pause';
 import { bindHud, refreshHud, updateHudPerFrame, showToast } from './hud';
+import { bindIdleHint, updateIdleHint } from './idleHint';
 import type { LayoutRuntime } from './layouts/types';
 
 // The 3D game itself: the renderer, the physics world, the player's car and the frame loop, common to every
@@ -58,6 +59,7 @@ function run(scenario: ResolvedScenario, layout: LayoutRuntime, hudRoot: HTMLEle
   bindHud(hudRoot, {
     onFinish: () => endGame(scenario.untimed ? (scenario.layout === 'parking' ? 'PRÁCTICA TERMINADA' : 'TUTORIAL TERMINADO') : undefined),
   });
+  bindIdleHint(hudRoot);
   applyPerformance(perf);
 
   // The cockpit (dashboard/wheel/pillars) is parented to `camera` (see entities/cockpit.ts) so
@@ -126,6 +128,7 @@ function run(scenario: ResolvedScenario, layout: LayoutRuntime, hudRoot: HTMLEle
     const speedKmh = chassisBody.velocity.length() * 3.6;
     layout.update(dt, speedKmh);
     checkSpeedRule();
+    updateIdleHint(dt, speedKmh);
 
     updateCameraRig();
     updateSun(chassisBody.position);
