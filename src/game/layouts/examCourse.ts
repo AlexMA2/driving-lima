@@ -2,6 +2,7 @@ import { buildExamCourse, COURSE } from '../../world/examCourse';
 import { RB } from '../../world/roundabout';
 import { checkRoundaboutRules, resetRoundaboutRules } from '../../systems/roundaboutRules';
 import { initExamCourse, updateExamCourse } from '../../systems/examCourse';
+import { updateAutoplay, stopAutoplay, toggleAutoplay } from '../../systems/examAutopilot';
 import type { LayoutRuntime } from './types';
 
 // The "Examen Oficial MTC" circuit: a fixed course, graded like the tutorial but chaining both
@@ -11,19 +12,29 @@ export const layout: LayoutRuntime = {
 
   init(_scenario, { endGame }) {
     resetRoundaboutRules();
-    initExamCourse({ onDone: () => endGame('¡CIRCUITO COMPLETADO!') });
+    initExamCourse({ onDone: () => { stopAutoplay(); endGame('¡CIRCUITO COMPLETADO!'); } });
   },
 
   update(dt) {
     updateExamCourse(dt);
+    updateAutoplay(dt);
     checkRoundaboutRules();
   },
 
-  // off near the roundabout and both parking bays, on for the connecting straights
+  // off near the óvalo, both parking bays and the two curved bends, on for the straight avenues.
+  // Radius-based (rather than the single corridor's old Z-band tests) since this loop's legs run
+  // along both X and Z — a Z-band alone would also (wrongly) blank the assist out on the right
+  // avenue at any z that happens to overlap a bay's z-range on the unrelated left avenue.
   steerAssistZone(p) {
-    const nearRing = Math.hypot(p.x - RB.cx, p.z - RB.cz) <= RB.outerR + 30;
-    const nearParallel = p.z < COURSE.parallel.rearZ + 10 && p.z > COURSE.parallel.frontZ - 10;
-    const nearDiagonal = Math.abs(p.z - COURSE.diagonal.cz) < COURSE.diagonal.pitch + 4;
-    return !nearRing && !nearParallel && !nearDiagonal;
+    const zones: Array<{ x: number; z: number; r: number }> = [
+      { x: RB.cx, z: RB.cz, r: RB.outerR + 30 },
+      { x: COURSE.leftAveX, z: (COURSE.parallel.frontZ + COURSE.parallel.rearZ) / 2, r: 12 },
+      { x: COURSE.leftAveX, z: COURSE.diagonal.cz, r: COURSE.diagonal.pitch + 6 },
+      { x: COURSE.trocha.cx, z: COURSE.trocha.cz, r: COURSE.trocha.r + 10 },
+      { x: COURSE.swBend.cx, z: COURSE.swBend.cz, r: COURSE.swBend.r + 10 },
+    ];
+    return !zones.some(z => Math.hypot(p.x - z.x, p.z - z.z) <= z.r);
   },
+
+  autopilot: { toggle: toggleAutoplay, stop: stopAutoplay },
 };
