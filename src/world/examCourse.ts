@@ -1,7 +1,7 @@
 import { box } from '../assets/primitives';
 import { scene } from '../core/scene';
 import { CONFIG } from '../config';
-import { buildStopSign, buildNoParkingPlate, buildPedestrianWarningPlate, buildUTurnPermittedPlate, buildSignPost } from '../assets/props';
+import { buildStopSign, buildNoParkingPlate, buildPedestrianWarningPlate, buildUTurnPermittedPlate, buildSignPost, buildSpeedLimitPlate } from '../assets/props';
 import { buildGround, buildStreet, barrier, scatterBlockBuildings, annulus, arcCurbColliders } from './streetKit';
 import { setLaneLayout } from './road';
 import { buildRoundabout, RB } from './roundabout';
@@ -185,6 +185,12 @@ export function buildExamCourse(): Spawn {
   pedSign.position.set(rightAveX + CONFIG.LANE_WIDTH + 1.2, 0, entrance.z - 6); // before the crossing (approached from larger z)
   scene.add(pedSign);
 
+  // ---- speed limit sign at the start of the top avenue's speed-demonstration straight
+  const speedSign = buildSignPost([{ plate: buildSpeedLimitPlate(40), y: 2.3 }], 2.8);
+  speedSign.position.set(speedGateX + 20, 0, topAveZ - CONFIG.LANE_WIDTH - 1.2); // before the gate (approached from larger x)
+  speedSign.rotation.y = -Math.PI / 2; // faces east, toward westbound traffic (same atan2(ux,uz) convention world/roundabout.ts's own arm signs use)
+  scene.add(speedSign);
+
   // ---- parallel parking, tucked against the left avenue's kerb (no separate parking lane: a
   // narrow one-lane street, same as world/examCourse.ts's original right-avenue convention, just
   // mirrored onto this kerb)
@@ -197,7 +203,7 @@ export function buildExamCourse(): Spawn {
   targetZone(leftKerb, leftAveX - OWN + 0.1, parallel.frontZ + 0.15, parallel.rearZ - 0.15);
 
   const noParking = buildSignPost([{ plate: buildNoParkingPlate(), y: 2.2 }], 2.6);
-  noParking.position.set(leftKerb - 1.2, 0, parallel.rearZ + 14);
+  noParking.position.set(leftKerb - 1.2, 0, parallel.rearZ + 8); // before the diagonal lot's own row starts
   scene.add(noParking);
 
   // ---- diagonal parking, tucked against the same kerb further along. Unlike the original
@@ -213,6 +219,18 @@ export function buildExamCourse(): Spawn {
   paintAngled(diagCx, diagCz - pitch / 2, 5.2, 0.14, diagYaw);
   paintAngled(diagCx, diagCz + pitch / 2, 5.2, 0.14, diagYaw);
   targetZoneAngled(diagCx, diagCz, 2.6, pitch - 0.4, diagYaw);
+  paintLetter(diagCx, diagCz, 1.3, '3'); // the graded slot, numbered like the rest of the row
+
+  // A full row of six numbered angled spaces (matching the photo's "ESTACIONAMIENTO DIAGONAL"),
+  // not just the one graded slot: five more parked cars flanking it at the same pitch, purely
+  // decorative — the grading in systems/examCourse.ts only ever looks at the slot around diagCz.
+  const extraSlots: Array<[number, string]> = [[-3 * pitch, '1'], [-2 * pitch, '2'], [2 * pitch, '4'], [3 * pitch, '5'], [4 * pitch, '6']];
+  extraSlots.forEach(([dz, label]) => {
+    const z = diagCz + dz;
+    parkedCar(diagCx, z, diagYaw);
+    paintAngled(diagCx, z, 5.2, 0.14, diagYaw);
+    paintLetter(diagCx, z, 1.3, label);
+  });
 
   // ---- U-turn point, same sign the tutorial course uses
   const uturnSign = buildSignPost([{ plate: buildUTurnPermittedPlate(), y: 2.3 }], 2.7);
