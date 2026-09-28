@@ -41,9 +41,13 @@ const trocha = { cx: rightAveX + OWN - BEND_R, cz: trochaStartZ, r: BEND_R, thet
 const topAveOwnZ = trocha.cz - BEND_R; // where the bend hands off to the top avenue's own (westbound) lane
 const topAveZ = topAveOwnZ + OWN; // the top avenue's own centreline (its own lane sits OWN north of it)
 
-const ovaloCx = -170; // the óvalo's centre x; its centre z sits on the top avenue's own centreline
+// -260 (not -170): the reference photo's course reads landscape (wider than tall), but the
+// original -170 made this course taller than wide (~170 wide x 260 tall). Widening the top/bottom
+// avenues here instead of shortening the side avenues keeps every maneuver's own spacing
+// (parking bays, U-turn) untouched — only the top avenue's own length changes.
+const ovaloCx = -260; // the óvalo's centre x; its centre z sits on the top avenue's own centreline
 const armTipE = ovaloCx + RB.outerR + 50; // the óvalo's short E-arm stub, before a separate outer street continues to the Trocha bend
-const speedGateX = -70; // partway down the speed-demonstration straight between the Trocha bend and the óvalo
+const speedGateX = -130; // partway down the speed-demonstration straight between the Trocha bend and the óvalo
 
 const leftAveX = ovaloCx; // the óvalo's S arm shares the left avenue's centreline
 const armTipS = topAveZ + RB.outerR + 50; // the óvalo's short S-arm stub, before a separate outer street continues to the SW bend
