@@ -16,4 +16,8 @@ export interface LayoutRuntime {
   steerAssistZone(position: { x: number; z: number }): boolean;
   // A toast shown as the game starts.
   intro?: { title: string; text: string };
+  // The "AI drives it for me" button (game/hudTemplate.ts's #aiBtn), for the guided layouts that
+  // have one. `toggle` is the button's click; `stop` is called when the exercise ends (or is torn
+  // down) so a still-running autopilot doesn't keep holding inputs into the results screen.
+  autopilot?: { toggle(): void; stop(): void };
 }

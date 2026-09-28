@@ -4,6 +4,7 @@ import { CONFIG } from '../config';
 import { scene } from '../core/scene';
 import { world, groundMaterial, propMaterial } from '../core/physics';
 import { box } from '../assets/primitives';
+import { barrier } from './streetKit';
 import type { ResolvedScenario } from '../state/settings';
 
 // Peru drives on the right-hand side of the road: your own lanes sit on the side that
@@ -133,4 +134,12 @@ export function buildRoad(scenario: ResolvedScenario): void {
   });
 
   buildLaneMarkings(0, laneCountPerSide, 0, -roadLength);
+
+  // Cap both ends so the avenue can't be driven off the end of the pavement into open ground —
+  // same convention as every other course (gridCity.ts, tutorialCourse.ts, parkingLot.ts, ...).
+  // The player spawns well inside the near end, so this is only reachable by deliberately
+  // driving the whole road length.
+  const barrierWidth = ROAD_HALF_WIDTH * 2 + 4;
+  barrier(0, WORLD_Z_START + 3, barrierWidth, 2);
+  barrier(0, WORLD_Z_END - 3, barrierWidth, 2);
 }

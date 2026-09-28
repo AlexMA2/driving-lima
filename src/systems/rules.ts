@@ -45,6 +45,12 @@ let prevPlayerZ = 0;
 let urbanSpeedLimit = CONFIG.URBAN_SPEED_LIMIT;
 let scenarioLayout: Layout = 'line';
 
+// Set whenever another vehicle hits the player (see setupCollisionListener below). Position-based
+// checks that assume the player chose their lane/heading are suspended for a moment after: being
+// shoved across the centerline or into another lane by the impact isn't a driving decision.
+let lastVehicleHitTime = -Infinity;
+function inCollisionGrace(): boolean { return gameNow() - lastVehicleHitTime < CONFIG.COLLISION_GRACE_SECONDS; }
+
 // Must run once after the player body exists (game/session.ts calls this right after createPlayer()).
 export function initRules(scenario?: { speedLimit?: number; layout?: Layout } | null): void {
   prevLaneIndex = nearestLaneIndex(chassisBody.position.x);
@@ -55,7 +61,7 @@ export function initRules(scenario?: { speedLimit?: number; layout?: Layout } | 
 
 export function checkLaneChangeRule(): void {
   const curLane = nearestLaneIndex(chassisBody.position.x);
-  if (curLane !== -1 && prevLaneIndex !== -1 && curLane !== prevLaneIndex) {
+  if (curLane !== -1 && prevLaneIndex !== -1 && curLane !== prevLaneIndex && !inCollisionGrace()) {
     // Bug fix: this used to also require the signal to have been switched on within the last
     // 4s (`now - lastSignalOnTime < 4`), so a signal turned on early — e.g. while waiting a
     // few seconds for a gap in traffic before actually merging, which is the *correct* way to
@@ -79,7 +85,7 @@ export function checkLaneChangeRule(): void {
 // oncoming direction (see world/road.ts). The grid scenario's streets carry both directions
 // side-by-side per block rather than a fixed left/right split, so it's skipped there.
 export function checkWrongWayRule(): void {
-  if (scenarioLayout !== 'line') return;
+  if (scenarioLayout !== 'line' || inCollisionGrace()) return;
   const x = chassisBody.position.x;
   const speedKmh = chassisBody.velocity.length() * 3.6;
   if (x < -0.5 && x > -ROAD_HALF_WIDTH && speedKmh > CONFIG.WRONG_WAY_SPEED_THRESHOLD) {
@@ -170,6 +176,7 @@ export function setupCollisionListener(): void {
       const speed = chassisBody.velocity.length();
       if (speed > 1) { data.onHit?.(); triggerInfraction('COLLISION'); playCrash(Math.max(impact, speed)); }
     } else if (data.isPenalized) {
+      lastVehicleHitTime = gameNow();
       if (impact > 0.8) {
         playCrash(impact);
         if (!hitFromBehind(other, e.contact)) triggerInfraction('COLLISION');

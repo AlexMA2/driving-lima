@@ -1,8 +1,9 @@
 import { refreshKbds, type ActionId } from '../state/keybindings';
 
-// The bottom-middle "which keys are pressed" readout shown while the tutorial's AI autopilot
-// (systems/tutorialAutopilot.ts) is driving (game/hudTemplate.ts builds the markup, only for the
-// tutorial scenario). Only exists in the DOM while a game is on screen, same as the rest of the HUD.
+// The bottom-middle "which keys are pressed" readout shown while a guided scenario's AI autopilot
+// (systems/tutorialAutopilot.ts, systems/parkingAutopilot.ts, systems/reverseAutopilot.ts,
+// systems/examAutopilot.ts) is driving — game/hudTemplate.ts builds the markup for any scenario
+// with an instruction panel. Only exists in the DOM while a game is on screen, same as the rest of the HUD.
 
 interface Elements {
   hud: HTMLElement;

@@ -20,10 +20,12 @@ const wrap = (a: number): number => Math.atan2(Math.sin(a), Math.cos(a));
 const deg = (rad: number): number => Math.round(THREE.MathUtils.radToDeg(rad));
 const cm = (m: number): string => `${Math.round(m * 100)} cm`;
 
-// Smallest turning circle of the rear axle at full lock: wheelbase / tan(max steer).
+// Smallest turning circle of the rear axle at full lock: wheelbase / tan(max steer). Exported for
+// systems/parkingAutopilot.ts, which needs the same "how far past the bay to stop before swinging
+// in" geometry the perpendicular step's own hint uses.
 const WHEELBASE = 2.9;
-const REAR_OVERHANG = CAR_HALF_LENGTH - 1.35;
-const TURN_RADIUS = () => WHEELBASE / Math.tan(0.55);
+export const REAR_OVERHANG = CAR_HALF_LENGTH - 1.35;
+export const TURN_RADIUS = () => WHEELBASE / Math.tan(0.55);
 
 // The pose every check works from, refreshed once per frame.
 interface Pt { x: number; z: number }
@@ -34,6 +36,10 @@ const pose = {
   fr: origin(), fl: origin(), rr: origin(), rl: origin(), rear: origin(),
   corners: [] as Pt[],
 };
+
+// Read-only view of the same pose the checks above work from — updateParking() refreshes it every
+// frame before systems/parkingAutopilot.ts's own update runs, so this is always this frame's pose.
+export function getParkingPose(): Readonly<typeof pose> { return pose; }
 
 function readPose(): void {
   const p = chassisBody.position;
@@ -78,14 +84,14 @@ function confirmParked(): void {
 
 // Whether the car has pulled fully back out of the slot/bay into the lane or aisle — the last
 // step of every mode, so leaving is part of the exercise and not just parking.
-function exitMetrics(): boolean {
+export function exitMetrics(): boolean {
   const P = PARKING;
   return P.mode === 'parallel'
     ? maxOf(pose.corners, 'x') < P.laneEdgeX + 0.1
     : maxOf(pose.corners, 'x') < P.aisleX + 0.15;
 }
 
-function parallelMetrics(): Metrics & { gap: number; angle: number } {
+export function parallelMetrics(): Metrics & { gap: number; angle: number } {
   const P = PARKING;
   const gap = P.kerbX - maxOf(pose.corners, 'x');
   const angle = Math.abs(pose.yaw);
@@ -150,7 +156,7 @@ const PARALLEL_STEPS = (): Step[] => {
 };
 
 // ---- perpendicular ----------------------------------------------------------------------------
-function perpendicularMetrics(): Metrics & { angle: number; off: number } {
+export function perpendicularMetrics(): Metrics & { angle: number; off: number } {
   const P = PARKING;
   const half = P.bayW / 2;
   const noseOut = Math.abs(wrap(pose.yaw - Math.PI / 2));   // nose toward the aisle (reversed in)
@@ -206,14 +212,14 @@ const PERPENDICULAR_STEPS = (): Step[] => {
 // ---- diagonal ---------------------------------------------------------------------------------
 // angle to the bay's own centreline, and whether the car sits inside the bay's raked rectangle
 // (checked in the bay's own rotated frame, since it isn't axis-aligned like the other two modes)
-function diagonalMetrics(): Metrics & { angle: number } {
+export function diagonalMetrics(): Metrics & { angle: number } {
   const P = PARKING;
   const angle = Math.abs(wrap(pose.yaw - P.bayAngle));
   const c = Math.cos(P.bayAngle), s = Math.sin(P.bayAngle);
   const inside = pose.corners.every(q => {
     const dx = q.x - P.bayCx, dz = q.z - P.zBay;
-    const u = dx * c - dz * s, v = dx * s + dz * c; // world offset expressed in the bay's own (depth, across) axes
-    return Math.abs(u) <= P.bayDepth / 2 + 0.1 && Math.abs(v) <= P.bayW / 2 + 0.1;
+    const u = dx * c - dz * s, v = dx * s + dz * c; // world offset expressed in the bay's own (width, depth) axes
+    return Math.abs(u) <= P.bayW / 2 + 0.1 && Math.abs(v) <= P.bayDepth / 2 + 0.1;
   });
   return {
     inside, angle,
@@ -257,6 +263,10 @@ let parkedFor = 0; // dwell inside the slot/bay, aligned and still — gates the
 let exitFor = 0;   // dwell back in the lane/aisle after parking — gates finishing the exercise
 let signalChecked = false;
 let finished = false;
+
+// For systems/parkingAutopilot.ts: which step it should be driving right now (or null before
+// initParking/after the exercise is done).
+export function currentParkingStepId(): string | null { return steps[stepIndex]?.id ?? null; }
 
 function showStep(i: number): void {
   stepIndex = i;

@@ -14,5 +14,10 @@ world.addContactMaterial(new CANNON.ContactMaterial(groundMaterial, wheelMateria
   friction: 0.32, restitution: 0, contactEquationStiffness: 1000,
 }));
 world.addContactMaterial(new CANNON.ContactMaterial(vehicleMaterial, propMaterial, {
-  friction: 0.3, restitution: 0.15,
+  // Softer than cannon-es's very stiff default (1e7/3): AI cars are kinematic and the player
+  // can close on them fast (a rear-end, or being cut off from the side), so the boxes often
+  // start a step already deeply overlapped. At default stiffness the penetration-correction
+  // impulse is enormous, launching the chassis skyward or flinging it sideways across the
+  // road — this keeps the same push but spread over more of a step instead of one shove.
+  friction: 0.3, restitution: 0.15, contactEquationStiffness: 1000, contactEquationRelaxation: 4,
 }));

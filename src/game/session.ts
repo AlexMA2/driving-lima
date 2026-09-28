@@ -57,12 +57,14 @@ function run(scenario: ResolvedScenario, layout: LayoutRuntime, hudRoot: HTMLEle
   const endGame = (title?: string): void => {
     if (gameState.gameOver) return;
     gameState.gameOver = true;
+    layout.autopilot?.stop();
     void import('./results').then(m => m.showResults(scenario.id, title));
   };
 
   applyControls(getControls()); // the saved control tuning takes effect from the first frame
   bindHud(hudRoot, {
     onFinish: () => endGame(scenario.untimed ? (scenario.layout === 'parking' || scenario.layout === 'reverse' || scenario.layout === 'exam' ? 'PRÁCTICA TERMINADA' : 'TUTORIAL TERMINADO') : undefined),
+    onToggleAutopilot: layout.autopilot ? () => layout.autopilot!.toggle() : undefined,
   });
   bindIdleHint(hudRoot);
   applyPerformance(perf);

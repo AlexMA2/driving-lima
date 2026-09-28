@@ -70,6 +70,11 @@ let stillFor = 0;
 let finished = false;
 let onComplete: (() => void) | null = null;
 
+// For systems/reverseAutopilot.ts: the id of the step it should be driving for, and the point it
+// should be backing toward right now (the end of whichever leg is active).
+export function currentReverseStepId(): string | null { return STEPS[stepIndex]?.id ?? null; }
+export function currentLegEnd(): Pt { return activeLeg()[1]; }
+
 function showStep(i: number): void {
   stepIndex = i;
   if (i === 1) leg = 1;

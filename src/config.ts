@@ -24,6 +24,7 @@ export const CONFIG = {
   SCHOOL_SPEED_LIMIT: 30,     // km/h  (M20 in school zone)
   INFRACTION_COOLDOWN: 4.5,   // seconds between repeated same-type infractions
   WRONG_WAY_SPEED_THRESHOLD: 5, // km/h above which crossing into the oncoming lanes counts as driving in the wrong direction
+  COLLISION_GRACE_SECONDS: 2, // after being hit by another vehicle, position-based rule checks (wrong-way, lane-change) are suspended this long — the resulting swerve isn't the driver's choice
 
   // ---- Match duration (configured on the home screen) ----
   DEFAULT_GAME_DURATION: 180,     // seconds

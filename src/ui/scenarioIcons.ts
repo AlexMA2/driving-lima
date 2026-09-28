@@ -145,10 +145,10 @@ const diagonal = `<svg viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg">
   <rect x="0" y="0" width="200" height="8" fill="#b9b6ad"/>
   <rect x="0" y="8" width="200" height="102" fill="#3a3a3f"/>
   <g stroke="#f2f2f2" stroke-width="1.6" opacity="0.9">
-    <line x1="10" y1="9" x2="34" y2="52"/><line x1="46" y1="9" x2="70" y2="52"/><line x1="82" y1="9" x2="106" y2="52"/>
-    <line x1="118" y1="9" x2="142" y2="52"/><line x1="154" y1="9" x2="178" y2="52"/><line x1="190" y1="9" x2="200" y2="30"/>
+    <line x1="34" y1="9" x2="10" y2="52"/><line x1="70" y1="9" x2="46" y2="52"/><line x1="106" y1="9" x2="82" y2="52"/>
+    <line x1="142" y1="9" x2="118" y2="52"/><line x1="178" y1="9" x2="154" y2="52"/><line x1="200" y1="34" x2="190" y2="52"/>
   </g>
-  <polygon points="82,10 118,10 142,50 106,50" fill="#2ecc71" opacity="0.22"/>
+  <polygon points="106,10 142,10 118,50 82,50" fill="#2ecc71" opacity="0.22"/>
   <g>
     <g transform="translate(18 16) rotate(30 13 17)"><rect width="27" height="34" rx="5" fill="#cc2b2b"/><rect x="4" y="8" width="19" height="16" rx="3" fill="#8e1c1c"/></g>
     <g transform="translate(54 16) rotate(30 13 17)"><rect width="27" height="34" rx="5" fill="#2e7d32"/><rect x="4" y="8" width="19" height="16" rx="3" fill="#1b4d1f"/></g>

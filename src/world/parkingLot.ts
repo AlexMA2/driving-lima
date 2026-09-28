@@ -288,11 +288,16 @@ function buildDiagonal(scenario: ResolvedScenario): Spawn {
     const rot = side > 0 ? -BAY_ANGLE : BAY_ANGLE;
     for (let k = 0; k <= BAYS; k++) {
       const z = zBay(0) + PITCH / 2 - k * PITCH;
-      paintAngled(side * bayCx, z, DEPTH * 1.3, 0.14, rot);
+      paintAngled(side * bayCx, z, DEPTH * 1.3, 0.14, -rot);
     }
+    // the stop sits `wallOffset` from the bay's centre along its own (raked) depth axis, not
+    // at a fixed world X — the bay itself is a rotated rectangle, so a fixed-X placement drifts
+    // off the back of the bay and cuts across the divider lines instead of sitting flush on them.
+    const wallOffset = DEPTH / 2 - 0.35;
+    const front = { x: -Math.sin(rot), z: -Math.cos(rot) };
     for (let k = 0; k < BAYS; k++) {
       const stop = box(size.bay - 0.5, 0.12, 0.16, 0xa9a59b);
-      stop.position.set(side * (WALL_X - 0.35), 0.15, zBay(k));
+      stop.position.set(side * bayCx + front.x * wallOffset, 0.15, zBay(k) + front.z * wallOffset);
       stop.rotation.y = rot;
       scene.add(stop);
     }

@@ -23,9 +23,10 @@ const shown = { time: '', warn: null as boolean | null };
 
 export interface HudHandlers {
   onFinish(): void;
+  onToggleAutopilot?: () => void;
 }
 
-export function bindHud(root: ParentNode, { onFinish }: HudHandlers): void {
+export function bindHud(root: ParentNode, { onFinish, onToggleAutopilot }: HudHandlers): void {
   const get = (id: string): HTMLElement | null => root.querySelector<HTMLElement>(`#${id}`);
   els = { timerVal: get('timerVal'), timerRow: get('timerRow'), toasts: get('toastContainer') };
   bindTutorialPanel(root);
@@ -34,7 +35,7 @@ export function bindHud(root: ParentNode, { onFinish }: HudHandlers): void {
   get('finishBtn')?.addEventListener('click', onFinish);
   get('helpBtn')?.addEventListener('click', () => { void import('../dialogs/controls').then(m => m.openControlsDialog()); });
   get('logBtn')?.addEventListener('click', openLog);
-  get('aiBtn')?.addEventListener('click', () => { void import('../systems/tutorialAutopilot').then(m => m.toggleAutoplay()); });
+  if (onToggleAutopilot) get('aiBtn')?.addEventListener('click', onToggleAutopilot);
   window.addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.key.toLowerCase() === 'l') { e.preventDefault(); openLog(); }
   });

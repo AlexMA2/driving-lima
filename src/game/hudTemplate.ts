@@ -49,11 +49,11 @@ export function hudHtml(o: HudOptions): string {
   ${o.sideMirrors ? '<div id="leftMirrorViewport"></div><div id="rightMirrorViewport"></div>' : ''}
 
   <button id="logBtn" title="Registro de depuración (Ctrl+L)">LOG</button>
-  ${o.panelKind === 'TUTORIAL' ? '<button id="aiBtn" title="Piloto automático">🤖</button>' : ''}
+  ${o.panelKind ? '<button id="aiBtn" title="Piloto automático">🤖</button>' : ''}
   <button id="helpBtn" title="Instrucciones">?</button>
   <div id="helpHint" role="status" aria-live="polite"><div class="helpHintBody">¿No sabes cómo moverte?<b>Mira las teclas</b></div></div>
   <div id="pauseBadge" aria-hidden="true"><span></span><span></span></div>
-  ${o.panelKind === 'TUTORIAL' ? `<div id="autoplayBar">
+  ${o.panelKind ? `<div id="autoplayBar">
     <kbd data-action="steerLeft"></kbd><kbd data-action="steerRight"></kbd>
     <span id="apAccel" class="apPedal" title="Acelerador">▲</span><span id="apBrakePedal" class="apPedal" title="Freno">▼</span>
     <kbd data-action="signalLeft"></kbd><kbd data-action="signalRight"></kbd>

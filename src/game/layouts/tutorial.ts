@@ -6,7 +6,7 @@ import { updatePedestrians } from '../../entities/pedestrians';
 import { checkLaneChangeRule, checkSpeedBumpRule } from '../../systems/rules';
 import { checkRoundaboutRules, resetRoundaboutRules } from '../../systems/roundaboutRules';
 import { initTutorial, updateTutorial, laneRuleActive } from '../../systems/tutorial';
-import { updateAutoplay, stopAutoplay } from '../../systems/tutorialAutopilot';
+import { updateAutoplay, stopAutoplay, toggleAutoplay } from '../../systems/tutorialAutopilot';
 import type { LayoutRuntime } from './types';
 
 // The guided tutorial course.
@@ -32,4 +32,6 @@ export const layout: LayoutRuntime = {
 
   // the course also has a roundabout, which the assist keeps out of
   steerAssistZone: (p) => Math.hypot(p.x - RB.cx, p.z - RB.cz) > RB.outerR + 30,
+
+  autopilot: { toggle: toggleAutoplay, stop: stopAutoplay },
 };
