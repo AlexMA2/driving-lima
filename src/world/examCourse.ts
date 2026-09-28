@@ -94,11 +94,18 @@ function buildFinishGate(orientation: 'x' | 'z', x: number, z: number): void {
 // sector exactly one lane wide, centred on the bend's own arc radius, so it lines up seam-to-seam
 // with the straight avenue's own-lane strip at each end (verified by construction: both ends sit
 // exactly `r` from the pivot, same as the straight run's own-lane line).
+//
+// bend.theta0/theta1 are stored in physical start->end order (driving direction) for
+// examAutopilot.ts's arcPoints() call, which handles either direction fine. annulus()/
+// arcCurbColliders() do NOT: they require an increasing (theta0 < theta1) pair to sweep the minor
+// arc (every call in world/roundabout.ts already respects this) — a decreasing pair makes them
+// sweep the *major* 270-degree arc instead of the intended 90-degree turn. Sort before using them.
 function buildBend(bend: { cx: number; cz: number; r: number; theta0: number; theta1: number }): void {
-  const { cx, cz, r, theta0, theta1 } = bend;
-  annulus(cx, cz, r - OWN, r + OWN, -0.05, 0.097, 0x3a3a3f);
-  arcCurbColliders(cx, cz, r - OWN - 0.3, 0.3, theta0, theta1);
-  arcCurbColliders(cx, cz, r + OWN + 0.3, 0.3, theta0, theta1);
+  const { cx, cz, r } = bend;
+  const t0 = Math.min(bend.theta0, bend.theta1), t1 = Math.max(bend.theta0, bend.theta1);
+  annulus(cx, cz, r - OWN, r + OWN, -0.05, 0.097, 0x3a3a3f, t0, t1);
+  arcCurbColliders(cx, cz, r - OWN - 0.3, 0.3, t0, t1);
+  arcCurbColliders(cx, cz, r + OWN + 0.3, 0.3, t0, t1);
 }
 
 const SCATTER_SIDE = CONFIG.LANE_WIDTH * 2 + 3 + 40;
