@@ -5,8 +5,9 @@ import { camera, canvas } from '../core/renderer';
 import { WHEEL_LOCAL_POS } from '../entities/cockpit';
 import { playHonk, playBrakeScreech } from './audio';
 import { logEvent } from './debugLog';
-import { actionOf } from '../state/keybindings';
+import { actionOf, type ActionId } from '../state/keybindings';
 import { isOverlayOpen } from '../ui/overlays';
+import { isInputLocked } from '../state/inputLock';
 import { gameNow } from '../state/gameClock';
 
 // Read live (not cached at load) so the global config can change the wheel's lock between games.
@@ -49,6 +50,67 @@ function releaseKeyboardSteer() {
   if (!controlState.keyLeft && !controlState.keyRight && !controlState.wheelDragging) controlState.wheelTarget = 0;
 }
 
+// What a keydown/keyup on a bound key actually does — pulled out of the listeners below so the
+// tutorial's AI autopilot (systems/tutorialAutopilot.ts) can drive through the very same code a real
+// key press would, one action at a time, instead of poking controlState directly.
+export function pressAction(action: ActionId): void {
+  switch (action) {
+    case 'brake': controlState.brakeHeld = true; logEvent('BRAKE_DOWN'); break;
+    case 'drive': shiftTo('D'); break;
+    case 'steerLeft': controlState.keyLeft = true; break;
+    case 'steerRight': controlState.keyRight = true; break;
+    case 'handbrake': controlState.handbrake = true; logEvent('HANDBRAKE_DOWN'); break;
+    case 'horn': playHonk(); controlState.lastHonkTime = gameNow(); break;
+    case 'signalLeft':
+      controlState.signalLeft = !controlState.signalLeft; controlState.signalRight = false;
+      controlState.lastSignalOnTime = gameNow();
+      logEvent('SIGNAL', { side: 'left', on: controlState.signalLeft });
+      break;
+    case 'signalRight':
+      controlState.signalRight = !controlState.signalRight; controlState.signalLeft = false;
+      controlState.lastSignalOnTime = gameNow();
+      logEvent('SIGNAL', { side: 'right', on: controlState.signalRight });
+      break;
+    case 'signalOff':
+      controlState.signalLeft = false; controlState.signalRight = false;
+      logEvent('SIGNAL', { side: 'both', on: false });
+      break;
+  }
+}
+
+export function releaseAction(action: ActionId): void {
+  switch (action) {
+    case 'brake': controlState.brakeHeld = false; logEvent('BRAKE_UP'); break;
+    case 'steerLeft': controlState.keyLeft = false; releaseKeyboardSteer(); break;
+    case 'steerRight': controlState.keyRight = false; releaseKeyboardSteer(); break;
+    case 'handbrake': controlState.handbrake = false; logEvent('HANDBRAKE_UP'); break;
+  }
+}
+
+// The accelerator "scrolled" one notch up or down, like a hand-throttle: shared by the real mouse
+// wheel below and the AI autopilot, which nudges it the same discrete way a human scrolling would.
+export function nudgeThrottle(dir: 1 | -1): void {
+  controlState.lastScrollTime = gameNow();
+  const before = controlState.throttleTarget;
+  controlState.throttleTarget = THREE.MathUtils.clamp(before + dir * CONFIG.THROTTLE_WHEEL_STEP, 0, 1);
+  logEvent('THROTTLE_SCROLL', {
+    deltaY: dir, before, after: controlState.throttleTarget,
+    speedKmh: chassisBody.velocity.length() * 3.6,
+    brakeHeld: controlState.brakeHeld, handbrake: controlState.handbrake,
+  });
+}
+
+// Drops every currently-held input: used when the window loses focus (a keyup can be lost while it's
+// blurred) and when the AI autopilot takes over (so no stray real key-hold fights it).
+export function resetHeldInputs(): void {
+  controlState.brakeHeld = false;
+  controlState.handbrake = false;
+  controlState.wheelDragging = false;
+  controlState.keyLeft = false;
+  controlState.keyRight = false;
+  controlState.wheelTarget = 0;
+}
+
 let dragStartMouseAngle = 0;
 let dragStartWheelAngle = 0;
 
@@ -77,40 +139,20 @@ export function initInput(): void {
   // Keys come from the remappable bindings (state/keybindings.ts). Chords with Ctrl/Alt/Meta
   // belong to the browser or to shortcuts like Ctrl+L (debug log), never to the car.
   window.addEventListener('keydown', (e) => {
+    if (isInputLocked()) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
-    switch (actionOf(e.key)) {
-      case 'brake': controlState.brakeHeld = true; logEvent('BRAKE_DOWN'); break;
-      case 'drive': shiftTo('D'); break;
-      case 'steerLeft': controlState.keyLeft = true; break;
-      case 'steerRight': controlState.keyRight = true; break;
-      case 'handbrake': controlState.handbrake = true; e.preventDefault(); logEvent('HANDBRAKE_DOWN'); break;
-      case 'horn': playHonk(); controlState.lastHonkTime = gameNow(); break;
-      case 'signalLeft':
-        controlState.signalLeft = !controlState.signalLeft; controlState.signalRight = false;
-        controlState.lastSignalOnTime = gameNow();
-        logEvent('SIGNAL', { side: 'left', on: controlState.signalLeft });
-        break;
-      case 'signalRight':
-        controlState.signalRight = !controlState.signalRight; controlState.signalLeft = false;
-        controlState.lastSignalOnTime = gameNow();
-        logEvent('SIGNAL', { side: 'right', on: controlState.signalRight });
-        break;
-      case 'signalOff':
-        controlState.signalLeft = false; controlState.signalRight = false;
-        logEvent('SIGNAL', { side: 'both', on: false });
-        break;
-    }
+    const action = actionOf(e.key);
+    if (!action) return;
+    if (action === 'handbrake') e.preventDefault();
+    pressAction(action);
   });
 
   // No modifier check on release: a key pressed alone must still be released if Ctrl was
   // pressed in the meantime, or the pedal would stay stuck down.
   window.addEventListener('keyup', (e) => {
-    switch (actionOf(e.key)) {
-      case 'brake': controlState.brakeHeld = false; logEvent('BRAKE_UP'); break;
-      case 'steerLeft': controlState.keyLeft = false; releaseKeyboardSteer(); break;
-      case 'steerRight': controlState.keyRight = false; releaseKeyboardSteer(); break;
-      case 'handbrake': controlState.handbrake = false; logEvent('HANDBRAKE_UP'); break;
-    }
+    if (isInputLocked()) return;
+    const action = actionOf(e.key);
+    if (action) releaseAction(action);
   });
 
   // If the window/tab loses focus while a key is physically held down (alt-tab, a browser
@@ -125,32 +167,20 @@ export function initInput(): void {
         wheelDragging: controlState.wheelDragging, wheelTarget: controlState.wheelTarget,
       });
     }
-    controlState.brakeHeld = false;
-    controlState.handbrake = false;
-    controlState.wheelDragging = false;
-    controlState.keyLeft = false;
-    controlState.keyRight = false;
-    controlState.wheelTarget = 0;
+    resetHeldInputs();
   });
 
   // Accelerator: scroll up nudges the throttle position up, scroll down nudges it down, and
   // it just sits there between scrolls — like a hand-throttle, not a spring-loaded pedal.
-  // Skipped while a menu/dialog is on screen so those can still be scrolled normally.
+  // Skipped while a menu/dialog is on screen so those can still be scrolled normally, and while
+  // the AI autopilot is driving (it nudges the throttle itself, the same way).
   window.addEventListener('wheel', (e) => {
-    if (isOverlayOpen()) {
+    if (isOverlayOpen() || isInputLocked()) {
       logEvent('THROTTLE_SCROLL_IGNORED', { reason: 'overlay_open', deltaY: e.deltaY });
       return;
     }
     const up = CONFIG.THROTTLE_INVERT_SCROLL ? e.deltaY > 0 : e.deltaY < 0;
-    const delta = up ? CONFIG.THROTTLE_WHEEL_STEP : -CONFIG.THROTTLE_WHEEL_STEP;
-    controlState.lastScrollTime = gameNow();
-    const before = controlState.throttleTarget;
-    controlState.throttleTarget = THREE.MathUtils.clamp(controlState.throttleTarget + delta, 0, 1);
-    logEvent('THROTTLE_SCROLL', {
-      deltaY: e.deltaY, before, after: controlState.throttleTarget,
-      speedKmh: chassisBody.velocity.length() * 3.6,
-      brakeHeld: controlState.brakeHeld, handbrake: controlState.handbrake,
-    });
+    nudgeThrottle(up ? 1 : -1);
     e.preventDefault();
   }, { passive: false });
 
@@ -158,6 +188,7 @@ export function initInput(): void {
   // a real hydraulic wheel doesn't snap, so the actual angle is smoothed toward this target
   // in updateWheelAndPedals() rather than applied instantly here.
   canvas.addEventListener('pointerdown', (e) => {
+    if (isInputLocked()) return;
     if (e.button !== 0) return;
     controlState.wheelDragging = true;
     dragStartMouseAngle = angleFromCenter(e.clientX, e.clientY);

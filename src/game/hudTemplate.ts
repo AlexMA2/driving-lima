@@ -18,8 +18,12 @@ export interface HudOptions {
 export function hudOptionsFor(scenario: ResolvedScenario, perf: PerformanceSettings): HudOptions {
   let panelKind: string | null = null;
   if (scenario.layout === 'tutorial') panelKind = 'TUTORIAL';
+  else if (scenario.layout === 'reverse') panelKind = 'MANIOBRAS EN REVERSA';
+  else if (scenario.layout === 'exam') panelKind = 'EXAMEN OFICIAL MTC';
   else if (scenario.layout === 'parking' && scenario.guide) {
-    panelKind = scenario.parkingMode === 'perpendicular' ? 'ESTACIONAMIENTO EN BATERÍA' : 'ESTACIONAMIENTO EN PARALELO';
+    panelKind = scenario.parkingMode === 'perpendicular' ? 'ESTACIONAMIENTO EN BATERÍA'
+      : scenario.parkingMode === 'diagonal' ? 'ESTACIONAMIENTO DIAGONAL'
+      : 'ESTACIONAMIENTO EN PARALELO';
   }
   return {
     timed: !scenario.untimed,
@@ -45,7 +49,15 @@ export function hudHtml(o: HudOptions): string {
   ${o.sideMirrors ? '<div id="leftMirrorViewport"></div><div id="rightMirrorViewport"></div>' : ''}
 
   <button id="logBtn" title="Registro de depuración (Ctrl+L)">LOG</button>
+  ${o.panelKind === 'TUTORIAL' ? '<button id="aiBtn" title="Piloto automático">🤖</button>' : ''}
   <button id="helpBtn" title="Instrucciones">?</button>
   <div id="helpHint" role="status" aria-live="polite"><div class="helpHintBody">¿No sabes cómo moverte?<b>Mira las teclas</b></div></div>
+  <div id="pauseBadge" aria-hidden="true"><span></span><span></span></div>
+  ${o.panelKind === 'TUTORIAL' ? `<div id="autoplayBar">
+    <kbd data-action="steerLeft"></kbd><kbd data-action="steerRight"></kbd>
+    <span id="apAccel" class="apPedal" title="Acelerador">▲</span><span id="apBrakePedal" class="apPedal" title="Freno">▼</span>
+    <kbd data-action="signalLeft"></kbd><kbd data-action="signalRight"></kbd>
+    <kbd data-action="signalOff"></kbd><kbd data-action="horn"></kbd>
+  </div>` : ''}
 </div>`;
 }

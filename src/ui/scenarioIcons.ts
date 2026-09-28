@@ -138,4 +138,53 @@ const perpendicular = `<svg viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/
   <g fill="#ff9800"><polygon points="103,64 113,64 108,72"/></g>
 </svg>`;
 
-export const SCENARIO_ICONS: Record<ScenarioId, string> = { tutorial, straight, highway, grid, roundabout, parallel, perpendicular };
+// Top-down car park with bays raked 45° off the aisle: parked cars and one free bay, the blue
+// car entering nose-first along the same angle (no swing needed, unlike the battery layout).
+const diagonal = `<svg viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg">
+  <rect width="200" height="110" fill="#5b7148"/>
+  <rect x="0" y="0" width="200" height="8" fill="#b9b6ad"/>
+  <rect x="0" y="8" width="200" height="102" fill="#3a3a3f"/>
+  <g stroke="#f2f2f2" stroke-width="1.6" opacity="0.9">
+    <line x1="10" y1="9" x2="34" y2="52"/><line x1="46" y1="9" x2="70" y2="52"/><line x1="82" y1="9" x2="106" y2="52"/>
+    <line x1="118" y1="9" x2="142" y2="52"/><line x1="154" y1="9" x2="178" y2="52"/><line x1="190" y1="9" x2="200" y2="30"/>
+  </g>
+  <polygon points="82,10 118,10 142,50 106,50" fill="#2ecc71" opacity="0.22"/>
+  <g>
+    <g transform="translate(18 16) rotate(30 13 17)"><rect width="27" height="34" rx="5" fill="#cc2b2b"/><rect x="4" y="8" width="19" height="16" rx="3" fill="#8e1c1c"/></g>
+    <g transform="translate(54 16) rotate(30 13 17)"><rect width="27" height="34" rx="5" fill="#2e7d32"/><rect x="4" y="8" width="19" height="16" rx="3" fill="#1b4d1f"/></g>
+    <g transform="translate(150 16) rotate(30 13 17)"><rect width="27" height="34" rx="5" fill="#f9a825"/><rect x="4" y="8" width="19" height="16" rx="3" fill="#b57a0c"/></g>
+    <g transform="translate(186 4) rotate(30 13 17)"><rect width="27" height="34" rx="5" fill="#6a1b9a"/><rect x="4" y="8" width="19" height="16" rx="3" fill="#41105e"/></g>
+  </g>
+  <path d="M120 96 C 116 76 112 62 108 50" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="4 3" opacity="0.85"/>
+  <g transform="translate(96 60) rotate(30 13 17)"><rect width="27" height="34" rx="5" fill="#1565c0"/><rect x="4" y="9" width="19" height="14" rx="3" fill="#64b5f6"/></g>
+  <g fill="#ff9800"><polygon points="103,52 113,52 108,44"/></g>
+</svg>`;
+
+// Top-down straight lane between two rows of cones, the blue car backing down it, arrow behind.
+const reverse = `<svg viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg">
+  <rect width="200" height="110" fill="#5b7148"/>
+  <rect x="30" y="0" width="140" height="110" fill="#3a3a3f"/>
+  <g fill="#ff6a00">
+    <circle cx="42" cy="12" r="4"/><circle cx="42" cy="38" r="4"/><circle cx="42" cy="64" r="4"/><circle cx="42" cy="90" r="4"/>
+    <circle cx="158" cy="12" r="4"/><circle cx="158" cy="38" r="4"/><circle cx="158" cy="64" r="4"/><circle cx="158" cy="90" r="4"/>
+  </g>
+  <g fill="#fff" opacity="0.85"><rect x="96" y="4" width="2.4" height="10"/><rect x="96" y="22" width="2.4" height="10"/>
+    <rect x="96" y="40" width="2.4" height="10"/><rect x="96" y="58" width="2.4" height="10"/><rect x="96" y="76" width="2.4" height="10"/><rect x="96" y="94" width="2.4" height="10"/></g>
+  <g transform="translate(84 16)"><rect width="30" height="46" rx="5" fill="#1565c0"/><rect x="5" y="6" width="20" height="15" rx="3" fill="#64b5f6"/><rect x="5" y="26" width="20" height="14" rx="3" fill="#0d3f78"/></g>
+  <g stroke="#fff" stroke-width="3" opacity="0.9"><line x1="99" y1="92" x2="99" y2="72"/></g>
+  <polygon points="90,78 108,78 99,66" fill="#fff" opacity="0.9"/>
+</svg>`;
+
+// A small closed circuit: PARE sign, a parking bay, an óvalo, and a finish flag — the MTC exam.
+const examOficial = `<svg viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg">
+  <rect width="200" height="110" fill="#5b7148"/>
+  <path d="M20 96 V50 H70 A28 28 0 1 1 126 50 H170" fill="none" stroke="#3a3a3f" stroke-width="15" stroke-linejoin="round"/>
+  <path d="M20 96 V50 H70 A28 28 0 1 1 126 50 H170" fill="none" stroke="#fff" stroke-width="1.6" stroke-dasharray="5 4" stroke-linejoin="round" opacity="0.75"/>
+  <circle cx="98" cy="50" r="12" fill="#4f7a3c" stroke="#cfcac0" stroke-width="3"/>
+  <g transform="translate(12 30)"><polygon points="8,0 16,4 16,12 8,16 0,12 0,4" fill="#c62828"/><text x="8" y="11" font-family="Arial" font-size="7" font-weight="bold" fill="#fff" text-anchor="middle">PARE</text></g>
+  <g transform="translate(22 66) rotate(0 6 10)"><rect width="14" height="20" rx="3" fill="#cc2b2b" opacity="0.85"/></g>
+  <g transform="translate(150 30) rotate(45 9 13)"><rect width="18" height="26" rx="4" fill="#1565c0"/><rect x="3" y="4" width="12" height="9" rx="2" fill="#64b5f6"/></g>
+  <g font-family="Arial" font-size="11" font-weight="bold" fill="#fff"><rect x="164" y="90" width="14" height="14" fill="#111"/><rect x="164" y="90" width="7" height="7" fill="#fff"/><rect x="171" y="97" width="7" height="7" fill="#fff"/></g>
+</svg>`;
+
+export const SCENARIO_ICONS: Record<ScenarioId, string> = { tutorial, straight, highway, grid, roundabout, parallel, perpendicular, diagonal, reverse, examOficial };

@@ -34,6 +34,7 @@ function controlsHelpHtml(): string {
     ['Partida', [
       [keys('restart'), 'Reiniciar la partida'],
       [keys('menu'), 'Volver al menú principal'],
+      [keys('freeCam'), 'Cámara libre: vuela y revisa la escena (WASD, Ctrl/Espacio, mouse)'],
       [`${fixedKeyCapHtml('Ctrl')}${plus}${fixedKeyCapHtml('L')}`, 'Abrir el registro de depuración'],
     ]],
   ];

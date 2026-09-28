@@ -5,7 +5,7 @@ import { rand } from '../utils/rng';
 import { scene } from '../core/scene';
 import { world, propMaterial } from '../core/physics';
 import { box, cyl } from '../assets/primitives';
-import { buildSign } from '../assets/props';
+import { buildSignPost, buildYieldPlate } from '../assets/props';
 import { buildGround, buildStreet, scatterBlockBuildings } from './streetKit';
 import { resetCrosswalks, addCrosswalk, includeCandidate, flushZebras } from './crosswalks';
 import type { Amount } from '../state/settings';
@@ -295,7 +295,7 @@ function buildArmFurniture(arm: Arm): void {
     scene.add(dash);
   }
 
-  const sign = buildSign('CEDA\nEL PASO', 0xffffff, 'rect');
+  const sign = buildSignPost([{ plate: buildYieldPlate(), y: 2.35 }], 2.7);
   sign.position.set(
     RB.cx + arm.ux * (RB.outerR + 14) + rightX * (CONFIG.LANE_WIDTH + 0.8),
     0,

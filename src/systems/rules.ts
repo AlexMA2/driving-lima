@@ -1,8 +1,8 @@
-import type * as CANNON from 'cannon-es';
+import * as CANNON from 'cannon-es';
 import { CONFIG, PENALTIES, type Layout, type PenaltyCode } from '../config';
 import { gameState } from '../state/gameState';
 import { gameNow } from '../state/gameClock';
-import { chassisBody } from '../entities/player';
+import { chassisBody, CAR_HALF_LENGTH } from '../entities/player';
 import { LANE_X, ROAD_HALF_WIDTH } from '../world/road';
 import { INTERSECTIONS } from '../world/intersections';
 import { inSchoolZone } from '../world/schoolZone';
@@ -120,6 +120,29 @@ export function checkSpeedBumpRule(): void {
   });
 }
 
+// ---- Rear-end fault check ----
+const _invQuat = new CANNON.Quaternion();
+const _localHit = new CANNON.Vec3();
+const _localFwd = new CANNON.Vec3(0, 0, -1);
+const _fwdWorld = new CANNON.Vec3();
+
+// Real traffic rules treat a rear-end as the trailing driver's fault, not the one who got hit —
+// they were either following too close or not paying attention. Both conditions must hold: the
+// contact point sits behind the player's rear axle (rules out a side/front hit at an angle), and
+// the other car was closing in along the player's own heading faster than the player was moving
+// (rules out the player braking hard or reversing back into stopped traffic).
+function hitFromBehind(other: CANNON.Body, contact: CANNON.ContactEquation): boolean {
+  const onPlayer = contact.bi === chassisBody ? contact.ri : contact.rj;
+  chassisBody.quaternion.conjugate(_invQuat);
+  _invQuat.vmult(onPlayer, _localHit);
+  if (_localHit.z < CAR_HALF_LENGTH * 0.3) return false;
+
+  chassisBody.quaternion.vmult(_localFwd, _fwdWorld);
+  const otherFwd = other.velocity.dot(_fwdWorld);
+  const playerFwd = chassisBody.velocity.dot(_fwdWorld);
+  return otherFwd > playerFwd + 0.5;
+}
+
 // ---- Collision detection ----
 // What the chassis ran into decides what it costs:
 //  - a curb / sidewalk: the curb collider doesn't push back (see world/road.ts), so the car just
@@ -147,7 +170,10 @@ export function setupCollisionListener(): void {
       const speed = chassisBody.velocity.length();
       if (speed > 1) { data.onHit?.(); triggerInfraction('COLLISION'); playCrash(Math.max(impact, speed)); }
     } else if (data.isPenalized) {
-      if (impact > 0.8) { triggerInfraction('COLLISION'); playCrash(impact); }
+      if (impact > 0.8) {
+        playCrash(impact);
+        if (!hitFromBehind(other, e.contact)) triggerInfraction('COLLISION');
+      }
     }
   });
 }

@@ -18,6 +18,8 @@ import { applyControls, getControls, type PerformanceSettings, type ResolvedScen
 import { actionOf } from '../state/keybindings';
 import { reloadAndRestart, reloadToHome } from '../app/autostart';
 import { showPauseDialog, hidePauseDialog } from '../dialogs/pause';
+import { registerPauseHandler, resetPauseReasons, requestPause, releasePause } from '../state/pause';
+import { initFreeCam } from '../systems/freeCam';
 import { bindHud, refreshHud, updateHudPerFrame, showToast } from './hud';
 import { bindIdleHint, updateIdleHint } from './idleHint';
 import type { LayoutRuntime } from './layouts/types';
@@ -32,6 +34,8 @@ const LAYOUTS: Record<ResolvedScenario['layout'], () => Promise<{ layout: Layout
   roundabout: () => import('./layouts/roundabout'),
   tutorial: () => import('./layouts/tutorial'),
   parking: () => import('./layouts/parking'),
+  reverse: () => import('./layouts/reverse'),
+  exam: () => import('./layouts/examCourse'),
 };
 
 export interface Session {
@@ -58,7 +62,7 @@ function run(scenario: ResolvedScenario, layout: LayoutRuntime, hudRoot: HTMLEle
 
   applyControls(getControls()); // the saved control tuning takes effect from the first frame
   bindHud(hudRoot, {
-    onFinish: () => endGame(scenario.untimed ? (scenario.layout === 'parking' ? 'PRÁCTICA TERMINADA' : 'TUTORIAL TERMINADO') : undefined),
+    onFinish: () => endGame(scenario.untimed ? (scenario.layout === 'parking' || scenario.layout === 'reverse' || scenario.layout === 'exam' ? 'PRÁCTICA TERMINADA' : 'TUTORIAL TERMINADO') : undefined),
   });
   bindIdleHint(hudRoot);
   applyPerformance(perf);
@@ -81,6 +85,8 @@ function run(scenario: ResolvedScenario, layout: LayoutRuntime, hudRoot: HTMLEle
   buildCockpit();
   initInput();
   initSteerAssist(layout.steerAssistZone);
+  resetPauseReasons();
+  initFreeCam();
   initAudio();
   initRules(scenario);
   setupCollisionListener();
@@ -157,9 +163,9 @@ function run(scenario: ResolvedScenario, layout: LayoutRuntime, hudRoot: HTMLEle
     renderMirrorViewports();
   };
 
-  // The game is paused for as long as its window is not the one in use (another window or tab in front, the
-  // browser's own UI focused). The frame loop stops altogether, so a paused game costs no CPU or GPU time, and
-  // the sound is suspended too. Coming back resumes by itself.
+  // The mechanics of pausing (stopping the frame loop altogether, so a paused game costs no CPU or GPU
+  // time, keeping the real-time clocks from counting the pause, suspending the sound): shared by every
+  // reason the game can be paused for (state/pause.ts), each of which shows its own UI for it.
   const setPaused = (next: boolean): void => {
     if (next === paused || gameState.gameOver) return; // the results screen has nothing left to pause
     paused = next;
@@ -168,19 +174,24 @@ function run(scenario: ResolvedScenario, layout: LayoutRuntime, hudRoot: HTMLEle
       cancelAnimationFrame(frame);
       pausedAt = performance.now();
       suspendAudio();
-      showPauseDialog();
     } else {
-      hidePauseDialog();
       skipPausedTime(performance.now() - pausedAt); // real-time timers do not count the pause
       clock.getDelta(); // nor does the frame clock: the pause must not come back as one huge step
       resumeAudio();
       frame = requestAnimationFrame(animate);
     }
   };
-  window.addEventListener('blur', () => setPaused(true));
-  window.addEventListener('focus', () => setPaused(document.hidden));
-  document.addEventListener('visibilitychange', () => setPaused(document.hidden || !document.hasFocus()));
+  registerPauseHandler(setPaused);
+
+  // The game is paused for as long as its window is not the one in use (another window or tab in front, the
+  // browser's own UI focused). Coming back resumes by itself.
+  window.addEventListener('blur', () => { requestPause('window'); showPauseDialog(); });
+  window.addEventListener('focus', () => { if (!document.hidden) { releasePause('window'); hidePauseDialog(); } });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden || !document.hasFocus()) { requestPause('window'); showPauseDialog(); }
+    else { releasePause('window'); hidePauseDialog(); }
+  });
 
   animate();
-  if (document.hidden || !document.hasFocus()) setPaused(true); // started while another window had the focus
+  if (document.hidden || !document.hasFocus()) { requestPause('window'); showPauseDialog(); } // started while another window had the focus
 }

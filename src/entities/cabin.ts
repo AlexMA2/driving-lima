@@ -22,7 +22,7 @@ export const EYE_IN_CAR = new THREE.Vector3(-0.38, aboveRoad(EYE_HEIGHT), -0.25)
 // windscreen header.
 export const MIRROR_POS = {
   rear: new THREE.Vector3(0, aboveRoad(1.2), -0.75),
-  left: new THREE.Vector3(-1.05, aboveRoad(0.9), -1.0),
+  left: new THREE.Vector3(-0.98, aboveRoad(0.9), -1.0),
   right: new THREE.Vector3(1.05, aboveRoad(0.9), -1.0),
 };
 

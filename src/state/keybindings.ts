@@ -10,7 +10,7 @@ const KEYS_KEY = 'dls_keybindings_v1';
 export type ActionId =
   | 'brake' | 'drive' | 'steerLeft' | 'steerRight' | 'handbrake' | 'horn'
   | 'signalLeft' | 'signalRight' | 'signalOff'
-  | 'restart' | 'menu';
+  | 'restart' | 'menu' | 'freeCam';
 
 export interface KeyAction {
   id: ActionId;
@@ -36,6 +36,7 @@ export const KEY_ACTIONS: KeyAction[] = [
 
   { id: 'restart', section: 'Partida', label: 'Reiniciar la partida', defaults: ['r'] },
   { id: 'menu', section: 'Partida', label: 'Volver al menú principal', defaults: ['escape'] },
+  { id: 'freeCam', section: 'Partida', label: 'Cámara libre', help: 'Suelta la cámara del auto para volar y revisar la escena (WASD, Ctrl/Espacio para bajar/subir, el mouse mira). Pausa la partida mientras está activa.', defaults: ['f'] },
 ];
 
 const SLOTS = 2;

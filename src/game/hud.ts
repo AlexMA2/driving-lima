@@ -3,6 +3,7 @@ import { controlState } from '../systems/input';
 import { playerMesh } from '../entities/player';
 import { updateIndicatorSound } from '../systems/audio';
 import { bindTutorialPanel } from '../ui/tutorialPanel';
+import { bindAutoplayBar } from '../ui/autoplayBar';
 import { formatMMSS } from '../utils/format';
 
 // Runtime side of the driving HUD (its markup is game/hudTemplate.ts). Parts of the HUD are only rendered for
@@ -28,10 +29,12 @@ export function bindHud(root: ParentNode, { onFinish }: HudHandlers): void {
   const get = (id: string): HTMLElement | null => root.querySelector<HTMLElement>(`#${id}`);
   els = { timerVal: get('timerVal'), timerRow: get('timerRow'), toasts: get('toastContainer') };
   bindTutorialPanel(root);
+  bindAutoplayBar(root);
 
   get('finishBtn')?.addEventListener('click', onFinish);
   get('helpBtn')?.addEventListener('click', () => { void import('../dialogs/controls').then(m => m.openControlsDialog()); });
   get('logBtn')?.addEventListener('click', openLog);
+  get('aiBtn')?.addEventListener('click', () => { void import('../systems/tutorialAutopilot').then(m => m.toggleAutoplay()); });
   window.addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.key.toLowerCase() === 'l') { e.preventDefault(); openLog(); }
   });

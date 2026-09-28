@@ -270,3 +270,127 @@
     animation: none;
   }
 }
+
+// A small "the game is paused" badge shown while a dialog is open over the game (dialogs/dialog.ts) —
+// unlike the full-screen pause dialog (dialogs/pause.ts), reserved for the window losing focus, this is
+// just a corner glyph: the dialog itself already explains why the game stopped.
+#pauseBadge {
+  display: none;
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  gap: 5px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  @include hud-glass;
+
+  span {
+    width: 5px;
+    height: 16px;
+    border-radius: 2px;
+    background: $color-accent;
+  }
+}
+
+html.dialogPaused #pauseBadge {
+  display: flex;
+}
+
+// ---- Tutorial AI autopilot ----
+
+#aiBtn {
+  @include hud-button;
+  right: 124px;
+  width: 42px;
+  border-radius: 50%;
+  font-size: 18px;
+}
+
+#hud.autopilotOn #aiBtn {
+  border-color: $color-accent;
+  animation: helpBtnRing 1.4s ease-out infinite;
+}
+
+#autoplayBar {
+  display: none;
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 14px;
+  @include hud-glass;
+
+  kbd {
+    @include key-cap;
+    padding: 3px 9px;
+    font-size: 13px;
+    opacity: 0.45;
+    transition: opacity 0.1s;
+  }
+}
+
+#hud.autopilotOn #autoplayBar {
+  display: flex;
+}
+
+.apPedal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  background: tint(0.12);
+  border: 1px solid tint(0.3);
+  font-size: 12px;
+  opacity: 0.45;
+  transition:
+    opacity 0.1s,
+    background 0.1s;
+}
+
+#autoplayBar kbd.pressed,
+.apPedal.pressed {
+  opacity: 1;
+}
+
+.apPedal.pressed {
+  background: $color-accent;
+  color: $color-bg;
+}
+
+// ---- Free cam ----
+
+// The driving HUD (including the mirrors) is frozen and would only show a stale frame, so it is
+// simply hidden for as long as free cam is flying around.
+html.freeCamActive #hud {
+  display: none;
+}
+
+#freeCamHint {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: $z-gear;
+  padding: 8px 18px;
+  border-radius: 12px;
+  text-align: center;
+  font-size: 13px;
+  color: $color-text;
+  @include hud-glass(0.65);
+  border: 2px solid $color-accent;
+  backdrop-filter: blur(3px);
+  pointer-events: none;
+
+  b {
+    display: block;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: $color-accent-pale;
+    margin-bottom: 3px;
+  }
+}

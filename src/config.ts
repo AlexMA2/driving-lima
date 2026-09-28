@@ -79,7 +79,7 @@ export const PARKING_SIZES: Record<ParkingSpace, { label: string; slot: number; 
 // values reuse the same weights the old point-deduction system used.
 export type PenaltyCode =
   | 'M20' | 'G10' | 'G28' | 'G57' | 'M12' | 'COLLISION' | 'BUMP' | 'TURN_SIGNAL' | 'STOP_SIGN'
-  | 'RB_YIELD' | 'RB_SIGNAL' | 'CURB_CRASH' | 'PARK_CAR' | 'PARK_CURB' | 'PARK_SIGNAL';
+  | 'RB_YIELD' | 'RB_SIGNAL' | 'CURB_CRASH' | 'PARK_CAR' | 'PARK_CURB' | 'PARK_SIGNAL' | 'NO_PARK' | 'REV_CONE';
 
 export const PENALTIES: Record<PenaltyCode, { fine: number; label: string }> = {
   M20: { fine: 20, label: 'M20: Exceso de Velocidad' },
@@ -97,6 +97,8 @@ export const PENALTIES: Record<PenaltyCode, { fine: number; label: string }> = {
   PARK_CAR: { fine: 25, label: 'Estacionamiento: tocaste un auto' },
   PARK_CURB: { fine: 10, label: 'Estacionamiento: rozaste la vereda' },
   PARK_SIGNAL: { fine: 10, label: 'Estacionamiento: maniobra sin señalizar' },
+  NO_PARK: { fine: 15, label: 'Estacionaste en zona prohibida' },
+  REV_CONE: { fine: 10, label: 'Retroceso: tocaste un cono' },
 };
 
 // ---- Scenario presets, picked on the start screen ----
@@ -106,13 +108,13 @@ export const PENALTIES: Record<PenaltyCode, { fine: number; label: string }> = {
 // `layout: 'tutorial'` builds the fixed guided course (world/tutorialCourse.ts, systems/tutorial.ts).
 // `layout: 'parking'` builds a parking exercise, `parkingMode` 'parallel' or 'perpendicular'
 // (world/parkingLot.ts, systems/parking.ts).
-export type ScenarioId = 'tutorial' | 'straight' | 'highway' | 'grid' | 'roundabout' | 'parallel' | 'perpendicular';
-export type Layout = 'line' | 'grid' | 'roundabout' | 'tutorial' | 'parking';
+export type ScenarioId = 'tutorial' | 'straight' | 'highway' | 'grid' | 'roundabout' | 'parallel' | 'perpendicular' | 'diagonal' | 'reverse' | 'examOficial';
+export type Layout = 'line' | 'grid' | 'roundabout' | 'tutorial' | 'parking' | 'reverse' | 'exam';
 
 export interface ScenarioDef {
   id: ScenarioId;
   layout: Layout;
-  parkingMode?: 'parallel' | 'perpendicular';
+  parkingMode?: 'parallel' | 'perpendicular' | 'diagonal';
   label: string;
   badge?: string;
   difficulty: string;
@@ -186,10 +188,10 @@ export const SCENARIOS: Record<ScenarioId, ScenarioDef> = {
     difficulty: 'Medio', difficultyLevel: 2,
     description: 'Cuadrícula urbana de avenidas y cruces reales con semáforos en cada esquina. Practica giros, cesión de paso y maniobras.',
     laneCountPerSide: 1,
-    blocks: 3,             // streets per axis -> (blocks-1)^2... see gridCity.ts for exact layout
-    blockSize: 150,
+    blocks: 7,              // streets per axis: a big city, not a small patch you keep hitting the edge of
+    blockSize: 160,
     aiDensity: 1.2,
-    aiTargetCount: 12,
+    aiTargetCount: 28,
     badDrivers: 32,
     goodDrivers: 35,
     pedestrians: 3,
@@ -241,5 +243,54 @@ export const SCENARIOS: Record<ScenarioId, ScenarioDef> = {
     goodDrivers: 0,
     pedestrians: 0,
     speedLimit: 15,
+  },
+  diagonal: {
+    id: 'diagonal',
+    layout: 'parking',
+    parkingMode: 'diagonal',
+    label: 'Estacionamiento diagonal',
+    badge: 'Nuevo',
+    difficulty: 'Medio', difficultyLevel: 2,
+    description: 'Entra de frente a una plaza en ángulo de 45°, como en el examen de manejo. Sales en reversa con las intermitentes activas.',
+    laneCountPerSide: 1,
+    scripted: true,
+    untimed: true,
+    aiTargetCount: 0,
+    badDrivers: 0,
+    goodDrivers: 0,
+    pedestrians: 0,
+    speedLimit: 15,
+  },
+  reverse: {
+    id: 'reverse',
+    layout: 'reverse',
+    label: 'Maniobras en reversa',
+    badge: 'Nuevo',
+    difficulty: 'Medio', difficultyLevel: 2,
+    description: 'Retrocede en línea recta y luego en curva entre dos filas de conos, sin tocarlos, como en el examen de manejo.',
+    laneCountPerSide: 1,
+    scripted: true,
+    untimed: true,
+    aiTargetCount: 0,
+    badDrivers: 0,
+    goodDrivers: 0,
+    pedestrians: 0,
+    speedLimit: 15,
+  },
+  examOficial: {
+    id: 'examOficial',
+    layout: 'exam',
+    label: 'Examen Oficial MTC',
+    badge: 'Nuevo',
+    difficulty: 'Difícil', difficultyLevel: 3,
+    description: 'El circuito del examen práctico de manejo en Perú: PARE, estacionamiento en paralelo, rotonda, tramo de velocidad, estacionamiento diagonal y retorno en U.',
+    laneCountPerSide: 1,
+    scripted: true,
+    untimed: true,
+    aiTargetCount: 0,
+    badDrivers: 0,
+    goodDrivers: 0,
+    pedestrians: 0,
+    speedLimit: 35,
   },
 };

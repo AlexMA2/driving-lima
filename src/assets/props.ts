@@ -212,6 +212,114 @@ export function buildSpeedLimitPlate(kmh: number): THREE.Group {
   });
 }
 
+// "Ceda el paso" (R-1): an inverted white triangle, red border, in Peru mostly shown blank —
+// text is included here since our plates are small and viewed close up, unlike a full-size sign.
+export function buildYieldPlate(): THREE.Group {
+  const outline = (ctx: CanvasRenderingContext2D): void => {
+    ctx.beginPath(); ctx.moveTo(14, 18); ctx.lineTo(242, 18); ctx.lineTo(128, 238); ctx.closePath();
+  };
+  return buildPlate({
+    key: 'yield', size: 0.85, outline,
+    paint(ctx) {
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 256, 256);
+      ctx.save();
+      ctx.translate(128, 158); ctx.scale(0.82, 0.82); ctx.translate(-128, -158);
+      outline(ctx);
+      ctx.strokeStyle = '#c62828'; ctx.lineWidth = 22; ctx.lineJoin = 'round'; ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle = '#c62828'; ctx.font = 'bold 30px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('CEDA EL', 128, 128);
+      ctx.fillText('PASO', 128, 164);
+    },
+  });
+}
+
+// "Prohibido estacionar" (R-52): white disc, red ring, a blue "E" struck through by the red bar.
+export function buildNoParkingPlate(): THREE.Group {
+  const outline = (ctx: CanvasRenderingContext2D): void => { ctx.beginPath(); ctx.arc(128, 128, 124, 0, Math.PI * 2); };
+  return buildPlate({
+    key: 'no-parking', size: 0.75, outline,
+    paint(ctx) {
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 256, 256);
+      ctx.beginPath(); ctx.arc(128, 128, 108, 0, Math.PI * 2);
+      ctx.strokeStyle = '#c62828'; ctx.lineWidth = 24; ctx.stroke();
+      ctx.fillStyle = '#1565c0'; ctx.font = 'bold 140px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('E', 128, 138);
+      ctx.save();
+      ctx.translate(128, 128); ctx.rotate(-Math.PI / 4);
+      ctx.fillStyle = '#c62828'; ctx.fillRect(-108, -16, 216, 32);
+      ctx.restore();
+    },
+  });
+}
+
+// A stubby U-arrow, used by both U-turn plates below (the sign that's permitted keeps it plain,
+// white on blue; the prohibited one draws it black on white with the red diagonal bar over it).
+function drawUArrow(ctx: CanvasRenderingContext2D, color: string): void {
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 26; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(88, 60); ctx.lineTo(88, 138); ctx.arc(128, 138, 40, Math.PI, 0, true); ctx.lineTo(168, 60);
+  ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(168, 40); ctx.lineTo(198, 78); ctx.lineTo(142, 84); ctx.closePath(); ctx.fill();
+}
+
+// "Retorno permitido" (R-9-ish, informative): blue disc, white U-arrow.
+export function buildUTurnPermittedPlate(): THREE.Group {
+  const outline = (ctx: CanvasRenderingContext2D): void => { ctx.beginPath(); ctx.arc(128, 128, 124, 0, Math.PI * 2); };
+  return buildPlate({
+    key: 'uturn-ok', size: 0.75, outline,
+    paint(ctx) {
+      ctx.fillStyle = '#1565c0'; ctx.fillRect(0, 0, 256, 256);
+      drawUArrow(ctx, '#ffffff');
+    },
+  });
+}
+
+// "Prohibido girar en U" (R-24): white disc, red ring, black arrow, red diagonal bar.
+export function buildNoUTurnPlate(): THREE.Group {
+  const outline = (ctx: CanvasRenderingContext2D): void => { ctx.beginPath(); ctx.arc(128, 128, 124, 0, Math.PI * 2); };
+  return buildPlate({
+    key: 'no-uturn', size: 0.75, outline,
+    paint(ctx) {
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 256, 256);
+      ctx.beginPath(); ctx.arc(128, 128, 108, 0, Math.PI * 2);
+      ctx.strokeStyle = '#c62828'; ctx.lineWidth = 22; ctx.stroke();
+      drawUArrow(ctx, '#111111');
+      ctx.save();
+      ctx.translate(128, 128); ctx.rotate(-Math.PI / 4);
+      ctx.fillStyle = '#c62828'; ctx.fillRect(-108, -15, 216, 30);
+      ctx.restore();
+    },
+  });
+}
+
+// "Cruce de peatones" (P-31, preventive): yellow diamond, black border, a walking pedestrian.
+export function buildPedestrianWarningPlate(): THREE.Group {
+  const outline = (ctx: CanvasRenderingContext2D): void => {
+    ctx.beginPath(); ctx.moveTo(128, 8); ctx.lineTo(248, 128); ctx.lineTo(128, 248); ctx.lineTo(8, 128); ctx.closePath();
+  };
+  return buildPlate({
+    key: 'ped-warning', size: 0.85, outline,
+    paint(ctx) {
+      ctx.fillStyle = '#f5d90a'; ctx.fillRect(0, 0, 256, 256);
+      ctx.save();
+      ctx.translate(128, 128); ctx.scale(0.86, 0.86); ctx.translate(-128, -128);
+      outline(ctx);
+      ctx.strokeStyle = '#111'; ctx.lineWidth = 10; ctx.lineJoin = 'round'; ctx.stroke();
+      ctx.restore();
+      // a single figure mid-stride
+      ctx.strokeStyle = '#111'; ctx.fillStyle = '#111'; ctx.lineCap = 'round'; ctx.lineWidth = 16;
+      ctx.beginPath(); ctx.arc(140, 68, 15, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(140, 90); ctx.lineTo(132, 150);
+      ctx.moveTo(132, 150); ctx.lineTo(102, 200);
+      ctx.moveTo(132, 150); ctx.lineTo(168, 195);
+      ctx.moveTo(136, 108); ctx.lineTo(100, 130);
+      ctx.moveTo(136, 108); ctx.lineTo(172, 96);
+      ctx.stroke();
+    },
+  });
+}
+
 // A post with plates on it. `y` is the height of each plate's centre.
 export function buildSignPost(plates: Array<{ plate: THREE.Object3D; y: number }>, height = 3.3): THREE.Group {
   const g = new THREE.Group();

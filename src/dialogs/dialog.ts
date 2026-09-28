@@ -1,4 +1,5 @@
 import '../styles/components/dialog.scss';
+import { requestPause, releasePause, isPausedFor } from '../state/pause';
 
 // Dialogs are not part of any page's markup: one is created when it is opened and removed from the
 // document when it is closed, so a closed dialog costs nothing. Each dialog module (in this folder) is
@@ -46,6 +47,8 @@ export function openDialog({ id, boxId, html, onClose, dismissable = true }: Dia
       if (!openDialogs.delete(handle)) return;
       document.removeEventListener('keydown', onKeyDown);
       overlay.remove();
+      releasePause('dialog');
+      document.documentElement.classList.toggle('dialogPaused', isPausedFor('dialog'));
       onClose?.();
     },
   };
@@ -54,6 +57,10 @@ export function openDialog({ id, boxId, html, onClose, dismissable = true }: Dia
   document.addEventListener('keydown', onKeyDown);
   openDialogs.add(handle);
   document.body.append(overlay);
+  // Pauses the game for as long as any dialog is open (game/session.ts registers the handler while a
+  // scenario is running; outside of gameplay this is a harmless no-op counter).
+  requestPause('dialog');
+  document.documentElement.classList.toggle('dialogPaused', isPausedFor('dialog'));
   return handle;
 }
 

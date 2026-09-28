@@ -3,7 +3,7 @@ import { CONFIG } from '../config';
 import { scene } from '../core/scene';
 import { controlState } from './input';
 import { triggerInfraction } from './rules';
-import { chassisBody } from '../entities/player';
+import { chassisBody, carYaw } from '../entities/player';
 import { spawnStalledCar } from '../entities/breakdowns';
 import { spawnPedestrian } from '../entities/pedestrians';
 import { spawnScriptedCar } from '../entities/scriptedCars';
@@ -204,6 +204,30 @@ const STEPS: Step[] = [
     toLane: 'right', signalKey: 'signalRight', signalName: 'la derecha (E)',
   }),
   {
+    id: 'uturn', title: 'Retorno en U',
+    text: `Adelante hay un lugar habilitado para retorno (la señal azul con la flecha en U). Activa la direccional izquierda ${kbd('signalLeft')}, cerciórate de que no venga nadie y gira en U hasta quedar mirando hacia atrás.`,
+    waypoint: { x: RIGHT, z: COURSE.uturnZ },
+    update(ctx, s) {
+      if (s.signaled === undefined && ctx.p.z < COURSE.uturnZ + 25) {
+        s.signaled = controlState.signalLeft;
+        if (!s.signaled) triggerInfraction('TURN_SIGNAL');
+      }
+      return Math.abs(ctx.p.z - COURSE.uturnZ) < 40 && angleBetween(carYaw(), Math.PI) < 0.3 && ctx.v.z > 1.5;
+    },
+  },
+  {
+    id: 'uturnBack', title: 'Retorno en U: continúa tu ruta',
+    text: `Ahora vuelve a girar en U para retomar tu ruta hacia el norte: direccional izquierda ${kbd('signalLeft')}, mira que no venga nadie y da la vuelta.`,
+    waypoint: { x: -RIGHT, z: COURSE.uturnZ }, // mirrored: after the first flip this is now the player's own (right-hand) lane
+    update(ctx, s) {
+      if (s.signaled === undefined && ctx.p.z > COURSE.uturnZ - 25) {
+        s.signaled = controlState.signalLeft;
+        if (!s.signaled) triggerInfraction('TURN_SIGNAL');
+      }
+      return Math.abs(ctx.p.z - COURSE.uturnZ) < 40 && angleBetween(carYaw(), 0) < 0.3 && ctx.v.z < -1.5;
+    },
+  },
+  {
     id: 'redLight', title: 'Semáforo',
     text: `Adelante hay un semáforo. Cuando se ponga en rojo, <b>detente antes de la línea blanca</b> y espera a que cambie.`,
     waypoint: { x: RIGHT, z: COURSE.light.stopZ },
@@ -395,3 +419,8 @@ export function laneRuleActive(): boolean { return index >= LANE_RULE_FROM && in
 export const TUTORIAL_STEP_COUNT = STEPS.length;
 export function currentTutorialStep(): number { return index; }
 export function skipTutorialStep(): void { showStep(Math.min(index + 1, STEPS.length - 1)); } // debugging aid
+
+// For the AI autopilot (systems/tutorialAutopilot.ts): which step to drive for, and the same
+// waypoint the on-screen marker uses, so most steps need no coordinates of their own.
+export function currentTutorialStepId(): string | null { return index >= 0 ? STEPS[index].id : null; }
+export function currentWaypoint(): { x: number; z: number } | undefined { return index >= 0 ? STEPS[index].waypoint : undefined; }

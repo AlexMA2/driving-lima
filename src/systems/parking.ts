@@ -169,6 +169,43 @@ const PERPENDICULAR_STEPS = (): Step[] => {
   ];
 };
 
+// ---- diagonal ---------------------------------------------------------------------------------
+// angle to the bay's own centreline, and whether the car sits inside the bay's raked rectangle
+// (checked in the bay's own rotated frame, since it isn't axis-aligned like the other two modes)
+function diagonalMetrics(): Metrics & { angle: number } {
+  const P = PARKING;
+  const angle = Math.abs(wrap(pose.yaw - P.bayAngle));
+  const c = Math.cos(P.bayAngle), s = Math.sin(P.bayAngle);
+  const inside = pose.corners.every(q => {
+    const dx = q.x - P.bayCx, dz = q.z - P.zBay;
+    const u = dx * c - dz * s, v = dx * s + dz * c; // world offset expressed in the bay's own (depth, across) axes
+    return Math.abs(u) <= P.bayDepth / 2 + 0.1 && Math.abs(v) <= P.bayW / 2 + 0.1;
+  });
+  return {
+    inside, angle,
+    parked: inside && angle <= THREE.MathUtils.degToRad(8),
+    hint: `Dentro de las líneas: ${inside ? '✔' : 'no'}   ·   Ángulo: ${deg(angle)}° ${angle <= 0.14 ? '✔' : '(objetivo 45°)'}`,
+  };
+}
+
+const DIAGONAL_STEPS = (): Step[] => {
+  const P = PARKING;
+  return [
+    {
+      id: 'enter', title: '1. Entra de frente a la plaza',
+      text: `Activa la direccional derecha ${kbd('signalRight')} y, sin detenerte del todo, gira hacia la plaza libre siguiendo el ángulo de las líneas. Guíate por la línea derecha en tu espejo.`,
+      hint: () => `Ángulo con la plaza: ${deg(Math.abs(wrap(pose.yaw - P.bayAngle)))}° (objetivo 45°)`,
+      done: () => diagonalMetrics().inside,
+    },
+    {
+      id: 'straight', title: '2. Endereza y avanza hasta el tope',
+      text: `Endereza el volante para quedar paralelo a las líneas de la plaza y avanza despacio hasta el tope, sin tocarlo.`,
+      hint: () => diagonalMetrics().hint,
+      done: () => false,
+    },
+  ];
+};
+
 // ---- state + UI -----------------------------------------------------------------------------------
 let steps: Step[] = [];
 let stepIndex = 0;
@@ -195,17 +232,20 @@ export function initParking(scenario: ResolvedScenario, { onDone }: { onDone?: (
   onComplete = onDone ?? null;
   finished = false; stillFor = 0; signalChecked = false;
   guide = scenario.guide !== false;
-  const perpendicular = PARKING.mode === 'perpendicular';
-  steps = perpendicular ? PERPENDICULAR_STEPS() : PARALLEL_STEPS();
-  metricsOf = perpendicular ? perpendicularMetrics : parallelMetrics;
+  steps = PARKING.mode === 'perpendicular' ? PERPENDICULAR_STEPS()
+    : PARKING.mode === 'diagonal' ? DIAGONAL_STEPS()
+    : PARALLEL_STEPS();
+  metricsOf = PARKING.mode === 'perpendicular' ? perpendicularMetrics
+    : PARKING.mode === 'diagonal' ? diagonalMetrics
+    : parallelMetrics;
 
   if (PARKING.zone) PARKING.zone.visible = guide;
   readPose();
   showStep(0);
-  showToast(
-    perpendicular ? 'Estacionamiento en batería' : 'Estacionamiento en paralelo',
-    guide ? 'Sigue los pasos del panel y usa los espejos como referencia.' : 'Estaciona en el espacio libre.'
-  );
+  const label = PARKING.mode === 'perpendicular' ? 'Estacionamiento en batería'
+    : PARKING.mode === 'diagonal' ? 'Estacionamiento diagonal'
+    : 'Estacionamiento en paralelo';
+  showToast(label, guide ? 'Sigue los pasos del panel y usa los espejos como referencia.' : 'Estaciona en el espacio libre.');
 }
 
 export function updateParking(dt: number): void {

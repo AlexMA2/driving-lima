@@ -6,6 +6,7 @@ import { updatePedestrians } from '../../entities/pedestrians';
 import { checkLaneChangeRule, checkSpeedBumpRule } from '../../systems/rules';
 import { checkRoundaboutRules, resetRoundaboutRules } from '../../systems/roundaboutRules';
 import { initTutorial, updateTutorial, laneRuleActive } from '../../systems/tutorial';
+import { updateAutoplay, stopAutoplay } from '../../systems/tutorialAutopilot';
 import type { LayoutRuntime } from './types';
 
 // The guided tutorial course.
@@ -15,13 +16,14 @@ export const layout: LayoutRuntime = {
   init(_scenario, { endGame }) {
     resetRoundaboutRules();
     initBreakdowns({ hazards: 'off' }); // the course stalls its one car itself, on cue
-    initTutorial({ onDone: () => endGame('¡TUTORIAL COMPLETADO!') });
+    initTutorial({ onDone: () => { stopAutoplay(); endGame('¡TUTORIAL COMPLETADO!'); } });
   },
 
   update(dt) {
     updateScriptedCars(dt);
     updatePedestrians(dt);
     updateBreakdowns();
+    updateAutoplay(dt);
     updateTutorial(dt);
     if (laneRuleActive()) checkLaneChangeRule();
     checkSpeedBumpRule();

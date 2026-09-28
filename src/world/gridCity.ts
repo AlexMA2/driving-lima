@@ -10,7 +10,7 @@ import { resetCrosswalks, addCrosswalk, includeCandidate, flushZebras, occupiedC
 import { scene } from '../core/scene';
 import { world, propMaterial } from '../core/physics';
 import { box } from '../assets/primitives';
-import { buildGround, buildStreet, updateLightMesh, scatterBlockBuildings, type Street } from './streetKit';
+import { buildGround, buildStreet, barrier, updateLightMesh, scatterBlockBuildings, type Street } from './streetKit';
 import { buildTrafficLightPole, type TrafficLightLamps } from '../assets/props';
 import { buildSedan, buildCombi, buildMototaxi, type VehicleGroup } from '../assets/vehicles';
 import { chassisBody } from '../entities/player';
@@ -118,6 +118,14 @@ export function buildGridCity(scenario: ResolvedScenario): { x: number; y: numbe
   AVENUE_XS.forEach(ax => STREETS.push(buildStreet('z', ax, avenueLo, avenueHi, scenario.laneCountPerSide, STREET_ZS)));
   STREET_ZS.forEach(sz => STREETS.push(buildStreet('x', sz, streetLo, streetHi, scenario.laneCountPerSide, AVENUE_XS)));
   AVENUE_XS.forEach(ax => STREET_ZS.forEach(sz => buildIntersection(ax, sz)));
+
+  // Every street inside the grid connects through to another (no internal dead ends): only the
+  // outermost perimeter stubs actually end. Cap them with a barrier, same as every other course
+  // (tutorialCourse.ts, parkingLot.ts), so the grid's edge reads as an intentional boundary
+  // instead of asphalt trailing off into open ground.
+  const barrierWidth = ROAD_HALF_WIDTH_GRID * 2 + 4;
+  AVENUE_XS.forEach(ax => { barrier(ax, avenueLo - 1, barrierWidth, 2); barrier(ax, avenueHi + 1, barrierWidth, 2); });
+  STREET_ZS.forEach(sz => { barrier(streetLo - 1, sz, 2, barrierWidth); barrier(streetHi + 1, sz, 2, barrierWidth); });
 
   // pedestrian crossings on the approaches to each intersection, beyond the stop lines
   resetCrosswalks();

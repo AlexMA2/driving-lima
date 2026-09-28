@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { CONFIG } from '../config';
 import { scene } from '../core/scene';
 import { box, cyl } from '../assets/primitives';
-import { buildTrafficLightPole, buildStopSign, type TrafficLightLamps } from '../assets/props';
+import { buildTrafficLightPole, buildStopSign, buildUTurnPermittedPlate, buildNoUTurnPlate, buildSignPost, type TrafficLightLamps } from '../assets/props';
 import type { Spawn } from '../entities/player';
 import type { LightState } from './intersections';
 import { buildGround, buildStreet, barrier, scatterBlockBuildings, updateLightMesh } from './streetKit';
@@ -27,6 +27,7 @@ export const COURSE = {
   zebraZ: -275,
   hazardTriggerZ: -340,
   stalledZ: -430,
+  uturnZ: -510,                            // marked U-turn point, between the stalled car and the light
   light: { z: -610, stopZ: -598 },        // I1: cross street B centre line and the north-bound stop line
   stop: { lineX: 289.5, laneZ: -608.25 }, // STOP line on B, east-bound lane
   ring: { cx: 300, cz: -850 },
@@ -86,6 +87,12 @@ export function buildTutorialCourse(): Spawn {
   barrier(ring.cx - 132, ring.cz, 2, 10);    // west arm
   barrier(ring.cx, ring.cz - 132, 10, 2);    // north arm
 
+  // A "no U-turn" sign near the start, for contrast with the "U-turn permitted" one further
+  // down the avenue (COURSE.uturnZ) — the lesson is that it's only legal where marked.
+  const noUturnSign = buildSignPost([{ plate: buildNoUTurnPlate(), y: 2.3 }], 2.7);
+  noUturnSign.position.set(7.3, 0, 50);
+  scene.add(noUturnSign);
+
   // ---- lesson furniture
   SPEED_BUMPS.length = 0;
   SPEED_BUMPS.push({ z: COURSE.bumpZ, width: CONFIG.LANE_WIDTH * 4 - 0.4, triggered: false });
@@ -103,6 +110,13 @@ export function buildTutorialCourse(): Spawn {
   scene.add(pole);
   trafficLight = pole.userData.lights as TrafficLightLamps;
   setTutorialLight('GREEN');
+
+  // "Retorno permitido" sign marking the U-turn lesson's spot, on the near kerb — the plate
+  // faces +Z by default (see props.ts), which is exactly what a driver approaching from the
+  // south (larger z, heading north) needs, so it's planted here with no extra rotation.
+  const uturnSign = buildSignPost([{ plate: buildUTurnPermittedPlate(), y: 2.3 }], 2.7);
+  uturnSign.position.set(7.3, 0, COURSE.uturnZ + 6);
+  scene.add(uturnSign);
 
   // STOP sign and line for the east-bound lane of B, before the crossing with C
   const sign = buildStopSign();

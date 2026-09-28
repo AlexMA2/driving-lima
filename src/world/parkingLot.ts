@@ -10,8 +10,9 @@ import { buildSedan } from '../assets/vehicles';
 import { CAR_HALF_WIDTH, CAR_HALF_LENGTH, type Spawn } from '../entities/player';
 import { buildGround, barrier, scatterBlockBuildings } from './streetKit';
 import { setLaneLayout } from './road';
+import { buildNoParkingPlate, buildSignPost } from '../assets/props';
 
-// The two parking exercises. Both are laid out the way a driving school's practice ground is,
+// The three parking exercises. All are laid out the way a driving school's practice ground is,
 // with the dimensions real parking uses, so the usual reference points work with this car:
 //
 //   parallel      — a street with a parking lane along the right-hand kerb. Two parked cars
@@ -19,23 +20,30 @@ import { setLaneLayout } from './road';
 //                   are what you line yourself up with.
 //   perpendicular — a car park with a 6.5 m aisle and bays either side (the "batería" layout):
 //                   bay lines every `bay` metres, a kerb / wheel stop at the back of each bay.
+//   diagonal      — an "en 45°" / echelon lot: bays are raked off the aisle so a car flows
+//                   straight into one nose-first without swinging wide, then backs straight out
+//                   to leave (the real MTC exam's "estacionamiento diagonal").
 //
 // Seen from above, north is -Z, the player drives north and kerbs/bays are on their right (+X).
 // Everything the parking system (systems/parking.ts) needs to judge the manoeuvre is in PARKING.
 
 export interface ParkingLayout {
-  mode: 'parallel' | 'perpendicular' | null;
+  mode: 'parallel' | 'perpendicular' | 'diagonal' | null;
   zone: THREE.Mesh | null;   // the green target rectangle the guide toggles
   // parallel: the kerb, the edge of the driving lanes and the slot between the two framing cars
   kerbX: number; laneEdgeX: number; zF: number; zR: number; slot: number;
   // perpendicular: the aisle, the wall at the back of the bays and the target bay
   aisleX: number; wallX: number; bayW: number; zBay: number; bayDepth: number;
+  // diagonal: same aisle/wall/bay fields above, plus the bay's rake angle (signed, radians —
+  // the yaw a car must reach to sit square in it) and the x at the centre of its depth axis
+  bayAngle: number; bayCx: number;
 }
 
 export const PARKING: ParkingLayout = {
   mode: null, zone: null,
   kerbX: 0, laneEdgeX: 0, zF: 0, zR: 0, slot: 0,
   aisleX: 0, wallX: 0, bayW: 0, zBay: 0, bayDepth: 0,
+  bayAngle: 0, bayCx: 0,
 };
 
 const CAR_LENGTH = CAR_HALF_LENGTH * 2;
@@ -67,7 +75,7 @@ function kerb(x0: number, x1: number, z0: number, z1: number, { touchOk = false 
 }
 
 // paint: a thin flat box lying on the road
-function paint(cx: number, cz: number, w: number, d: number, color: THREE.ColorRepresentation = PAINT, opts?: BoxOptions) {
+export function paint(cx: number, cz: number, w: number, d: number, color: THREE.ColorRepresentation = PAINT, opts?: BoxOptions) {
   const m = box(w, 0.02, d, color, opts);
   m.position.set(cx, LINE_Y, cz);
   m.castShadow = false;
@@ -75,7 +83,18 @@ function paint(cx: number, cz: number, w: number, d: number, color: THREE.ColorR
   return m;
 }
 
-function parkedCar(x: number, z: number, rotY = 0) {
+// Same as `paint`, but yawed by `rotY` — the raked bay-divider lines of the diagonal lot (box()
+// builds a genuine 3D box, not a flattened plane, so a plain Y rotation is unambiguous here).
+export function paintAngled(cx: number, cz: number, w: number, d: number, rotY: number, color: THREE.ColorRepresentation = PAINT, opts?: BoxOptions) {
+  const m = box(w, 0.02, d, color, opts);
+  m.position.set(cx, LINE_Y, cz);
+  m.rotation.y = rotY;
+  m.castShadow = false;
+  scene.add(m);
+  return m;
+}
+
+export function parkedCar(x: number, z: number, rotY = 0) {
   const mesh = buildSedan(choice(PARKED_COLORS));
   mesh.position.set(x, 0, z);
   mesh.rotation.y = rotY;
@@ -91,7 +110,7 @@ function parkedCar(x: number, z: number, rotY = 0) {
 }
 
 // A big white "P" painted on the road, facing a driver who is heading north.
-function paintLetter(cx: number, cz: number, size: number, text = 'P'): void {
+export function paintLetter(cx: number, cz: number, size: number, text = 'P'): void {
   const cvs = document.createElement('canvas');
   cvs.width = 256; cvs.height = 256;
   const ctx = cvs.getContext('2d')!;
@@ -106,13 +125,26 @@ function paintLetter(cx: number, cz: number, size: number, text = 'P'): void {
 }
 
 // The green "target" rectangle the guide shows on the ground.
-function targetZone(x0: number, x1: number, z0: number, z1: number) {
+export function targetZone(x0: number, x1: number, z0: number, z1: number) {
   const m = new THREE.Mesh(
     new THREE.PlaneGeometry(x1 - x0, Math.abs(z1 - z0)),
     new THREE.MeshBasicMaterial({ color: 0x2ecc71, transparent: true, opacity: 0.22, depthWrite: false })
   );
   m.rotation.x = -Math.PI / 2;
   m.position.set((x0 + x1) / 2, LINE_Y + 0.008, (z0 + z1) / 2);
+  scene.add(m);
+  return m;
+}
+
+// The green target rectangle, raked to match a diagonal bay: the geometry's flat (XZ-plane)
+// orientation is baked into it directly so the mesh's own transform only needs a plain Y
+// rotation, which (unlike composing rotation.x with rotation.y on the same object) is unambiguous.
+export function targetZoneAngled(cx: number, cz: number, w: number, d: number, rotY: number) {
+  const geo = new THREE.PlaneGeometry(w, d);
+  geo.rotateX(-Math.PI / 2);
+  const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0x2ecc71, transparent: true, opacity: 0.22, depthWrite: false }));
+  m.rotation.y = rotY;
+  m.position.set(cx, LINE_Y + 0.008, cz);
   scene.add(m);
   return m;
 }
@@ -228,7 +260,78 @@ function buildPerpendicular(scenario: ResolvedScenario): Spawn {
   return { x: 1.4, y: 1.2, z: 20, rotY: 0 };
 }
 
+// ---- diagonal ("en 45°" / echelon) parking -------------------------------------------------
+//
+//   x: -8.86 ..... -3.25 | aisle -3.25..3.25 | 3.25 ..... 8.86 : raked bays, kerb at the back
+//
+// Bays are raked BAY_ANGLE off the aisle so approaching northbound traffic can peel into one
+// without swinging wide (the real exam's forward, nose-in entry) — unlike perpendicular's bays,
+// which need a full reverse swing. You leave the same way the exam does: straight back out.
+function buildDiagonal(scenario: ResolvedScenario): Spawn {
+  const size = PARKING_SIZES[scenario.parkingSpace] ?? PARKING_SIZES.normal;
+  const BAY_ANGLE = Math.PI / 4; // 45° off the kerb/aisle direction
+  const AISLE = 3.25, DEPTH = 5.6, WALL_X = AISLE + DEPTH;
+  const PITCH = size.bay / Math.sin(BAY_ANGLE); // curb frontage a raked bay needs, wider than a perpendicular one
+  const BAYS = 8, TARGET = 4, bayCx = AISLE + DEPTH / 2;
+  const zTarget = -22;
+  const zBay = (k: number): number => zTarget + (TARGET - k) * PITCH;
+  const zStart = 40, zEnd = -66;
+
+  buildGround(0, (zStart + zEnd) / 2, 300, 260);
+  slab(-WALL_X, WALL_X, zStart, zEnd, 0x3a3a3f, -0.05, 0.3);
+  kerb(WALL_X, WALL_X + 3, zStart, zEnd, { touchOk: true });
+  kerb(-WALL_X - 3, -WALL_X, zStart, zEnd, { touchOk: true });
+
+  // bay dividers and a low stop block at the back of each bay, both raked to the bay's angle;
+  // both rows rake the same way (not mirrored like perpendicular) since this is one-way traffic
+  [-1, 1].forEach(side => {
+    const rot = side > 0 ? -BAY_ANGLE : BAY_ANGLE;
+    for (let k = 0; k <= BAYS; k++) {
+      const z = zBay(0) + PITCH / 2 - k * PITCH;
+      paintAngled(side * bayCx, z, DEPTH * 1.3, 0.14, rot);
+    }
+    for (let k = 0; k < BAYS; k++) {
+      const stop = box(size.bay - 0.5, 0.12, 0.16, 0xa9a59b);
+      stop.position.set(side * (WALL_X - 0.35), 0.15, zBay(k));
+      stop.rotation.y = rot;
+      scene.add(stop);
+    }
+  });
+
+  // parked cars, nose-in and consistently raked (real echelon lots aren't two-directional like a
+  // battery lot); the target bay (side +1) stays open, the far row has the odd gap like a real lot
+  [-1, 1].forEach(side => {
+    const rot = side > 0 ? -BAY_ANGLE : BAY_ANGLE;
+    for (let k = 0; k < BAYS; k++) {
+      if (side === 1 && k === TARGET) continue;
+      if (side === -1 && rand(0, 1) < 0.2) continue;
+      parkedCar(side * bayCx + rand(-0.12, 0.12), zBay(k) + rand(-0.12, 0.12), rot + rand(-0.02, 0.02));
+    }
+  });
+  paintLetter(bayCx, zBay(TARGET), 1.4);
+
+  const noParking = buildSignPost([{ plate: buildNoParkingPlate(), y: 2.2 }], 2.6);
+  noParking.position.set(-(AISLE + 0.6), 0, zStart - 6);
+  noParking.rotation.y = Math.PI;
+  scene.add(noParking);
+
+  barrier(0, zStart + 3, 2 * WALL_X + 6, 2);
+  barrier(0, zEnd - 3, 2 * WALL_X + 6, 2);
+  skyline([WALL_X + 3 + 45, -WALL_X - 3 - 45], [30, -20, -70], 80, 12);
+
+  const zone = targetZoneAngled(bayCx, zBay(TARGET), size.bay - 0.16, DEPTH - 0.2, -BAY_ANGLE);
+
+  Object.assign(PARKING, {
+    mode: 'diagonal', zone,
+    aisleX: AISLE, wallX: WALL_X, bayW: size.bay, zBay: zBay(TARGET), bayDepth: DEPTH,
+    bayAngle: -BAY_ANGLE, bayCx,
+  });
+  return { x: 1.4, y: 1.2, z: 26, rotY: 0 };
+}
+
 export function buildParkingLot(scenario: ResolvedScenario): Spawn {
   setLaneLayout(1); // lane centres (±1.75) for the shared lane helpers; lane rules are off here
-  return scenario.parkingMode === 'perpendicular' ? buildPerpendicular(scenario) : buildParallel(scenario);
+  if (scenario.parkingMode === 'perpendicular') return buildPerpendicular(scenario);
+  if (scenario.parkingMode === 'diagonal') return buildDiagonal(scenario);
+  return buildParallel(scenario);
 }
