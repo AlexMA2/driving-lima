@@ -138,8 +138,15 @@ export function buildExamCourse(): Spawn {
   // ---- the óvalo first, so RB.outerR/its arm tips are known below; only E (in, from the top
   // avenue) and S (out, to the left avenue) run long — N and W are capped stubs, same convention
   // world/roundabout.ts's own arm-capping pattern uses elsewhere.
+  //
+  // buildings: false — buildRoundabout()'s own quadrant filler scatters buildings using RB.armLength
+  // (the module's default 240, unrelated to the shorter, per-arm armLengths override passed here),
+  // so it throws buildings out to a ~150-unit radius that has no idea this course's own avenues run
+  // much closer in on two of those quadrants — they land squarely on the road. scatterAlongZ/X below
+  // already cover the area around the óvalo using this course's actual geometry, same as the
+  // original single-corridor course's own skyline scatter did for its own ring.
   buildRoundabout({ laneCountPerSide: 1, zebras: 'off' }, {
-    cx: ovaloCx, cz: topAveZ, ground: false, buildings: true,
+    cx: ovaloCx, cz: topAveZ, ground: false, buildings: false,
     armLengths: { E: 50, S: 50, N: 40, W: 40 },
   });
   barrier(ovaloCx - (RB.outerR + 40), topAveZ, 2, 10); // cap the unused W arm
