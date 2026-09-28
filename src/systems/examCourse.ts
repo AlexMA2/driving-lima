@@ -15,6 +15,13 @@ import { kbdHtml } from '../state/keybindings';
 // course chains maneuvers the tutorial doesn't (both parking styles, a roundabout with a
 // required exit, a U-turn) into one fixed run, then reports a four-category score modelled on
 // the real exam's "Notas de Evaluación" sheet.
+//
+// The course is a loop (world/examCourse.ts), so unlike a single straight corridor its legs run
+// along both Z (the entrance/right avenue, and the left avenue carrying both parking bays) and X
+// (the top avenue and the final stretch to the finish) — each step below is written against
+// whichever axis its own leg actually runs along. The left avenue's own baseline heading is SOUTH
+// (yaw PI, not the original corridor's yaw 0), since this loop reaches it via the óvalo already
+// having turned the flow around — the parking-bay and U-turn checks account for that.
 
 const kbd = kbdHtml;
 const angleBetween = (a: number, b: number): number => Math.min(wrapAngle(a - b), wrapAngle(b - a));
@@ -60,18 +67,39 @@ const STEPS: Step[] = [
     },
   },
   {
-    id: 'parallel', title: '2. Estacionamiento en paralelo',
+    id: 'speed', title: '2. Demuestra tu manejo',
+    text: `Tras la curva ("Trocha"), acelera en la recta hasta unos 30–35 km/h para mostrar control del vehículo, sin pasarte del límite del circuito.`,
+    hint: (ctx) => `Velocidad: ${Math.round(ctx.kmh)} km/h`,
+    update: (ctx) => ctx.x < COURSE.speedGateX && ctx.kmh > 26,
+  },
+  {
+    id: 'roundabout', title: '3. Rotonda',
+    text: `Entra al óvalo cediendo el paso, da la vuelta en sentido antihorario y sal por la izquierda (tercera salida) hacia la siguiente avenida, señalizando con ${kbd('signalRight')} antes de salir.`,
+    hint: (ctx, s) => (s.exitArm && s.exitArm !== 'S' ? 'Saliste por el lado equivocado: da otra vuelta y sal por la izquierda.' : ''),
+    update(ctx, s) {
+      const { r, theta } = ringInfo(ctx.x, ctx.z);
+      if (r < RB.outerR - 1 && r > RB.innerR) s.inRing = true;
+      if (s.inRing && r > RB.outerR + 1) {
+        s.inRing = false;
+        s.exitArm = ARMS.reduce((best, a) => (angleBetween(theta, a.angle) < angleBetween(theta, best.angle) ? a : best)).id;
+        return s.exitArm === 'S';
+      }
+      return false;
+    },
+  },
+  {
+    id: 'parallel', title: '4. Estacionamiento en paralelo',
     text: `Estaciona junto a la vereda, entre las dos líneas pintadas, en paralelo. Retrocede con la direccional puesta y ajusta hasta quedar dentro del recuadro.`,
     enter: (ctx, s) => { s.faultSnapshot = parkFaultTotal(); },
     hint: (ctx) => {
-      const gap = COURSE.kerbX - (ctx.x + CAR_HALF_WIDTH);
+      const gap = (ctx.x - CAR_HALF_WIDTH) - COURSE.leftKerb;
       return `Distancia a la vereda: ${Math.round(Math.max(gap, 0) * 100)} cm`;
     },
     update(ctx, s) {
       const { frontZ, rearZ } = COURSE.parallel;
-      const inSlot = ctx.z < rearZ && ctx.z > frontZ && ctx.x > 0.8 && ctx.x < COURSE.kerbX;
-      const angleOk = Math.abs(ctx.yaw) < THREE.MathUtils.degToRad(10);
-      const gapOk = COURSE.kerbX - (ctx.x + CAR_HALF_WIDTH) < 0.7;
+      const inSlot = ctx.z < rearZ && ctx.z > frontZ && ctx.x < COURSE.leftAveX - 0.8 && ctx.x > COURSE.leftKerb;
+      const angleOk = angleBetween(ctx.yaw, Math.PI) < THREE.MathUtils.degToRad(10);
+      const gapOk = (ctx.x - CAR_HALF_WIDTH) - COURSE.leftKerb < 0.7;
       const parked = inSlot && angleOk && gapOk && ctx.kmh < 1.5;
       s.stillFor = parked ? (s.stillFor ?? 0) + 1 / 60 : 0;
       if ((s.stillFor ?? 0) > 1.2) {
@@ -82,37 +110,17 @@ const STEPS: Step[] = [
     },
   },
   {
-    id: 'roundabout', title: '3. Rotonda',
-    text: `Entra a la rotonda cediendo el paso, da la vuelta en sentido antihorario y sal de frente (segunda salida), señalizando con ${kbd('signalRight')} antes de salir.`,
-    hint: (ctx, s) => (s.exitArm && s.exitArm !== 'N' ? 'Saliste por el lado equivocado: da otra vuelta y sal de frente.' : ''),
-    update(ctx, s) {
-      const { r, theta } = ringInfo(ctx.x, ctx.z);
-      if (r < RB.outerR - 1 && r > RB.innerR) s.inRing = true;
-      if (s.inRing && r > RB.outerR + 1) {
-        s.inRing = false;
-        s.exitArm = ARMS.reduce((best, a) => (angleBetween(theta, a.angle) < angleBetween(theta, best.angle) ? a : best)).id;
-        return s.exitArm === 'N';
-      }
-      return false;
-    },
-  },
-  {
-    id: 'speed', title: '4. Demuestra tu manejo',
-    text: `Acelera en la recta hasta unos 30–35 km/h para mostrar control del vehículo, sin pasarte del límite del circuito.`,
-    hint: (ctx) => `Velocidad: ${Math.round(ctx.kmh)} km/h`,
-    update: (ctx) => ctx.z < COURSE.speedGateZ && ctx.kmh > 26,
-  },
-  {
     id: 'diagonal', title: '5. Estacionamiento diagonal',
     text: `Entra de frente a la plaza en 45°, guiándote por las líneas y el auto vecino.`,
     enter: (ctx, s) => { s.faultSnapshot = parkFaultTotal(); },
     update(ctx, s) {
       const { cz, angle, pitch } = COURSE.diagonal;
-      const c = Math.cos(-angle), sn = Math.sin(-angle);
-      const dx = ctx.x - (COURSE.kerbX - 1.0), dz = ctx.z - cz;
+      const diagYaw = Math.PI + angle; // this lane's baseline is south (PI), not the original corridor's north — see world/examCourse.ts's comment on diagYaw
+      const c = Math.cos(diagYaw), sn = Math.sin(diagYaw);
+      const dx = ctx.x - (COURSE.leftKerb + 1.0), dz = ctx.z - cz;
       const u = dx * c - dz * sn, v = dx * sn + dz * c;
       const inside = Math.abs(u) <= 1.6 && Math.abs(v) <= pitch / 2 - 0.3;
-      const angleOk = angleBetween(ctx.yaw, -angle) < THREE.MathUtils.degToRad(10);
+      const angleOk = angleBetween(ctx.yaw, diagYaw) < THREE.MathUtils.degToRad(10);
       const parked = inside && angleOk && ctx.kmh < 1.5;
       s.stillFor = parked ? (s.stillFor ?? 0) + 1 / 60 : 0;
       if ((s.stillFor ?? 0) > 1.2) {
@@ -126,17 +134,6 @@ const STEPS: Step[] = [
     id: 'uturn1', title: '6. Retorno en U',
     text: `Sal de la plaza en reversa con las intermitentes activas, luego activa la direccional izquierda ${kbd('signalLeft')} y gira en U.`,
     update(ctx, s) {
-      if (s.signaled === undefined && ctx.z < COURSE.uturnZ + 25) {
-        s.signaled = controlState.signalLeft;
-        if (!s.signaled) triggerInfraction('TURN_SIGNAL');
-      }
-      return Math.abs(ctx.z - COURSE.uturnZ) < 40 && angleBetween(ctx.yaw, Math.PI) < 0.3 && ctx.vz > 1.5;
-    },
-  },
-  {
-    id: 'uturn2', title: '7. Retorno en U: continúa hacia la meta',
-    text: `Activa la direccional izquierda ${kbd('signalLeft')} y gira en U otra vez para retomar el circuito hacia la meta.`,
-    update(ctx, s) {
       if (s.signaled === undefined && ctx.z > COURSE.uturnZ - 25) {
         s.signaled = controlState.signalLeft;
         if (!s.signaled) triggerInfraction('TURN_SIGNAL');
@@ -145,10 +142,25 @@ const STEPS: Step[] = [
     },
   },
   {
+    id: 'uturn2', title: '7. Retorno en U: continúa hacia la meta',
+    text: `Activa la direccional izquierda ${kbd('signalLeft')} y gira en U otra vez para retomar el circuito hacia la meta.`,
+    update(ctx, s) {
+      if (s.signaled === undefined && ctx.z < COURSE.uturnZ + 25) {
+        s.signaled = controlState.signalLeft;
+        if (!s.signaled) triggerInfraction('TURN_SIGNAL');
+      }
+      return Math.abs(ctx.z - COURSE.uturnZ) < 40 && angleBetween(ctx.yaw, Math.PI) < 0.3 && ctx.vz > 1.5;
+    },
+  },
+  {
     id: 'finish', title: '¡Circuito completado!',
     text: buildSummaryHtml,
     final: true,
-    update: (ctx, s, dt) => { s.stillFor = (s.stillFor ?? 0) + dt; return ctx.z < COURSE.finishZ && (s.stillFor ?? 0) > 0.5; },
+    update: (ctx, s, dt) => {
+      const close = Math.hypot(ctx.x - COURSE.salida.x, ctx.z - COURSE.salida.z) < 6;
+      s.stillFor = close ? (s.stillFor ?? 0) + dt : 0;
+      return (s.stillFor ?? 0) > 0.5;
+    },
   },
 ];
 
@@ -168,6 +180,9 @@ let index = -1;
 let stepState: St = {};
 let onComplete: (() => void) | null = null;
 let finished = false;
+
+// For systems/examAutopilot.ts: which step it should be driving for right now.
+export function currentExamStepId(): string | null { return STEPS[index]?.id ?? null; }
 
 function showStep(i: number): void {
   index = i;
