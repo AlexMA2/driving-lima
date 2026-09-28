@@ -137,7 +137,14 @@ const PARALLEL_STEPS = (): Step[] => {
       id: 'finish', title: '5. Ajusta y detente',
       text: `Termina dentro de las líneas, <b>paralelo</b> y a <b>menos de 60 cm de la vereda</b>. Si hace falta, avanza (${kbd('drive')}) y retrocede (${kbd('brake')}) en trechos cortos. Cuando estés bien, quédate detenido unos 2 segundos (puedes usar ${kbd('handbrake')}).`,
       hint: () => parallelMetrics().hint,
-      done: () => false,
+      done: () => parkedFor > 1.5,
+    },
+    {
+      id: 'exit', title: '6. Sal del espacio',
+      text: `Activa la direccional izquierda ${kbd('signalLeft')}, revisa el espejo y avanza (${kbd('drive')}) despacio hasta volver por completo al carril.`,
+      hint: () => (exitMetrics() ? '✔ Ya estás en el carril.' : `Falta salir: ${cm(Math.max(maxOf(pose.corners, 'x') - P.laneEdgeX, 0))}`),
+      enter: confirmParked,
+      done: () => exitFor > 0.5,
     },
   ];
 };
@@ -184,7 +191,14 @@ const PERPENDICULAR_STEPS = (): Step[] => {
       id: 'straight', title: '3. Endereza y retrocede hasta el tope',
       text: `Cuando el auto esté casi recto en la plaza, <b>endereza el volante</b> (suelta ${kbd('steerRight')}) y retrocede despacio hasta acercarte al tope. Comprueba que hay el mismo espacio a cada lado en los espejos y <b>detente ~2 s</b> dentro de las líneas.`,
       hint: () => perpendicularMetrics().hint,
-      done: () => false,
+      done: () => parkedFor > 1.5,
+    },
+    {
+      id: 'exit', title: '4. Sal del estacionamiento',
+      text: `Con el auto detenido, activa la direccional y avanza (${kbd('drive')}) despacio hasta salir por completo de la plaza hacia el pasillo.`,
+      hint: () => (exitMetrics() ? '✔ Ya estás en el pasillo.' : `Falta salir: ${cm(Math.max(maxOf(pose.corners, 'x') - P.aisleX, 0))}`),
+      enter: confirmParked,
+      done: () => exitFor > 0.5,
     },
   ];
 };
@@ -221,7 +235,14 @@ const DIAGONAL_STEPS = (): Step[] => {
       id: 'straight', title: '2. Endereza y avanza hasta el tope',
       text: `Endereza el volante para quedar paralelo a las líneas de la plaza y avanza despacio hasta el tope, sin tocarlo.`,
       hint: () => diagonalMetrics().hint,
-      done: () => false,
+      done: () => parkedFor > 1.5,
+    },
+    {
+      id: 'exit', title: '3. Sal en reversa',
+      text: `Activa la direccional izquierda ${kbd('signalLeft')}, mira los espejos y retrocede (${kbd('brake')}) en línea recta hasta quedar completamente en el pasillo.`,
+      hint: () => (exitMetrics() ? '✔ Ya estás en el pasillo.' : `Falta salir: ${cm(Math.max(maxOf(pose.corners, 'x') - P.aisleX, 0))}`),
+      enter: confirmParked,
+      done: () => exitFor > 0.5,
     },
   ];
 };
@@ -232,14 +253,16 @@ let stepIndex = 0;
 let metricsOf: () => Metrics = parallelMetrics;
 let guide = true;
 let onComplete: (() => void) | null = null;
-let stillFor = 0;
+let parkedFor = 0; // dwell inside the slot/bay, aligned and still — gates the move to the exit step
+let exitFor = 0;   // dwell back in the lane/aisle after parking — gates finishing the exercise
 let signalChecked = false;
 let finished = false;
 
 function showStep(i: number): void {
   stepIndex = i;
-  if (!guide) return;
   const step = steps[i];
+  step.enter?.();
+  if (!guide) return;
   showTutorialStep({
     label: `PASO ${i + 1} / ${steps.length}`,
     title: step.title.replace(/^\d+\.\s*/, ''),
@@ -250,7 +273,7 @@ function showStep(i: number): void {
 
 export function initParking(scenario: ResolvedScenario, { onDone }: { onDone?: () => void } = {}): void {
   onComplete = onDone ?? null;
-  finished = false; stillFor = 0; signalChecked = false;
+  finished = false; parkedFor = 0; exitFor = 0; signalChecked = false;
   guide = scenario.guide !== false;
   steps = PARKING.mode === 'perpendicular' ? PERPENDICULAR_STEPS()
     : PARKING.mode === 'diagonal' ? DIAGONAL_STEPS()
@@ -271,7 +294,6 @@ export function initParking(scenario: ResolvedScenario, { onDone }: { onDone?: (
 export function updateParking(dt: number): void {
   if (finished) return;
   readPose();
-  const m = metricsOf();
 
   // the manoeuvre should be signalled: check once, when the car first starts to reverse
   if (!signalChecked && forwardSpeed() < -0.4) {
@@ -279,19 +301,24 @@ export function updateParking(dt: number): void {
     if (!controlState.signalLeft && !controlState.signalRight) triggerInfraction('PARK_SIGNAL');
   }
 
-  const step = steps[stepIndex];
-  if (guide) {
-    setTutorialHint(step.hint());
-  }
-  if (step.done() && stepIndex < steps.length - 1) {
-    if (guide) showToast('✓ Bien hecho', step.title.replace(/^\d+\.\s*/, ''), 'good');
-    showStep(stepIndex + 1);
-  }
+  // parked: inside the target, aligned, and standing still for a moment (a lenient threshold —
+  // see each mode's `parked` check — not a pixel-perfect fit)
+  const m = metricsOf();
+  parkedFor = m.parked && pose.kmh < 1.5 ? parkedFor + dt : 0;
+  // back in the lane/aisle after parking — only counted once the exit step is actually reached,
+  // otherwise the dwell would already be satisfied from the moment the exercise starts there
+  if (stepIndex === steps.length - 1) exitFor = exitMetrics() ? exitFor + dt : 0;
 
-  // parked: inside the target, aligned, and standing still for a moment
-  stillFor = m.parked && pose.kmh < 1.5 ? stillFor + dt : 0;
-  if (stillFor > 1.5) {
-    finished = true;
-    onComplete?.();
+  const step = steps[stepIndex];
+  if (guide) setTutorialHint(step.hint());
+
+  if (step.done()) {
+    if (stepIndex < steps.length - 1) {
+      if (guide) showToast('✓ Bien hecho', step.title.replace(/^\d+\.\s*/, ''), 'good');
+      showStep(stepIndex + 1);
+    } else {
+      finished = true;
+      onComplete?.();
+    }
   }
 }
