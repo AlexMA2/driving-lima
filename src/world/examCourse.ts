@@ -1,112 +1,213 @@
 import { box } from '../assets/primitives';
 import { scene } from '../core/scene';
+import { CONFIG } from '../config';
 import { buildStopSign, buildNoParkingPlate, buildPedestrianWarningPlate, buildUTurnPermittedPlate, buildSignPost } from '../assets/props';
-import { buildGround, buildStreet, barrier, scatterBlockBuildings } from './streetKit';
+import { buildGround, buildStreet, barrier, scatterBlockBuildings, annulus, arcCurbColliders } from './streetKit';
 import { setLaneLayout } from './road';
 import { buildRoundabout, RB } from './roundabout';
 import { addCrosswalk, flushZebras, resetCrosswalks } from './crosswalks';
 import { parkedCar, paint, paintAngled, paintLetter, targetZone, targetZoneAngled } from './parkingLot';
 import type { Spawn } from '../entities/player';
 
-// The "Examen Oficial MTC" circuit: one fixed route modelled on Lima's real Touring Conchán
-// practical-exam course (confirmed by web search — see the plan doc) — a single-lane loop
-// chaining a stop-sign intersection, a kerbside parallel-parking bay, a roundabout ("óvalo"), a
-// speed-demonstration straight, a kerbside diagonal-parking bay and a U-turn, in that order.
-// North is -Z throughout, same convention as every other course.
+// The "Examen Oficial MTC" circuit: a rectangular LOOP modelled on the real Peru MTC "Categoría
+// A-Uno" practical-exam course (photo supplied by the user) rather than a single straight corridor:
+// entrance and exit sit next to each other at the south end, a small roundabout ("óvalo") turns the
+// flow at the NW corner, a curved loop-back ("Trocha") turns it again at the NE corner, and both
+// parking bays sit kerb-side along the west avenue in between. North is -Z throughout, same
+// convention as every other course; right-hand traffic, so every corner here is a LEFT turn (the
+// loop is driven counter-clockwise, same rotational sense as the óvalo's own S->E->N->W circulation
+// order — see world/roundabout.ts's comment on ARMS).
+//
+// Coordinates below are derived from a handful of named constants rather than hand-picked
+// literals, so the geometry stays internally consistent (every straight run's own-lane line meets
+// the next bend's own arc exactly, tangent to tangent) even though the numbers themselves are a
+// judgment call (course size, bend radii) with no exact real-world scale to match.
+
+const OWN = CONFIG.LANE_WIDTH / 2; // 1.75 — a course's own-lane centreline offset from whichever road centreline it's built on
+const BEND_R = 25; // turn radius for the two new bends — same order of magnitude as the óvalo's own ring (RB.outerR=20, RB.laneR=18.25)
+
+const entrance = { x: OWN, z: 90 };
+const crossingZ = entrance.z - 12;
+const stopLineZ = entrance.z - 40;
+
+const rightAveX = 0; // the entrance avenue's centreline; own (northbound) lane sits at rightAveX..+LANE_WIDTH, kerb on the +X side
+const trochaStartZ = -140; // where the straight right avenue ends and the Trocha bend begins
+
+// Trocha bend (NE corner): a left turn, north-heading -> west-heading. Its pivot sits BEND_R due
+// west of the right avenue's own lane at the point the straight run ends (see world/curves.ts's
+// arcPoints — theta is the usual world atan2 angle, same convention as ringInfo/ARMS elsewhere).
+const trocha = { cx: rightAveX + OWN - BEND_R, cz: trochaStartZ, r: BEND_R, theta0: 0, theta1: -Math.PI / 2 };
+
+const topAveOwnZ = trocha.cz - BEND_R; // where the bend hands off to the top avenue's own (westbound) lane
+const topAveZ = topAveOwnZ + OWN; // the top avenue's own centreline (its own lane sits OWN north of it)
+
+const ovaloCx = -170; // the óvalo's centre x; its centre z sits on the top avenue's own centreline
+const armTipE = ovaloCx + RB.outerR + 50; // the óvalo's short E-arm stub, before a separate outer street continues to the Trocha bend
+const speedGateX = -70; // partway down the speed-demonstration straight between the Trocha bend and the óvalo
+
+const leftAveX = ovaloCx; // the óvalo's S arm shares the left avenue's centreline
+const armTipS = topAveZ + RB.outerR + 50; // the óvalo's short S-arm stub, before a separate outer street continues to the SW bend
+const leftAveBendStartZ = 65; // where the straight left avenue ends and the SW bend begins
+
+// The left avenue is travelled southbound, so its own lane — and the kerb the parking bays sit
+// against — is on the -X side of its centreline, mirroring the right avenue's +X convention.
+const leftKerb = leftAveX - CONFIG.LANE_WIDTH;
+const parallel = { frontZ: -10, rearZ: -2.5 };
+// angle's sign is flipped vs. a +X-kerb bay (the diagonal step's shared grading math in
+// systems/examCourse.ts always applies "-angle", so flipping the sign here — instead of touching
+// that formula — is what actually mirrors the bay onto this kerb).
+const diagonal = { cz: 25, angle: -Math.PI / 4, pitch: 4.6 };
+const uturnZ = 50;
+
+// SW bend: a left turn, south-heading -> east-heading, funnelling back toward the exit.
+const swA = { x: leftAveX - OWN, z: leftAveBendStartZ };
+const swBend = { cx: swA.x + BEND_R, cz: swA.z, r: BEND_R, theta0: -Math.PI, theta1: -1.5 * Math.PI };
+
+const bottomAveOwnZ = swBend.cz + BEND_R; // where the bend hands off to the bottom avenue's own (eastbound) lane
+const bottomAveZ = bottomAveOwnZ - OWN; // the bottom avenue's own centreline (its own lane sits OWN south of it)
+const finishX = -6; // the bottom avenue's dead end, near (but not on top of) the entrance
+
 export const COURSE = {
-  ownLane: 1.75,
-  kerbX: 3.5,      // this course runs a single lane each way, so the kerb IS the road's own edge
-  start: { x: 1.75, z: 82 },
-  stopLineZ: 42,
-  parallel: { frontZ: -5, rearZ: 2.5 },      // the framing cars' reference bumpers (see parkingLot.ts's comment on the same idea)
-  ring: { cx: 0, cz: -90 },
-  speedGateZ: -180,
-  diagonal: { cz: -215, angle: Math.PI / 4, pitch: 4.6 },
-  uturnZ: -250,
-  finishZ: -282,
+  own: OWN,
+  entrance, crossingZ, stopLineZ,
+  rightAveX, trocha, topAveOwnZ,
+  topAveZ, speedGateX,
+  ovalo: { cx: ovaloCx, cz: topAveZ },
+  leftAveX, leftKerb,
+  parallel, diagonal, uturnZ,
+  swBend, bottomAveZ, bottomAveOwnZ,
+  salida: { x: finishX, z: bottomAveOwnZ },
 };
 
-function buildFinishGate(x: number, z: number): void {
-  [-4.5, 4.5].forEach(dx => {
+function buildFinishGate(orientation: 'x' | 'z', x: number, z: number): void {
+  [-4.5, 4.5].forEach(d => {
     const post = box(0.3, 3.6, 0.3, 0x444444);
-    post.position.set(x + dx, 1.8, z);
+    if (orientation === 'z') post.position.set(x + d, 1.8, z); else post.position.set(x, 1.8, z + d);
     scene.add(post);
   });
-  const banner = box(9.6, 0.8, 0.15, 0x2ecc71);
+  const banner = orientation === 'z' ? box(9.6, 0.8, 0.15, 0x2ecc71) : box(0.15, 0.8, 9.6, 0x2ecc71);
   banner.position.set(x, 3.6, z);
   scene.add(banner);
 }
 
+// Pavement + drivable-width curb colliders for a single-lane bend (Trocha, the SW bend): a ring
+// sector exactly one lane wide, centred on the bend's own arc radius, so it lines up seam-to-seam
+// with the straight avenue's own-lane strip at each end (verified by construction: both ends sit
+// exactly `r` from the pivot, same as the straight run's own-lane line).
+function buildBend(bend: { cx: number; cz: number; r: number; theta0: number; theta1: number }): void {
+  const { cx, cz, r, theta0, theta1 } = bend;
+  annulus(cx, cz, r - OWN, r + OWN, -0.05, 0.097, 0x3a3a3f);
+  arcCurbColliders(cx, cz, r - OWN - 0.3, 0.3, theta0, theta1);
+  arcCurbColliders(cx, cz, r + OWN + 0.3, 0.3, theta0, theta1);
+}
+
+const SCATTER_SIDE = CONFIG.LANE_WIDTH * 2 + 3 + 40;
+
+function scatterAlongZ(x: number, zA: number, zB: number, skip?: { z: number; r: number }): void {
+  const lo = Math.min(zA, zB), hi = Math.max(zA, zB);
+  for (let z = lo + 40; z < hi; z += 80) {
+    if (skip && Math.abs(z - skip.z) < skip.r) continue;
+    scatterBlockBuildings(x + SCATTER_SIDE, z, 80, 12, [2, 4]);
+    scatterBlockBuildings(x - SCATTER_SIDE, z, 80, 12, [2, 4]);
+  }
+}
+
+function scatterAlongX(z: number, xA: number, xB: number, skip?: { x: number; r: number }): void {
+  const lo = Math.min(xA, xB), hi = Math.max(xA, xB);
+  for (let x = lo + 40; x < hi; x += 80) {
+    if (skip && Math.abs(x - skip.x) < skip.r) continue;
+    scatterBlockBuildings(x, z + SCATTER_SIDE, 80, 12, [2, 4]);
+    scatterBlockBuildings(x, z - SCATTER_SIDE, 80, 12, [2, 4]);
+  }
+}
+
 export function buildExamCourse(): Spawn {
   setLaneLayout(1);
-  const { start, stopLineZ, parallel, ring, diagonal, uturnZ, finishZ, kerbX, ownLane } = COURSE;
 
-  buildGround(ring.cx, (start.z + finishZ) / 2, 260, start.z - finishZ + 200);
+  const minX = Math.min(ovaloCx, finishX) - 60, maxX = Math.max(rightAveX, entrance.x) + 60;
+  const minZ = Math.min(trochaStartZ, topAveZ) - 60, maxZ = Math.max(entrance.z, leftAveBendStartZ) + 60;
+  buildGround((minX + maxX) / 2, (minZ + maxZ) / 2, maxX - minX + 120, maxZ - minZ + 120);
 
-  // ---- the roundabout first, so its arms' actual tip coordinates are known below
+  // ---- the óvalo first, so RB.outerR/its arm tips are known below; only E (in, from the top
+  // avenue) and S (out, to the left avenue) run long — N and W are capped stubs, same convention
+  // world/roundabout.ts's own arm-capping pattern uses elsewhere.
   buildRoundabout({ laneCountPerSide: 1, zebras: 'off' }, {
-    cx: ring.cx, cz: ring.cz, ground: false, buildings: false,
-    armLengths: { S: 50, N: 40, E: 40, W: 40 },
+    cx: ovaloCx, cz: topAveZ, ground: false, buildings: true,
+    armLengths: { E: 50, S: 50, N: 40, W: 40 },
   });
-  barrier(ring.cx + RB.outerR + 40, ring.cz, 2, 10); // cap the E stub
-  barrier(ring.cx - RB.outerR - 40, ring.cz, 2, 10); // cap the W stub
+  barrier(ovaloCx - (RB.outerR + 40), topAveZ, 2, 10); // cap the unused W arm
+  barrier(ovaloCx, topAveZ - (RB.outerR + 40), 10, 2); // cap the unused N arm
 
-  const avenue1End = ring.cz + RB.outerR + 50; // the S arm's own outer tip
-  buildStreet('z', 0, avenue1End, start.z, 1, []);
-  const avenue2Start = ring.cz - RB.outerR - 40; // the N arm's own outer tip
-  buildStreet('z', 0, finishZ - 10, avenue2Start, 1, []);
+  // ---- the two new bends
+  buildBend(trocha);
+  buildBend(swBend);
 
-  barrier(0, start.z + 3, 22, 2);
-  barrier(0, finishZ - 10, 22, 2);
+  // ---- the four straight avenues
+  buildStreet('z', rightAveX, trochaStartZ, entrance.z + 6, 1, []); // entrance -> Trocha bend
+  buildStreet('x', topAveZ, armTipE, trocha.cx, 1, []); // Trocha bend -> óvalo's E-arm stub
+  buildStreet('z', leftAveX, armTipS, leftAveBendStartZ, 1, []); // óvalo's S-arm stub -> SW bend
+  buildStreet('x', bottomAveZ, swBend.cx, finishX + 10, 1, []); // SW bend -> finish
 
-  // ---- stop-sign intersection
+  barrier(rightAveX, entrance.z + 6, 9, 2); // behind the entrance
+  barrier(finishX + 10, bottomAveZ, 2, 9); // past the finish gate
+
+  // ---- stop-sign intersection, right after the entrance
   const stopSign = buildStopSign();
-  stopSign.position.set(kerbX + 1.2, 0, stopLineZ + 1.5); // just before the line (approached from larger z)
+  stopSign.position.set(rightAveX + CONFIG.LANE_WIDTH + 1.2, 0, stopLineZ + 1.5); // just before the line (approached from larger z)
   scene.add(stopSign);
-  const stopLine = box(kerbX, 0.02, 0.35, 0xffffff);
-  stopLine.position.set(kerbX / 2, 0.113, stopLineZ);
+  const stopLine = box(CONFIG.LANE_WIDTH, 0.02, 0.35, 0xffffff);
+  stopLine.position.set(rightAveX + OWN, 0.113, stopLineZ);
   scene.add(stopLine);
 
-  // ---- parallel parking, tucked against the kerb of avenue 1 (no separate parking lane: this
-  // is a narrow one-lane street, so you park in the lane itself, same as many streets in Lima)
-  const carX = kerbX - 0.3 - 0.95;
-  parkedCar(carX, parallel.frontZ - 2.3, 0);
-  parkedCar(carX, parallel.rearZ + 2.3, 0);
-  paint(carX + 0.9, parallel.frontZ + 0.1, kerbX - 1.3, 0.12);
-  paint(carX + 0.9, parallel.rearZ - 0.1, kerbX - 1.3, 0.12);
-  paintLetter(carX + 0.9, (parallel.frontZ + parallel.rearZ) / 2, 1.4);
-  targetZone(ownLane - 0.1, kerbX, parallel.frontZ + 0.15, parallel.rearZ - 0.15);
-
-  const noParking = buildSignPost([{ plate: buildNoParkingPlate(), y: 2.2 }], 2.6);
-  noParking.position.set(kerbX + 1.2, 0, parallel.rearZ + 14);
-  scene.add(noParking);
-
-  // ---- pedestrian crossing right after the start, its own warning sign (item 6's diamond plate)
+  // ---- pedestrian crossing right after the entrance, its own warning sign
   resetCrosswalks();
-  addCrosswalk({ cx: 0, cz: start.z - 12, axis: 'x', roadHalf: kerbX, walkHalf: kerbX + 2.7, build: true });
+  addCrosswalk({ cx: rightAveX, cz: crossingZ, axis: 'x', roadHalf: CONFIG.LANE_WIDTH, walkHalf: CONFIG.LANE_WIDTH + 2.7, build: true });
   flushZebras();
   const pedSign = buildSignPost([{ plate: buildPedestrianWarningPlate(), y: 2.3 }], 2.8);
-  pedSign.position.set(kerbX + 1.2, 0, start.z - 6); // before the crossing (approached from larger z)
+  pedSign.position.set(rightAveX + CONFIG.LANE_WIDTH + 1.2, 0, entrance.z - 6); // before the crossing (approached from larger z)
   scene.add(pedSign);
 
-  // ---- diagonal parking, tucked against the kerb of avenue 2 the same way
+  // ---- parallel parking, tucked against the left avenue's kerb (no separate parking lane: a
+  // narrow one-lane street, same as world/examCourse.ts's original right-avenue convention, just
+  // mirrored onto this kerb)
+  const parkCarX = leftKerb + 1.25;
+  parkedCar(parkCarX, parallel.frontZ - 2.3, 0);
+  parkedCar(parkCarX, parallel.rearZ + 2.3, 0);
+  paint(parkCarX - 0.9, parallel.frontZ + 0.1, 2.2, 0.12);
+  paint(parkCarX - 0.9, parallel.rearZ - 0.1, 2.2, 0.12);
+  paintLetter(parkCarX - 0.9, (parallel.frontZ + parallel.rearZ) / 2, 1.4);
+  targetZone(leftKerb, leftAveX - OWN + 0.1, parallel.frontZ + 0.15, parallel.rearZ - 0.15);
+
+  const noParking = buildSignPost([{ plate: buildNoParkingPlate(), y: 2.2 }], 2.6);
+  noParking.position.set(leftKerb - 1.2, 0, parallel.rearZ + 14);
+  scene.add(noParking);
+
+  // ---- diagonal parking, tucked against the same kerb further along. Unlike the original
+  // single-corridor course (a northbound lane, baseline yaw 0), this lane runs southbound
+  // (baseline yaw PI), so the bay's own facing is PI + angle, not the original's bare -angle —
+  // systems/examCourse.ts and systems/examAutopilot.ts use this exact same expression to stay
+  // in sync with however the cars/paint are actually oriented here.
   const { cz: diagCz, angle: bayAngle, pitch } = diagonal;
-  const diagCx = kerbX - 1.0;
-  parkedCar(diagCx, diagCz - pitch, -bayAngle);
-  parkedCar(diagCx, diagCz + pitch, -bayAngle);
-  paintAngled(diagCx, diagCz - pitch / 2, 5.2, 0.14, -bayAngle);
-  paintAngled(diagCx, diagCz + pitch / 2, 5.2, 0.14, -bayAngle);
-  targetZoneAngled(diagCx, diagCz, 2.6, pitch - 0.4, -bayAngle);
+  const diagCx = leftKerb + 1.0;
+  const diagYaw = Math.PI + bayAngle;
+  parkedCar(diagCx, diagCz - pitch, diagYaw);
+  parkedCar(diagCx, diagCz + pitch, diagYaw);
+  paintAngled(diagCx, diagCz - pitch / 2, 5.2, 0.14, diagYaw);
+  paintAngled(diagCx, diagCz + pitch / 2, 5.2, 0.14, diagYaw);
+  targetZoneAngled(diagCx, diagCz, 2.6, pitch - 0.4, diagYaw);
 
   // ---- U-turn point, same sign the tutorial course uses
   const uturnSign = buildSignPost([{ plate: buildUTurnPermittedPlate(), y: 2.3 }], 2.7);
-  uturnSign.position.set(kerbX + 1.2, 0, uturnZ + 6);
+  uturnSign.position.set(leftKerb - 1.2, 0, uturnZ + 6);
   scene.add(uturnSign);
 
-  buildFinishGate(0, finishZ);
+  buildFinishGate('x', finishX, bottomAveOwnZ);
 
-  scatterBlockBuildings(kerbX + 3 + 40, (start.z + finishZ) / 2, start.z - finishZ + 40, 10, [6, 12]);
-  scatterBlockBuildings(-kerbX - 3 - 40, (start.z + finishZ) / 2, start.z - finishZ + 40, 10, [6, 12]);
+  // filler skyline along each straight avenue, skipping the bends/óvalo's own quadrant filler
+  scatterAlongZ(rightAveX, trochaStartZ, entrance.z, { z: trochaStartZ, r: 35 });
+  scatterAlongX(topAveZ, armTipE, trocha.cx, { x: trocha.cx, r: 35 });
+  scatterAlongZ(leftAveX, armTipS, leftAveBendStartZ, { z: leftAveBendStartZ, r: 35 });
+  scatterAlongX(bottomAveZ, swBend.cx, finishX, { x: swBend.cx, r: 35 });
 
-  return { x: start.x, y: 1.2, z: start.z, rotY: 0 };
+  return { x: entrance.x, y: 1.2, z: entrance.z, rotY: 0 };
 }
