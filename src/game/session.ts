@@ -111,6 +111,18 @@ function run(scenario: ResolvedScenario, layout: LayoutRuntime, hudRoot: HTMLEle
     else if (action === 'restart') reloadAndRestart(scenario.id);
   });
 
+  // Dragging the window to another monitor (often driven by a different GPU, e.g. a laptop's
+  // integrated vs. dedicated adapter) can make the browser drop the WebGL context outright.
+  // three.js then quietly turns render() into a no-op instead of drawing anything, so the canvas
+  // goes blank and the page's own sky-coloured background (html/body, see abstracts/_variables.scss)
+  // shows through it — "the scenario replaced by a blue sky screen". Nothing here tracks enough
+  // state to safely resume a lost context (see app/autostart.ts's own note on why a restart is a
+  // full reload), so treat it the same as pressing restart instead of leaving the player stranded.
+  canvas.addEventListener('webglcontextlost', (e) => {
+    e.preventDefault();
+    reloadAndRestart(scenario.id);
+  });
+
   const animate = (): void => {
     frame = requestAnimationFrame(animate);
     const rawDt = clock.getDelta();
@@ -185,13 +197,25 @@ function run(scenario: ResolvedScenario, layout: LayoutRuntime, hudRoot: HTMLEle
 
   // The game is paused for as long as its window is not the one in use (another window or tab in front, the
   // browser's own UI focused). Coming back resumes by itself.
-  window.addEventListener('blur', () => { requestPause('window'); showPauseDialog(); });
-  window.addEventListener('focus', () => { if (!document.hidden) { releasePause('window'); hidePauseDialog(); } });
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden || !document.hasFocus()) { requestPause('window'); showPauseDialog(); }
+  //
+  // 'blur', 'focus' and 'visibilitychange' all react to the same focus change, and browsers do not agree on
+  // firing just one of them per transition — often two fire for a single alt-tab. Calling request/releasePause
+  // straight from each listener let those duplicates stack the 'window' reason beyond 1 with no matching extra
+  // release, so it could never reach 0 again: the game stayed paused forever and the dialog, already open,
+  // never got a further call to show it. `windowPaused` makes the transition idempotent instead: each listener
+  // only acts when the desired state actually differs from the last one applied.
+  let windowPaused = false;
+  const syncWindowPause = (): void => {
+    const shouldPause = document.hidden || !document.hasFocus();
+    if (shouldPause === windowPaused) return;
+    windowPaused = shouldPause;
+    if (shouldPause) { requestPause('window'); showPauseDialog(); }
     else { releasePause('window'); hidePauseDialog(); }
-  });
+  };
+  window.addEventListener('blur', syncWindowPause);
+  window.addEventListener('focus', syncWindowPause);
+  document.addEventListener('visibilitychange', syncWindowPause);
 
   animate();
-  if (document.hidden || !document.hasFocus()) { requestPause('window'); showPauseDialog(); } // started while another window had the focus
+  syncWindowPause(); // started while another window had the focus
 }

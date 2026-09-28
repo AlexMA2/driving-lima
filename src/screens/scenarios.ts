@@ -1,6 +1,6 @@
 import '../styles/screens/scenarios.scss';
 import { SCENARIOS, PARKING_SIZES, type ScenarioId } from '../config';
-import { getScenarioSettings } from '../state/settings';
+import { getScenarioSettings, hasScenarioConfig } from '../state/settings';
 import { goTo, type Screen } from '../app/router';
 import { prefetchWhenIdle } from '../app/prefetch';
 import { loadGame, loadSession } from '../app/screens';
@@ -111,6 +111,7 @@ export const screen: Screen<'scenarios'> = {
       const barEl = ensureBar();
       barEl.querySelector('#scenarioSelectedName')!.textContent = SCENARIOS[id].label;
       refreshSummary();
+      barEl.querySelector<HTMLButtonElement>('#scenarioConfigBtn')!.hidden = !hasScenarioConfig(SCENARIOS[id]);
       barEl.classList.add('show');
     }
 

@@ -9,7 +9,10 @@ import { refreshKbds } from '../state/keybindings';
 export function tutorialPanelHtml(kind: string): string {
   return `
   <div id="tutorialPanel">
-    <div id="tutMeta"><span id="tutStepNo"></span><span id="tutKind">${kind}</span></div>
+    <div id="tutMeta">
+      <span id="tutStepNo"></span><span id="tutKind">${kind}</span>
+      <button id="tutCloseBtn" type="button" title="Ocultar la guía">&times;</button>
+    </div>
     <h3 id="tutTitle"></h3>
     <p id="tutText"></p>
     <p id="tutHint"></p>
@@ -18,6 +21,7 @@ export function tutorialPanelHtml(kind: string): string {
 }
 
 interface PanelElements {
+  panel: HTMLElement;
   stepNo: HTMLElement;
   title: HTMLElement;
   text: HTMLElement;
@@ -29,8 +33,10 @@ let els: PanelElements | null = null;
 
 export function bindTutorialPanel(root: ParentNode): void {
   const get = (id: string): HTMLElement | null => root.querySelector<HTMLElement>(`#${id}`);
+  const panel = get('tutorialPanel');
   const stepNo = get('tutStepNo'), title = get('tutTitle'), text = get('tutText'), hint = get('tutHint'), fill = get('tutProgressFill');
-  els = stepNo && title && text && hint && fill ? { stepNo, title, text, hint, fill } : null;
+  els = panel && stepNo && title && text && hint && fill ? { panel, stepNo, title, text, hint, fill } : null;
+  get('tutCloseBtn')?.addEventListener('click', () => els?.panel.classList.add('tutorialPanel--closed'));
 }
 
 export interface StepView {

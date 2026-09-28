@@ -5,11 +5,17 @@
 
 const IDLE_SECONDS = 3;
 const MOVING_KMH = 1;
+// The car spawns slightly above the road and drops onto its suspension (see entities/player.ts,
+// CHASSIS_REST_Y): that fall briefly pushes chassisBody.velocity well past MOVING_KMH, which used
+// to count as "the player drove off" before they had even seen the game — this grace window lets
+// the drop settle before the idle watch (and its 3s countdown) starts.
+const SETTLE_SECONDS = 0.6;
 
 type State = 'waiting' | 'shown' | 'done';
 
 let state: State = 'done';
 let idle = 0;
+let settling = 0;
 let hint: HTMLElement | null = null;
 let hud: HTMLElement | null = null;
 
@@ -17,6 +23,7 @@ export function bindIdleHint(root: ParentNode): void {
   hint = root.querySelector<HTMLElement>('#helpHint');
   hud = root.querySelector<HTMLElement>('#hud');
   idle = 0;
+  settling = 0;
   state = hint ? 'waiting' : 'done';
   root.querySelector('#helpBtn')?.addEventListener('click', () => finish());
 }
@@ -24,6 +31,7 @@ export function bindIdleHint(root: ParentNode): void {
 // Called every frame with the game's own dt (a paused game does not count) and the car's speed.
 export function updateIdleHint(dt: number, speedKmh: number): void {
   if (state === 'done') return;
+  if (settling < SETTLE_SECONDS) { settling += dt; return; }
   if (speedKmh > MOVING_KMH) { finish(); return; }
   if (state === 'shown') return;
   idle += dt;

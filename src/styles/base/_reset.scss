@@ -19,3 +19,30 @@ canvas {
   display: block;
   touch-action: none;
 }
+
+// ---- Custom scrollbar, applied to every scrollable element in the app ----
+* {
+  scrollbar-width: thin;
+  scrollbar-color: tint(0.28) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: tint(0.28);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+
+  &:hover {
+    background: tint(0.45);
+    background-clip: padding-box;
+  }
+}

@@ -63,6 +63,26 @@ interface Step {
   text: string;
   hint: () => string;
   done: () => boolean;
+  enter?: () => void;
+}
+
+// The sign shown the moment the car is judged correctly parked (a lenient threshold — see each
+// mode's `parked` check above — not a pixel-perfect fit), right before the guide moves on to the
+// last step: pulling back out. Also resets the exit dwell timer, so leaving has to happen after
+// this point rather than before the player ever parked.
+function confirmParked(): void {
+  showToast('✔ Correctamente estacionado', 'Ahora sal del espacio con cuidado.', 'good');
+  exitFor = 0;
+  if (PARKING.zone) (PARKING.zone.material as THREE.MeshBasicMaterial).opacity = 0.45;
+}
+
+// Whether the car has pulled fully back out of the slot/bay into the lane or aisle — the last
+// step of every mode, so leaving is part of the exercise and not just parking.
+function exitMetrics(): boolean {
+  const P = PARKING;
+  return P.mode === 'parallel'
+    ? maxOf(pose.corners, 'x') < P.laneEdgeX + 0.1
+    : maxOf(pose.corners, 'x') < P.aisleX + 0.15;
 }
 
 function parallelMetrics(): Metrics & { gap: number; angle: number } {

@@ -138,6 +138,12 @@ export const SCENARIO_FIELDS: ScenarioField[] = [
   },
 ];
 
+// Whether a scenario has anything to configure at all (some scripted layouts, like the tutorial
+// or the reverse-parking course, expose no field here — their CONFIGURAR button should be hidden).
+export function hasScenarioConfig(scenario: ScenarioDef): boolean {
+  return SCENARIO_FIELDS.some(f => !f.show || f.show(scenario));
+}
+
 // ---- Performance settings ----
 
 export type PerformanceSettings = {
