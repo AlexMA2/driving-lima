@@ -145,6 +145,52 @@ export function barrier(cx: number, cz: number, width: number, depth: number): v
   world.addBody(body);
 }
 
+// A flat ring (or a sector of one) centred on (cx, cz), extruded as a prism spanning y in
+// [yBottom, yTop]. `theta0`/`theta1` are world angles (increasing); omit both for a full annulus.
+export function annulus(cx: number, cz: number, rIn: number, rOut: number, yBottom: number, yTop: number, color: THREE.ColorRepresentation, theta0?: number, theta1?: number, opts: { roughness?: number; cast?: boolean } = {}): THREE.Mesh {
+  const shape = new THREE.Shape();
+  if (theta0 === undefined || theta1 === undefined) {
+    shape.absarc(0, 0, rOut, 0, Math.PI * 2, false);
+    const hole = new THREE.Path();
+    hole.absarc(0, 0, rIn, 0, Math.PI * 2, true);
+    shape.holes.push(hole);
+  } else {
+    // Shape space is X/Y; rotating the extrusion onto the ground maps shape angle phi to world -theta.
+    const p0 = -theta1, p1 = -theta0;
+    shape.moveTo(rOut * Math.cos(p0), rOut * Math.sin(p0));
+    shape.absarc(0, 0, rOut, p0, p1, false);
+    shape.lineTo(rIn * Math.cos(p1), rIn * Math.sin(p1));
+    shape.absarc(0, 0, rIn, p1, p0, true);
+    shape.closePath();
+  }
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: yTop - yBottom, bevelEnabled: false, curveSegments: 40 });
+  geo.rotateX(-Math.PI / 2);
+  geo.translate(cx, yBottom, cz);
+  const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, roughness: opts.roughness ?? 0.9 }));
+  mesh.receiveShadow = true; mesh.castShadow = !!opts.cast;
+  scene.add(mesh);
+  return mesh;
+}
+
+// Curved wall of tangent boxes standing on an arc centred on (cx, cz) — the cheap way to give a
+// curb a real collider. No collision response (see buildStreet's own curbBody comment): it only
+// detects the hit for the ticket in systems/rules.ts, the car drives up and over it.
+export function arcCurbColliders(cx: number, cz: number, radius: number, thickness: number, theta0: number, theta1: number): void {
+  const steps = Math.max(1, Math.ceil((theta1 - theta0) / 0.16));
+  const dTheta = (theta1 - theta0) / steps;
+  for (let i = 0; i < steps; i++) {
+    const th = theta0 + dTheta * (i + 0.5);
+    const chord = 2 * radius * Math.sin(dTheta / 2) + 0.6;
+    const body = new CANNON.Body({ mass: 0, material: propMaterial });
+    body.addShape(new CANNON.Box(new CANNON.Vec3(chord / 2, 1, thickness / 2)));
+    body.position.set(cx + radius * Math.cos(th), 0.05, cz + radius * Math.sin(th));
+    body.quaternion.setFromEuler(0, -th - Math.PI / 2, 0);
+    body.userData = { isPenalized: false, isStatic: true, isCurb: true };
+    body.collisionResponse = false;
+    world.addBody(body);
+  }
+}
+
 // Paints a traffic-light pole's three lamps for the given state ('RED' | 'YELLOW' | 'GREEN').
 export function updateLightMesh(L: TrafficLightLamps, state: LightState): void {
   L.red.material.emissive.set(state === 'RED' ? 0xff0000 : 0x000000);

@@ -6,7 +6,7 @@ import { scene } from '../core/scene';
 import { world, propMaterial } from '../core/physics';
 import { box, cyl } from '../assets/primitives';
 import { buildSignPost, buildYieldPlate } from '../assets/props';
-import { buildGround, buildStreet, scatterBlockBuildings } from './streetKit';
+import { buildGround, buildStreet, scatterBlockBuildings, annulus, arcCurbColliders } from './streetKit';
 import { resetCrosswalks, addCrosswalk, includeCandidate, flushZebras } from './crosswalks';
 import type { Amount } from '../state/settings';
 
@@ -180,52 +180,6 @@ export function sampleRoute(route: Route, s: number, out: RouteSample = { x: 0, 
 
 // ---------------------------------------------------------------- geometry
 
-// A flat ring (or a sector of one) as an extruded prism spanning y in [yBottom, yTop].
-// `theta0`/`theta1` are world angles (increasing); omit both for a full annulus.
-function annulus(rIn: number, rOut: number, yBottom: number, yTop: number, color: THREE.ColorRepresentation, theta0?: number, theta1?: number, opts: { roughness?: number; cast?: boolean } = {}): THREE.Mesh {
-  const shape = new THREE.Shape();
-  if (theta0 === undefined || theta1 === undefined) {
-    shape.absarc(0, 0, rOut, 0, TWO_PI, false);
-    const hole = new THREE.Path();
-    hole.absarc(0, 0, rIn, 0, TWO_PI, true);
-    shape.holes.push(hole);
-  } else {
-    // Shape space is X/Y; rotating the extrusion onto the ground maps shape angle phi to world -theta.
-    const p0 = -theta1, p1 = -theta0;
-    shape.moveTo(rOut * Math.cos(p0), rOut * Math.sin(p0));
-    shape.absarc(0, 0, rOut, p0, p1, false);
-    shape.lineTo(rIn * Math.cos(p1), rIn * Math.sin(p1));
-    shape.absarc(0, 0, rIn, p1, p0, true);
-    shape.closePath();
-  }
-  const geo = new THREE.ExtrudeGeometry(shape, { depth: yTop - yBottom, bevelEnabled: false, curveSegments: 40 });
-  geo.rotateX(-Math.PI / 2);
-  geo.translate(RB.cx, yBottom, RB.cz);
-  const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, roughness: opts.roughness ?? 0.9 }));
-  mesh.receiveShadow = true; mesh.castShadow = !!opts.cast;
-  scene.add(mesh);
-  return mesh;
-}
-
-// Curved wall of tangent boxes standing on an arc — the cheap way to give a curb a real collider.
-// No collision response (see world/road.ts's curbBody comment): it only detects the hit for the
-// ticket in systems/rules.ts, the car drives up and over it.
-function arcCurbColliders(radius: number, thickness: number, theta0: number, theta1: number): void {
-  const steps = Math.max(1, Math.ceil((theta1 - theta0) / 0.16));
-  const dTheta = (theta1 - theta0) / steps;
-  for (let i = 0; i < steps; i++) {
-    const th = theta0 + dTheta * (i + 0.5);
-    const chord = 2 * radius * Math.sin(dTheta / 2) + 0.6;
-    const body = new CANNON.Body({ mass: 0, material: propMaterial });
-    body.addShape(new CANNON.Box(new CANNON.Vec3(chord / 2, 1, thickness / 2)));
-    body.position.set(RB.cx + radius * Math.cos(th), 0.05, RB.cz + radius * Math.sin(th));
-    body.quaternion.setFromEuler(0, -th - Math.PI / 2, 0);
-    body.userData = { isPenalized: false, isStatic: true, isCurb: true };
-    body.collisionResponse = false;
-    world.addBody(body);
-  }
-}
-
 function buildTree(x: number, z: number, scale: number): void {
   const g = new THREE.Group();
   const trunk = cyl(0.25 * scale, 0.32 * scale, 2.2 * scale, 0x6b4a2b, 6); trunk.position.y = 1.1 * scale;
@@ -349,7 +303,7 @@ export function buildRoundabout(
   }
 
   // ring asphalt (top face just under the arms' 0.10 so the overlapping slabs never z-fight)
-  annulus(RB.innerR, RB.outerR, -0.05, 0.097, 0x3a3a3f);
+  annulus(RB.cx, RB.cz, RB.innerR, RB.outerR, -0.05, 0.097, 0x3a3a3f);
   buildRingMarkings();
   buildIsland();
 
@@ -368,8 +322,8 @@ export function buildRoundabout(
   const gap = Math.asin(MOUTH_HALF / (RB.outerR + CONFIG.SIDEWALK_WIDTH / 2));
   const sectors = [[-Math.PI, -Math.PI / 2], [-Math.PI / 2, 0], [0, Math.PI / 2], [Math.PI / 2, Math.PI]]; // between neighbouring arms
   sectors.forEach(([a0, a1]) => {
-    annulus(RB.outerR, RB.outerR + CONFIG.SIDEWALK_WIDTH, -0.04, 0.14, 0xb9b6ad, a0 + gap, a1 - gap);
-    arcCurbColliders(RB.outerR + CONFIG.SIDEWALK_WIDTH / 2, CONFIG.SIDEWALK_WIDTH, a0 + gap, a1 - gap);
+    annulus(RB.cx, RB.cz, RB.outerR, RB.outerR + CONFIG.SIDEWALK_WIDTH, -0.04, 0.14, 0xb9b6ad, a0 + gap, a1 - gap);
+    arcCurbColliders(RB.cx, RB.cz, RB.outerR + CONFIG.SIDEWALK_WIDTH / 2, CONFIG.SIDEWALK_WIDTH, a0 + gap, a1 - gap);
   });
 
   // pedestrian crossings on each arm, near the ring and farther out
