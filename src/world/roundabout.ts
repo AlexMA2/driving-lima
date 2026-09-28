@@ -8,6 +8,7 @@ import { box, cyl } from '../assets/primitives';
 import { buildSignPost, buildYieldPlate } from '../assets/props';
 import { buildGround, buildStreet, scatterBlockBuildings, annulus, arcCurbColliders } from './streetKit';
 import { resetCrosswalks, addCrosswalk, includeCandidate, flushZebras } from './crosswalks';
+import { bezier, buildPathFromPoints, type Pt, type Path } from './curves';
 import type { Amount } from '../state/settings';
 
 // "Rotondas" scenario: one central roundabout with four arms (S, E, N, W). Peru drives on the
@@ -56,20 +57,6 @@ export function ringInfo(x: number, z: number): { r: number; theta: number } {
 
 // ---------------------------------------------------------------- routes
 
-interface Pt { x: number; z: number }
-
-function bezier(p0: Pt, p1: Pt, p2: Pt, p3: Pt, n: number): Pt[] {
-  const pts: Pt[] = [];
-  for (let i = 1; i <= n; i++) {
-    const t = i / n, u = 1 - t;
-    pts.push({
-      x: u * u * u * p0.x + 3 * u * u * t * p1.x + 3 * u * t * t * p2.x + t * t * t * p3.x,
-      z: u * u * u * p0.z + 3 * u * u * t * p1.z + 3 * u * t * t * p2.z + t * t * t * p3.z,
-    });
-  }
-  return pts;
-}
-
 function ringPoint(theta: number, r = RB.laneR): Pt {
   return { x: RB.cx + r * Math.cos(theta), z: RB.cz + r * Math.sin(theta) };
 }
@@ -77,13 +64,10 @@ function ringPoint(theta: number, r = RB.laneR): Pt {
 function ringTangent(theta: number): Pt { return { x: Math.sin(theta), z: -Math.cos(theta) }; }
 
 const ENTRY_FLARE = 0.45; // radians of ring the entry/exit curves take to merge in / peel off
-export interface Route {
+export interface Route extends Path {
   id: string;
   entry: ArmId;
   exit: ArmId;
-  pts: Pt[];
-  cum: number[];      // arc length at each point
-  length: number;
   yieldS: number;     // arc length of the yield line
   entryTheta: number;
   exitStartS: number;
@@ -139,8 +123,8 @@ function buildRoute(entryId: ArmId, exitId: ArmId): Route {
     pts.push({ x: RB.cx + ex.ux * d + outRightX * LANE_OFFSET, z: RB.cz + ex.uz * d + outRightZ * LANE_OFFSET });
   }
 
-  const cum = [0];
-  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z));
+  const path = buildPathFromPoints(pts);
+  const { cum } = path;
 
   // the yield line sits just outside the ring's outer edge on the way in
   let yieldS = cum[cum.length - 1];
@@ -149,7 +133,8 @@ function buildRoute(entryId: ArmId, exitId: ArmId): Route {
   }
 
   return {
-    id: `${entryId}>${exitId}`, entry: entryId, exit: exitId, pts, cum, length: cum[cum.length - 1], yieldS, entryTheta: thetaIn,
+    ...path,
+    id: `${entryId}>${exitId}`, entry: entryId, exit: exitId, yieldS, entryTheta: thetaIn,
     exitStartS: cum[exitStartIdx], exitEndS: cum[exitEndIdx], // where a courteous driver's right signal is on
   };
 }
@@ -162,10 +147,10 @@ export function getRoute(entryId: ArmId, exitId: ArmId): Route {
 // Position and unit heading at arc-length `s` along a route (clamped to its ends).
 export interface RouteSample { x: number; z: number; hx: number; hz: number }
 
-export function sampleRoute(route: Route, s: number, out: RouteSample = { x: 0, z: 0, hx: 0, hz: 0 }): RouteSample {
-  const { pts, cum } = route;
+export function sampleRoute(path: Path, s: number, out: RouteSample = { x: 0, z: 0, hx: 0, hz: 0 }): RouteSample {
+  const { pts, cum } = path;
   if (s <= 0) s = 0;
-  if (s >= route.length) s = route.length - 1e-3;
+  if (s >= path.length) s = path.length - 1e-3;
   let lo = 0, hi = cum.length - 1;
   while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (cum[mid] <= s) lo = mid; else hi = mid; }
   const a = pts[lo], b = pts[hi];
