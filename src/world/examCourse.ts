@@ -53,9 +53,24 @@ const leftAveX = ovaloCx; // the óvalo's S arm shares the left avenue's centrel
 const armTipS = topAveZ + RB.outerR + 50; // the óvalo's short S-arm stub, before a separate outer street continues to the SW bend
 const leftAveBendStartZ = 65; // where the straight left avenue ends and the SW bend begins
 
-// The left avenue is travelled southbound, so its own lane — and the kerb the parking bays sit
-// against — is on the -X side of its centreline, mirroring the right avenue's +X convention.
-const leftKerb = leftAveX - CONFIG.LANE_WIDTH;
+// The reference photo's parking area sits on its own island, offset from the main road by an
+// S-curve jog, not directly on the perimeter kerb. Two gentle 60-degree bends (same radius,
+// opposite curvature — a left then a right, same buildBend()/arcPoints() machinery as the two
+// 90-degree corners) shift the road sideways by exactly jogR (the standard "2R(1-cosTheta)"
+// lateral-offset identity, with theta=60deg giving 2R(1-cos60)=R) while ending back on a due-south
+// heading, so the parking row afterward is a plain straight run again, just on a parallel line
+// jogR further into the loop's interior (+X, toward the right avenue) than the through-road.
+const jogR = 15;
+const jogTheta = Math.PI / 3; // 60 degrees
+const jogInStartZ = armTipS + 15; // a short straight lead-in from the óvalo's own stub before jogging
+const jogIn = { cx: leftAveX + jogR, cz: jogInStartZ, r: jogR, theta0: -Math.PI, theta1: -(Math.PI + jogTheta) };
+const jogOutStartZ = jogInStartZ + 2 * jogR * Math.sin(jogTheta);
+const jogOut = { cx: leftAveX, cz: jogOutStartZ, r: jogR, theta0: -jogTheta, theta1: 0 };
+const parkAveX = leftAveX + jogR; // the parking island's own centreline, post-jog
+
+// The parking row is travelled southbound just like the through-road, so its own lane/kerb sit on
+// the same -X-of-centreline convention, just relative to parkAveX instead of leftAveX.
+const parkKerb = parkAveX - CONFIG.LANE_WIDTH;
 const parallel = { frontZ: -10, rearZ: -2.5 };
 // angle's sign is flipped vs. a +X-kerb bay (the diagonal step's shared grading math in
 // systems/examCourse.ts always applies "-angle", so flipping the sign here — instead of touching
@@ -63,8 +78,10 @@ const parallel = { frontZ: -10, rearZ: -2.5 };
 const diagonal = { cz: 25, angle: -Math.PI / 4, pitch: 4.6 };
 const uturnZ = 50;
 
-// SW bend: a left turn, south-heading -> east-heading, funnelling back toward the exit.
-const swA = { x: leftAveX - OWN, z: leftAveBendStartZ };
+// SW bend: a left turn, south-heading -> east-heading, funnelling back toward the exit. It picks
+// up from the parking island's own line (parkAveX), not the original through-road line, since the
+// jog never jogs back — the island's line simply continues straight down to this bend.
+const swA = { x: parkAveX - OWN, z: leftAveBendStartZ };
 const swBend = { cx: swA.x + BEND_R, cz: swA.z, r: BEND_R, theta0: -Math.PI, theta1: -1.5 * Math.PI };
 
 const bottomAveOwnZ = swBend.cz + BEND_R; // where the bend hands off to the bottom avenue's own (eastbound) lane
@@ -77,7 +94,7 @@ export const COURSE = {
   rightAveX, trocha, topAveOwnZ,
   topAveZ, speedGateX,
   ovalo: { cx: ovaloCx, cz: topAveZ },
-  leftAveX, leftKerb,
+  leftAveX, jogIn, jogOut, parkAveX, parkKerb,
   parallel, diagonal, uturnZ,
   swBend, bottomAveZ, bottomAveOwnZ,
   salida: { x: finishX, z: bottomAveOwnZ },
@@ -156,14 +173,17 @@ export function buildExamCourse(): Spawn {
   barrier(ovaloCx - (RB.outerR + 40), topAveZ, 2, 10); // cap the unused W arm
   barrier(ovaloCx, topAveZ - (RB.outerR + 40), 10, 2); // cap the unused N arm
 
-  // ---- the two new bends
+  // ---- the four corner bends, plus the parking island's own S-curve jog
   buildBend(trocha);
   buildBend(swBend);
+  buildBend(jogIn);
+  buildBend(jogOut);
 
   // ---- the four straight avenues
   buildStreet('z', rightAveX, trochaStartZ, entrance.z + 6, 1, []); // entrance -> Trocha bend
   buildStreet('x', topAveZ, armTipE, trocha.cx, 1, []); // Trocha bend -> óvalo's E-arm stub
-  buildStreet('z', leftAveX, armTipS, leftAveBendStartZ, 1, []); // óvalo's S-arm stub -> SW bend
+  buildStreet('z', leftAveX, armTipS, jogInStartZ, 1, []); // óvalo's S-arm stub -> the jog
+  buildStreet('z', parkAveX, jogOutStartZ, leftAveBendStartZ, 1, []); // the jog -> SW bend (parking island's own line)
   buildStreet('x', bottomAveZ, swBend.cx, finishX + 10, 1, []); // SW bend -> finish
 
   barrier(rightAveX, entrance.z + 6, 9, 2); // behind the entrance
@@ -191,19 +211,19 @@ export function buildExamCourse(): Spawn {
   speedSign.rotation.y = -Math.PI / 2; // faces east, toward westbound traffic (same atan2(ux,uz) convention world/roundabout.ts's own arm signs use)
   scene.add(speedSign);
 
-  // ---- parallel parking, tucked against the left avenue's kerb (no separate parking lane: a
-  // narrow one-lane street, same as world/examCourse.ts's original right-avenue convention, just
-  // mirrored onto this kerb)
-  const parkCarX = leftKerb + 1.25;
+  // ---- parallel parking, tucked against the parking island's own kerb (post-jog line) — a narrow
+  // one-lane street, same as world/examCourse.ts's original right-avenue convention, just mirrored
+  // onto this kerb and shifted onto the jogged line instead of the through-road.
+  const parkCarX = parkKerb + 1.25;
   parkedCar(parkCarX, parallel.frontZ - 2.3, 0);
   parkedCar(parkCarX, parallel.rearZ + 2.3, 0);
   paint(parkCarX - 0.9, parallel.frontZ + 0.1, 2.2, 0.12);
   paint(parkCarX - 0.9, parallel.rearZ - 0.1, 2.2, 0.12);
   paintLetter(parkCarX - 0.9, (parallel.frontZ + parallel.rearZ) / 2, 1.4);
-  targetZone(leftKerb, leftAveX - OWN + 0.1, parallel.frontZ + 0.15, parallel.rearZ - 0.15);
+  targetZone(parkKerb, parkAveX - OWN + 0.1, parallel.frontZ + 0.15, parallel.rearZ - 0.15);
 
   const noParking = buildSignPost([{ plate: buildNoParkingPlate(), y: 2.2 }], 2.6);
-  noParking.position.set(leftKerb - 1.2, 0, parallel.rearZ + 8); // before the diagonal lot's own row starts
+  noParking.position.set(parkKerb - 1.2, 0, parallel.rearZ + 8); // before the diagonal lot's own row starts
   scene.add(noParking);
 
   // ---- diagonal parking, tucked against the same kerb further along. Unlike the original
@@ -212,7 +232,7 @@ export function buildExamCourse(): Spawn {
   // systems/examCourse.ts and systems/examAutopilot.ts use this exact same expression to stay
   // in sync with however the cars/paint are actually oriented here.
   const { cz: diagCz, angle: bayAngle, pitch } = diagonal;
-  const diagCx = leftKerb + 1.0;
+  const diagCx = parkKerb + 1.0;
   const diagYaw = Math.PI + bayAngle;
   parkedCar(diagCx, diagCz - pitch, diagYaw);
   parkedCar(diagCx, diagCz + pitch, diagYaw);
@@ -234,15 +254,17 @@ export function buildExamCourse(): Spawn {
 
   // ---- U-turn point, same sign the tutorial course uses
   const uturnSign = buildSignPost([{ plate: buildUTurnPermittedPlate(), y: 2.3 }], 2.7);
-  uturnSign.position.set(leftKerb - 1.2, 0, uturnZ + 6);
+  uturnSign.position.set(parkKerb - 1.2, 0, uturnZ + 6);
   scene.add(uturnSign);
 
   buildFinishGate('x', finishX, bottomAveOwnZ);
 
-  // filler skyline along each straight avenue, skipping the bends/óvalo's own quadrant filler
+  // filler skyline along each straight avenue, skipping the bends/óvalo's own quadrant filler. The
+  // left avenue is scattered in two pieces since the jog puts it at a different X before/after.
   scatterAlongZ(rightAveX, trochaStartZ, entrance.z, { z: trochaStartZ, r: 35 });
   scatterAlongX(topAveZ, armTipE, trocha.cx, { x: trocha.cx, r: 35 });
-  scatterAlongZ(leftAveX, armTipS, leftAveBendStartZ, { z: leftAveBendStartZ, r: 35 });
+  scatterAlongZ(leftAveX, armTipS, jogInStartZ);
+  scatterAlongZ(parkAveX, jogOutStartZ, leftAveBendStartZ, { z: leftAveBendStartZ, r: 35 });
   scatterAlongX(bottomAveZ, swBend.cx, finishX, { x: swBend.cx, r: 35 });
 
   return { x: entrance.x, y: 1.2, z: entrance.z, rotY: 0 };

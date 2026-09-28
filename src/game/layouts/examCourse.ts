@@ -28,10 +28,12 @@ export const layout: LayoutRuntime = {
   steerAssistZone(p) {
     const zones: Array<{ x: number; z: number; r: number }> = [
       { x: RB.cx, z: RB.cz, r: RB.outerR + 30 },
-      { x: COURSE.leftAveX, z: (COURSE.parallel.frontZ + COURSE.parallel.rearZ) / 2, r: 12 },
-      { x: COURSE.leftAveX, z: COURSE.diagonal.cz, r: COURSE.diagonal.pitch + 6 },
+      { x: COURSE.parkAveX, z: (COURSE.parallel.frontZ + COURSE.parallel.rearZ) / 2, r: 12 },
+      { x: COURSE.parkAveX, z: COURSE.diagonal.cz, r: COURSE.diagonal.pitch + 6 },
       { x: COURSE.trocha.cx, z: COURSE.trocha.cz, r: COURSE.trocha.r + 10 },
       { x: COURSE.swBend.cx, z: COURSE.swBend.cz, r: COURSE.swBend.r + 10 },
+      { x: COURSE.jogIn.cx, z: COURSE.jogIn.cz, r: COURSE.jogIn.r + 8 },
+      { x: COURSE.jogOut.cx, z: COURSE.jogOut.cz, r: COURSE.jogOut.r + 8 },
     ];
     return !zones.some(z => Math.hypot(p.x - z.x, p.z - z.z) <= z.r);
   },

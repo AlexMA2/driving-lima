@@ -43,7 +43,7 @@ function nearestArcLength(path: Path, x: number, z: number): number {
 // exact same inSlot/gapOk tests systems/examCourse.ts's direct grading code uses) so the rest of
 // this phase machine can stay a straight port of systems/parkingAutopilot.ts's own parallel-bay
 // logic instead of being re-derived sign by sign.
-const xm = (x: number): number => COURSE.leftAveX - x; // self-inverse (a reflection)
+const xm = (x: number): number => COURSE.parkAveX - x; // self-inverse (a reflection)
 const zm = (z: number): number => -z; // self-inverse
 const thetaLocal = (yaw: number): number => wrap(yaw - Math.PI);
 
@@ -111,7 +111,7 @@ function examDiagonalParked(ctx: Ctx): boolean {
   const { cz, angle, pitch } = COURSE.diagonal;
   const diagYaw = Math.PI + angle; // see world/examCourse.ts's comment on diagYaw — this lane's baseline is south, not the original corridor's north
   const c = Math.cos(diagYaw), sn = Math.sin(diagYaw);
-  const dx = ctx.x - (COURSE.leftKerb + 1.0), dz = ctx.z - cz;
+  const dx = ctx.x - (COURSE.parkKerb + 1.0), dz = ctx.z - cz;
   const u = dx * c - dz * sn, v = dx * sn + dz * c;
   const inside = Math.abs(u) <= 1.6 && Math.abs(v) <= pitch / 2 - 0.3;
   const angleOk = Math.abs(wrap(ctx.yaw - diagYaw)) < toRad(10);
@@ -120,7 +120,7 @@ function examDiagonalParked(ctx: Ctx): boolean {
 
 function tickDiagonalBay(ctx: Ctx, dt: number): void {
   const { cz, pitch } = COURSE.diagonal;
-  const diagCx = COURSE.leftKerb + 1.0;
+  const diagCx = COURSE.parkKerb + 1.0;
   const s = ap.scratch('exam-diagonal', () => ({ signaled: false }));
   if (!s.signaled) { ap.tap('signalRight'); s.signaled = true; }
 

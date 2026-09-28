@@ -92,14 +92,14 @@ const STEPS: Step[] = [
     text: `Estaciona junto a la vereda, entre las dos líneas pintadas, en paralelo. Retrocede con la direccional puesta y ajusta hasta quedar dentro del recuadro.`,
     enter: (ctx, s) => { s.faultSnapshot = parkFaultTotal(); },
     hint: (ctx) => {
-      const gap = (ctx.x - CAR_HALF_WIDTH) - COURSE.leftKerb;
+      const gap = (ctx.x - CAR_HALF_WIDTH) - COURSE.parkKerb;
       return `Distancia a la vereda: ${Math.round(Math.max(gap, 0) * 100)} cm`;
     },
     update(ctx, s) {
       const { frontZ, rearZ } = COURSE.parallel;
-      const inSlot = ctx.z < rearZ && ctx.z > frontZ && ctx.x < COURSE.leftAveX - 0.8 && ctx.x > COURSE.leftKerb;
+      const inSlot = ctx.z < rearZ && ctx.z > frontZ && ctx.x < COURSE.parkAveX - 0.8 && ctx.x > COURSE.parkKerb;
       const angleOk = angleBetween(ctx.yaw, Math.PI) < THREE.MathUtils.degToRad(10);
-      const gapOk = (ctx.x - CAR_HALF_WIDTH) - COURSE.leftKerb < 0.7;
+      const gapOk = (ctx.x - CAR_HALF_WIDTH) - COURSE.parkKerb < 0.7;
       const parked = inSlot && angleOk && gapOk && ctx.kmh < 1.5;
       s.stillFor = parked ? (s.stillFor ?? 0) + 1 / 60 : 0;
       if ((s.stillFor ?? 0) > 1.2) {
@@ -117,7 +117,7 @@ const STEPS: Step[] = [
       const { cz, angle, pitch } = COURSE.diagonal;
       const diagYaw = Math.PI + angle; // this lane's baseline is south (PI), not the original corridor's north — see world/examCourse.ts's comment on diagYaw
       const c = Math.cos(diagYaw), sn = Math.sin(diagYaw);
-      const dx = ctx.x - (COURSE.leftKerb + 1.0), dz = ctx.z - cz;
+      const dx = ctx.x - (COURSE.parkKerb + 1.0), dz = ctx.z - cz;
       const u = dx * c - dz * sn, v = dx * sn + dz * c;
       const inside = Math.abs(u) <= 1.6 && Math.abs(v) <= pitch / 2 - 0.3;
       const angleOk = angleBetween(ctx.yaw, diagYaw) < THREE.MathUtils.degToRad(10);
