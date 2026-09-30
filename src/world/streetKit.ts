@@ -5,8 +5,6 @@ import { rand, choice } from '../utils/rng';
 import { scene } from '../core/scene';
 import { world, groundMaterial, propMaterial } from '../core/physics';
 import { box } from '../assets/primitives';
-import type { TrafficLightLamps } from '../assets/props';
-import type { LightState } from './intersections';
 
 // Building blocks shared by every scenario that lays roads out as discrete streets (the grid
 // city, the roundabout arms, the tutorial course): asphalt + markings + curbed sidewalks with
@@ -189,16 +187,6 @@ export function arcCurbColliders(cx: number, cz: number, radius: number, thickne
     body.collisionResponse = false;
     world.addBody(body);
   }
-}
-
-// Paints a traffic-light pole's three lamps for the given state ('RED' | 'YELLOW' | 'GREEN').
-export function updateLightMesh(L: TrafficLightLamps, state: LightState): void {
-  L.red.material.emissive.set(state === 'RED' ? 0xff0000 : 0x000000);
-  L.red.material.color.set(state === 'RED' ? 0xff2222 : 0x550000);
-  L.yellow.material.emissive.set(state === 'YELLOW' ? 0xffaa00 : 0x000000);
-  L.yellow.material.color.set(state === 'YELLOW' ? 0xffcc33 : 0x554400);
-  L.green.material.emissive.set(state === 'GREEN' ? 0x00ff00 : 0x000000);
-  L.green.material.color.set(state === 'GREEN' ? 0x33ff33 : 0x004d00);
 }
 
 const BUILDING_PALETTE = [0xd9c79e, 0xc8896b, 0xdfe3e6, 0x9fb6c9, 0xe8d5a0, 0xb98d6f, 0xcbb4d1];

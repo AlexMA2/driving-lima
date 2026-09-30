@@ -2,10 +2,10 @@ import * as THREE from 'three';
 import { CONFIG } from '../config';
 import { scene } from '../core/scene';
 import { box, cyl } from '../assets/primitives';
-import { buildTrafficLightPole, buildStopSign, buildUTurnPermittedPlate, buildNoUTurnPlate, buildSignPost, type TrafficLightLamps } from '../assets/props';
+import { buildStopSign, buildUTurnPermittedPlate, buildNoUTurnPlate, buildSignPost } from '../assets/props';
 import type { Spawn } from '../entities/player';
-import type { LightState } from './intersections';
-import { buildGround, buildStreet, barrier, scatterBlockBuildings, updateLightMesh } from './streetKit';
+import { addTrafficLight, resetTrafficLights, setTrafficLight, type LightState, type TrafficLight } from './trafficLights';
+import { buildGround, buildStreet, barrier, scatterBlockBuildings } from './streetKit';
 import { setLaneLayout } from './road';
 import { buildRoundabout } from './roundabout';
 import { SPEED_BUMPS, buildSpeedBumps } from './speedBumps';
@@ -34,11 +34,11 @@ export const COURSE = {
   finishZ: -940,
 };
 
-let trafficLight: TrafficLightLamps | null = null;
+let trafficLight: TrafficLight | null = null;
 
 // Sets the tutorial traffic light ('GREEN' | 'YELLOW' | 'RED').
 export function setTutorialLight(state: LightState): void {
-  if (trafficLight) updateLightMesh(trafficLight, state);
+  if (trafficLight) setTrafficLight(trafficLight, state);
 }
 
 function buildFinishGantry(x: number, z: number): void {
@@ -104,12 +104,11 @@ export function buildTutorialCourse(): Spawn {
   // traffic light + stop line for the north-bound lanes at the T-junction
   const stopLine = box(7, 0.02, 0.35, 0xffffff); stopLine.position.set(3.5, 0.113, light.stopZ + 0.6);
   scene.add(stopLine);
-  const pole = buildTrafficLightPole(true);
-  pole.position.set(7.3, 0, light.stopZ + 1.1);
-  pole.rotation.y = Math.PI;
-  scene.add(pole);
-  trafficLight = pole.userData.lights as TrafficLightLamps;
-  setTutorialLight('GREEN');
+  // set by the lesson script (systems/tutorial.ts), not on a timer
+  resetTrafficLights();
+  trafficLight = addTrafficLight({
+    heading: 'N', stop: { x: 3.5, z: light.stopZ + 0.6 }, halfWidth: 3.5, pole: { x: 7.3, z: light.stopZ + 1.1 }, state: 'GREEN',
+  });
 
   // "Retorno permitido" sign marking the U-turn lesson's spot, on the near kerb — the plate
   // faces +Z by default (see props.ts), which is exactly what a driver approaching from the

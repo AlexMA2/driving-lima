@@ -1,4 +1,6 @@
-import { buildGridCity, updateGridTrafficLights, updateGridAi, checkGridRedLight } from '../../world/gridCity';
+import { buildGridCity, updateGridAi } from '../../world/gridCity';
+import { updateTrafficLights } from '../../world/trafficLights';
+import { checkRedLightRule } from '../../systems/rules';
 import { updatePedestrians } from '../../entities/pedestrians';
 import type { LayoutRuntime } from './types';
 
@@ -8,11 +10,11 @@ export const layout: LayoutRuntime = {
 
   init() {},
 
-  update(dt, speedKmh) {
+  update(dt) {
     updateGridAi(dt);
     updatePedestrians(dt);
-    updateGridTrafficLights(dt);
-    checkGridRedLight(speedKmh);
+    updateTrafficLights(dt);
+    checkRedLightRule();
   },
 
   steerAssistZone: () => true,

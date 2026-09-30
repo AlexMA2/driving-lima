@@ -261,6 +261,17 @@ function buildApron(arm: Arm): void {
   scene.add(mesh);
 }
 
+// Just the óvalo itself — central island + ring lane markings — for a caller that paves the ring
+// and its approaches as part of its own ground shape (the exam course's traced pavement) instead
+// of wanting this file's four straight curbed arms. Still re-centres RB and drops cached routes,
+// so ringInfo()/getRoute() and the roundabout rules work around the new centre.
+export function buildOvalo(cx: number, cz: number): void {
+  RB.cx = cx; RB.cz = cz;
+  Object.keys(ROUTES).forEach(k => delete ROUTES[k]);
+  buildRingMarkings();
+  buildIsland();
+}
+
 // Options (all optional): `cx`/`cz` re-centre the roundabout, `ground` and `buildings` switch off
 // the terrain plane / filler skyline when the caller builds a bigger world around it,
 // `armLengths` overrides an arm's length by id and `armCrossings` lists coordinates along an arm

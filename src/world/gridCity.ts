@@ -5,16 +5,14 @@ import { rng, rand, choice } from '../utils/rng';
 import { pickDriverProfile, PROFILE_SPEED, PROFILE_GAP, type DriverProfile } from '../entities/drivers';
 import type { TrafficType } from '../entities/aiVehicles';
 import type { ResolvedScenario } from '../state/settings';
-import type { LightState } from './intersections';
+import { addTrafficLight, resetTrafficLights, phaseCycles, trafficLightAhead, mustStopFor, HEADING_DIR, type Heading } from './trafficLights';
 import { resetCrosswalks, addCrosswalk, includeCandidate, flushZebras, occupiedCrosswalkGap } from './crosswalks';
 import { scene } from '../core/scene';
 import { world, propMaterial } from '../core/physics';
 import { box } from '../assets/primitives';
-import { buildGround, buildStreet, barrier, updateLightMesh, scatterBlockBuildings, type Street } from './streetKit';
-import { buildTrafficLightPole, type TrafficLightLamps } from '../assets/props';
+import { buildGround, buildStreet, barrier, scatterBlockBuildings, type Street } from './streetKit';
 import { buildSedan, buildCombi, buildMototaxi, type VehicleGroup } from '../assets/vehicles';
 import { chassisBody } from '../entities/player';
-import { triggerInfraction } from '../systems/rules';
 import { distanceBetween } from '../utils/cannonThree';
 
 // "Ciudad con Giros" scenario: a real, physically-drivable street grid (unlike the decorative
@@ -22,19 +20,8 @@ import { distanceBetween } from '../utils/cannonThree';
 // intersection so the player can actually turn onto a cross street, each intersection runs
 // its own 4-way light cycle, and traffic/AI use both axes.
 let ROAD_HALF_WIDTH_GRID = 0;
-type GridPhase = 'NS_GREEN' | 'NS_YELLOW' | 'EW_GREEN' | 'EW_YELLOW';
 
-interface GridIntersection {
-  x: number;
-  z: number;
-  phase: GridPhase;
-  timer: number;
-  nsLights: TrafficLightLamps;
-  ewLights: TrafficLightLamps;
-  firedNS: boolean;
-  firedEW: boolean;
-}
-
+interface GridIntersection { x: number; z: number }
 interface GridAi {
   mesh: VehicleGroup;
   body: CANNON.Body;
@@ -56,7 +43,6 @@ export const GRID_INTERSECTIONS: GridIntersection[] = [];
 const gridAiPool: GridAi[] = [];
 let aiTargetCount = 10;
 let scenarioRef: { badDrivers?: number; goodDrivers?: number } = {};
-let prevPlayerPos: CANNON.Vec3 | null = null;
 
 function buildIntersection(x: number, z: number): void {
   const gapHalf = ROAD_HALF_WIDTH_GRID + CONFIG.SIDEWALK_WIDTH;
@@ -69,35 +55,19 @@ function buildIntersection(x: number, z: number): void {
   const ewStop1 = box(0.3, 0.02, ROAD_HALF_WIDTH_GRID, 0xffffff); ewStop1.position.set(x - gapHalf + 0.5, stopY, z + ROAD_HALF_WIDTH_GRID / 2); scene.add(ewStop1);
   const ewStop2 = box(0.3, 0.02, ROAD_HALF_WIDTH_GRID, 0xffffff); ewStop2.position.set(x + gapHalf - 0.5, stopY, z - ROAD_HALF_WIDTH_GRID / 2); scene.add(ewStop2);
 
-  const poleNS = buildTrafficLightPole(true);
-  poleNS.position.set(x + gapHalf - 0.3, 0, z + gapHalf - 0.3);
-  poleNS.rotation.y = Math.PI;
-  scene.add(poleNS);
-
-  const poleEW = buildTrafficLightPole();
-  poleEW.position.set(x - gapHalf + 0.3, 0, z + gapHalf - 0.3);
-  poleEW.rotation.y = -Math.PI / 2;
-  scene.add(poleEW);
-
-  GRID_INTERSECTIONS.push({
-    x, z, phase: 'NS_GREEN', timer: rand(0, 4),
-    nsLights: poleNS.userData.lights as TrafficLightLamps, ewLights: poleEW.userData.lights as TrafficLightLamps,
-    firedNS: false, firedEW: false,
+  // one light per approach, on the right-hand verge before its stop line; N/S share a phase, E/W the other
+  const cycles = phaseCycles(2, 7, 2, -rand(0, 9));
+  (['N', 'S', 'E', 'W'] as Heading[]).forEach(h => {
+    const d = HEADING_DIR[h], rx = -d.z, rz = d.x;
+    const back = gapHalf - 0.5, side = ROAD_HALF_WIDTH_GRID / 2;
+    addTrafficLight({
+      heading: h, halfWidth: ROAD_HALF_WIDTH_GRID / 2, cycle: cycles[h === 'N' || h === 'S' ? 0 : 1],
+      stop: { x: x - d.x * back + rx * side, z: z - d.z * back + rz * side },
+      pole: { x: x - d.x * (gapHalf - 0.3) + rx * (gapHalf - 0.3), z: z - d.z * (gapHalf - 0.3) + rz * (gapHalf - 0.3) },
+    });
   });
-}
 
-const PHASE_DURATION: Record<GridPhase, number> = { NS_GREEN: 7, NS_YELLOW: 2, EW_GREEN: 7, EW_YELLOW: 2 };
-function nextPhase(p: GridPhase): GridPhase { return p === 'NS_GREEN' ? 'NS_YELLOW' : p === 'NS_YELLOW' ? 'EW_GREEN' : p === 'EW_GREEN' ? 'EW_YELLOW' : 'NS_GREEN'; }
-
-export function updateGridTrafficLights(dt: number): void {
-  GRID_INTERSECTIONS.forEach(inter => {
-    inter.timer += dt;
-    if (inter.timer >= PHASE_DURATION[inter.phase]) { inter.timer = 0; inter.phase = nextPhase(inter.phase); }
-    const nsState: LightState = inter.phase === 'NS_GREEN' ? 'GREEN' : inter.phase === 'NS_YELLOW' ? 'YELLOW' : 'RED';
-    const ewState: LightState = inter.phase === 'EW_GREEN' ? 'GREEN' : inter.phase === 'EW_YELLOW' ? 'YELLOW' : 'RED';
-    updateLightMesh(inter.nsLights, nsState);
-    updateLightMesh(inter.ewLights, ewState);
-  });
+  GRID_INTERSECTIONS.push({ x, z });
 }
 
 export function buildGridCity(scenario: ResolvedScenario): { x: number; y: number; z: number; rotY: number } {
@@ -108,6 +78,7 @@ export function buildGridCity(scenario: ResolvedScenario): { x: number; y: numbe
   AVENUE_XS = Array.from({ length: N }, (_, i) => -half + i * spacing);
   STREET_ZS = Array.from({ length: N }, (_, i) => -60 - i * spacing);
   STREETS.length = 0; GRID_INTERSECTIONS.length = 0;
+  resetTrafficLights();
 
   const margin = 70;
   const avenueLo = STREET_ZS[N - 1] - margin, avenueHi = STREET_ZS[0] + margin;
@@ -154,7 +125,6 @@ export function buildGridCity(scenario: ResolvedScenario): { x: number; y: numbe
   scenarioRef = scenario;
   gridAiPool.forEach(ai => { scene.remove(ai.mesh); world.removeBody(ai.body); });
   gridAiPool.length = 0;
-  prevPlayerPos = null;
 
   const spawnX = AVENUE_XS[Math.floor(N / 2)] + 0.5 * CONFIG.LANE_WIDTH;
   const spawnZ = avenueHi - 25;
@@ -164,16 +134,6 @@ export function buildGridCity(scenario: ResolvedScenario): { x: number; y: numbe
 // ---- Grid AI traffic: spawns on random avenue/street segments, respects red lights ----
 const AI_TYPES: TrafficType[] = ['car', 'car', 'combi', 'mototaxi', 'mototaxi'];
 const CAR_COLORS = [0xcc2b2b, 0x2e7d32, 0x455a64, 0xf9a825, 0x6a1b9a];
-
-function nearestIntersectionAhead(x: number, z: number, orientation: 'z' | 'x', dir: number): { inter: GridIntersection; dist: number } | null {
-  let best = null as GridIntersection | null, bestD = Infinity;
-  GRID_INTERSECTIONS.forEach(inter => {
-    const d = orientation === 'z' ? dir * (inter.z - z) : dir * (inter.x - x);
-    const lateral = orientation === 'z' ? Math.abs(inter.x - x) : Math.abs(inter.z - z);
-    if (d > 0 && d < 60 && lateral < 3) { if (d < bestD) { bestD = d; best = inter; } }
-  });
-  return best ? { inter: best, dist: bestD } : null;
-}
 
 function spawnGridAi(): void {
   if (STREETS.length === 0) return;
@@ -236,15 +196,10 @@ export function updateGridAi(dt: number): void {
     const s = ai.street;
     const pos = ai.mesh.position;
 
-    const ahead = nearestIntersectionAhead(pos.x, pos.z, s.orientation, ai.dir);
+    const ahead = s.orientation === 'z' ? trafficLightAhead(pos.x, pos.z, 0, ai.dir) : trafficLightAhead(pos.x, pos.z, ai.dir, 0);
     let targetSpeed = ai.baseSpeed;
-    if (ahead) {
-      const relevantState = s.orientation === 'z'
-        ? (ahead.inter.phase.startsWith('NS') ? ahead.inter.phase.split('_')[1] : 'RED')
-        : (ahead.inter.phase.startsWith('EW') ? ahead.inter.phase.split('_')[1] : 'RED');
-      if (relevantState !== 'GREEN' && ahead.dist < 22 && !(ai.isBadDriver && rng() < 0.15)) {
-        targetSpeed = THREE.MathUtils.clamp((ahead.dist - 8) / 14, 0, 1) * ai.baseSpeed;
-      }
+    if (ahead && mustStopFor(ahead.light, ahead.dist) && ahead.dist < 16 && !(ai.isBadDriver && rng() < 0.15)) {
+      targetSpeed = THREE.MathUtils.clamp((ahead.dist - 1.5) / 14, 0, 1) * ai.baseSpeed;
     }
     // stop short of a zebra with pedestrians on it (bad drivers don't)
     if (ai.profile !== 'bad') {
@@ -277,27 +232,4 @@ export function updateGridAi(dt: number): void {
     }
   }
   while (gridAiPool.length < aiTargetCount) spawnGridAi();
-}
-
-// Approximate red-light check: fires if the player crosses an intersection's stop threshold
-// while that axis is red. Uses straight-line crossing detection, so it's most reliable when
-// approaching along one axis (the common case) rather than mid-turn.
-export function checkGridRedLight(speedKmh: number): void {
-  const pos = chassisBody.position;
-  if (!prevPlayerPos) { prevPlayerPos = pos.clone(); return; }
-  const prev = prevPlayerPos;
-  GRID_INTERSECTIONS.forEach(inter => {
-    const nearX = Math.abs(pos.x - inter.x) < ROAD_HALF_WIDTH_GRID + 1;
-    const nearZ = Math.abs(pos.z - inter.z) < ROAD_HALF_WIDTH_GRID + 1;
-
-    if (nearX && prev.z > inter.z && pos.z <= inter.z) {
-      if (!inter.phase.startsWith('NS') && speedKmh > 8 && !inter.firedNS) { triggerInfraction('G28'); inter.firedNS = true; }
-    }
-    if (nearZ && ((prev.x < inter.x && pos.x >= inter.x) || (prev.x > inter.x && pos.x <= inter.x))) {
-      if (!inter.phase.startsWith('EW') && speedKmh > 8 && !inter.firedEW) { triggerInfraction('G28'); inter.firedEW = true; }
-    }
-    if (!nearX) inter.firedNS = false;
-    if (!nearZ) inter.firedEW = false;
-  });
-  prevPlayerPos.copy(pos);
 }

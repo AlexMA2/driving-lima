@@ -5,3 +5,6 @@ dist/
 npm-debug.log*
 .vscode/*
 !.vscode/extensions.json
+
+# Local docs / track-mapping work
+docs/

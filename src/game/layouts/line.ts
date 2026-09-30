@@ -1,6 +1,7 @@
 import { buildRoad, PLAYER_LANES, WORLD_Z_START } from '../../world/road';
 import { buildBuildings } from '../../world/buildings';
-import { buildIntersections, updateTrafficLight, INTERSECTIONS } from '../../world/intersections';
+import { buildIntersections } from '../../world/intersections';
+import { updateTrafficLights } from '../../world/trafficLights';
 import { buildSchoolZone } from '../../world/schoolZone';
 import { buildDecorations } from '../../world/decorations';
 import { buildSpeedBumps } from '../../world/speedBumps';
@@ -32,7 +33,7 @@ export const layout: LayoutRuntime = {
   update(dt) {
     updateAi(dt);
     updatePedestrians(dt);
-    INTERSECTIONS.forEach(inter => updateTrafficLight(inter, dt));
+    updateTrafficLights(dt);
     checkLaneChangeRule();
     checkRedLightRule();
     checkSpeedBumpRule();

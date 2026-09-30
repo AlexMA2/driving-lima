@@ -4,7 +4,7 @@ import { gameState } from '../state/gameState';
 import { gameNow } from '../state/gameClock';
 import { chassisBody, CAR_HALF_LENGTH } from '../entities/player';
 import { LANE_X, ROAD_HALF_WIDTH } from '../world/road';
-import { INTERSECTIONS } from '../world/intersections';
+import { redLightCrossed } from '../world/trafficLights';
 import { inSchoolZone } from '../world/schoolZone';
 import { SPEED_BUMPS } from '../world/speedBumps';
 import { controlState } from './input';
@@ -41,7 +41,7 @@ function nearestLaneIndex(x: number): number {
 }
 
 let prevLaneIndex = -1;
-let prevPlayerZ = 0;
+let prevRedX = NaN, prevRedZ = NaN;
 let urbanSpeedLimit = CONFIG.URBAN_SPEED_LIMIT;
 let scenarioLayout: Layout = 'line';
 
@@ -54,7 +54,7 @@ function inCollisionGrace(): boolean { return gameNow() - lastVehicleHitTime < C
 // Must run once after the player body exists (game/session.ts calls this right after createPlayer()).
 export function initRules(scenario?: { speedLimit?: number; layout?: Layout } | null): void {
   prevLaneIndex = nearestLaneIndex(chassisBody.position.x);
-  prevPlayerZ = chassisBody.position.z;
+  prevRedX = NaN; prevRedZ = NaN;
   urbanSpeedLimit = scenario?.speedLimit ?? CONFIG.URBAN_SPEED_LIMIT;
   scenarioLayout = scenario?.layout ?? 'line';
 }
@@ -101,16 +101,12 @@ export function checkSpeedRule(): void {
 }
 
 // ---- Red light crossing (G28) ----
+// Any layout with semáforos (world/trafficLights.ts): crossing a light's stop line while it shows red.
 export function checkRedLightRule(): void {
-  const z = chassisBody.position.z;
+  const { x, z } = chassisBody.position;
   const speedKmh = chassisBody.velocity.length() * 3.6;
-  INTERSECTIONS.forEach(inter => {
-    if (!inter.triggeredRedCross && prevPlayerZ > inter.z && z <= inter.z && inter.state === 'RED' && speedKmh > 8) {
-      triggerInfraction('G28');
-      inter.triggeredRedCross = true;
-    }
-  });
-  prevPlayerZ = z;
+  if (!Number.isNaN(prevRedX) && redLightCrossed(prevRedX, prevRedZ, x, z) && speedKmh > 8) triggerInfraction('G28');
+  prevRedX = x; prevRedZ = z;
 }
 
 // ---- Speed bump damage (custom BUMP code) ----

@@ -8,9 +8,13 @@ import { triggerInfraction } from './rules';
 // Yield when stepping onto the ring while a circling car is about to reach the entry point,
 // signal right when leaving it, and never circulate against the flow (clockwise).
 let onRing = false;
+// Who counts as circling traffic: the roundabout scenario's cars unless a layout brings its own
+// (the exam circuit's candidates, entities/examTraffic.ts).
+let circlingTowards: (entryTheta: number) => boolean = aiCirclingTowards;
 
-export function resetRoundaboutRules(): void {
+export function resetRoundaboutRules(probe: (entryTheta: number) => boolean = aiCirclingTowards): void {
   onRing = false;
+  circlingTowards = probe;
 }
 
 export function checkRoundaboutRules(): void {
@@ -21,7 +25,7 @@ export function checkRoundaboutRules(): void {
 
   if (inside !== onRing) {
     if (inside) {
-      if (speedKmh > 5 && aiCirclingTowards(theta)) triggerInfraction('RB_YIELD');
+      if (speedKmh > 5 && circlingTowards(theta)) triggerInfraction('RB_YIELD');
     } else if (r >= RB.outerR - 0.3 && speedKmh > 5 && !controlState.signalRight) {
       triggerInfraction('RB_SIGNAL');
     }

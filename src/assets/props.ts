@@ -55,24 +55,22 @@ export function buildSpeedBump(width: number) {
   return group;
 }
 
-// flipFacing: callers that swing the arm to the road's other side with `rotation.y = Math.PI`
-// also flip which world direction the lamp housing's open face ends up pointing (a 180° turn
-// negates both the arm's and the lamps' local offsets), which turns the lamps to face away from
-// the approaching driver — invisible, hidden behind the opaque housing. Pass true in that case so
-// the lamps are built on the housing's other local side and come out facing the right way after
-// the rotation. Callers that reorient with a different angle (e.g. -90°) don't need it.
+// One orientation only, for northbound traffic (heading -Z): the pole stands on the lanes' right
+// (east) verge, the arm reaches west over them and the lamps face +Z, towards the approaching
+// drivers. world/trafficLights.ts places and turns it for every other heading — don't build one
+// directly.
 export interface TrafficLightLamps { red: StdMesh; yellow: StdMesh; green: StdMesh }
 
-export function buildTrafficLightPole(flipFacing = false) {
+export function buildTrafficLightPole() {
   const g = new THREE.Group();
   const pole = cyl(0.09, 0.09, 4.2, 0x333333, 8); pole.position.y = 2.1;
-  const arm = box(2.6, 0.1, 0.1, 0x333333); arm.position.set(1.3, 4.1, 0);
-  const housing = box(0.4, 1.05, 0.4, 0x151515); housing.position.set(2.5, 3.6, 0);
-  const faceZ = flipFacing ? -0.21 : 0.21;
+  const arm = box(2.6, 0.1, 0.1, 0x333333); arm.position.set(-1.3, 4.1, 0);
+  const housing = box(0.4, 1.05, 0.4, 0x151515); housing.position.set(-2.5, 3.6, 0);
+  const faceZ = 0.21;
   const red: StdMesh = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 10), new THREE.MeshStandardMaterial({ color: 0x550000, emissive: 0x000000 }));
-  red.position.set(2.5, 3.95, faceZ);
-  const yellow = red.clone(); yellow.material = yellow.material.clone(); yellow.material.color.set(0x554400); yellow.position.set(2.5, 3.6, faceZ);
-  const green = red.clone(); green.material = green.material.clone(); green.material.color.set(0x004d00); green.position.set(2.5, 3.25, faceZ);
+  red.position.set(-2.5, 3.95, faceZ);
+  const yellow = red.clone(); yellow.material = yellow.material.clone(); yellow.material.color.set(0x554400); yellow.position.set(-2.5, 3.6, faceZ);
+  const green = red.clone(); green.material = green.material.clone(); green.material.color.set(0x004d00); green.position.set(-2.5, 3.25, faceZ);
   g.add(pole, arm, housing, red, yellow, green);
   const lights: TrafficLightLamps = { red, yellow, green };
   g.userData.lights = lights;
@@ -316,6 +314,153 @@ export function buildPedestrianWarningPlate(): THREE.Group {
       ctx.moveTo(136, 108); ctx.lineTo(100, 130);
       ctx.moveTo(136, 108); ctx.lineTo(172, 96);
       ctx.stroke();
+    },
+  });
+}
+
+// ---- more MTC plates: regulatory (R-, blue disc/white pictogram) and preventive (P-, yellow
+// diamond/black pictogram) signs the César Vallejo circuit needs (docs/track-mapping) that the
+// plates above don't cover. Same simplified-but-readable style as the plates above (e.g.
+// buildYieldPlate's lettering) rather than a strict reproduction of the official artwork.
+
+function blueDiscOutline(ctx: CanvasRenderingContext2D): void { ctx.beginPath(); ctx.arc(128, 128, 124, 0, Math.PI * 2); }
+
+function fillBlueDisc(ctx: CanvasRenderingContext2D): void { ctx.fillStyle = '#1565c0'; ctx.fillRect(0, 0, 256, 256); }
+
+// A shaft from (x1,y1) to (x2,y2) with a triangular arrowhead at the end.
+function drawArrowShaft(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, color: string, width = 24): void {
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  const ang = Math.atan2(y2 - y1, x2 - x1);
+  const hx = Math.cos(ang), hy = Math.sin(ang);
+  const px = -hy, py = hx;
+  ctx.beginPath();
+  ctx.moveTo(x2 + hx * 16, y2 + hy * 16);
+  ctx.lineTo(x2 - hx * 26 + px * 20, y2 - hy * 26 + py * 20);
+  ctx.lineTo(x2 - hx * 26 - px * 20, y2 - hy * 26 - py * 20);
+  ctx.closePath(); ctx.fill();
+}
+
+// A single arrow rising from the bottom then bending toward `dir` — the "turn this way" pictogram
+// shared by R-3 (straight ahead), R-5 (left only) and R-7 (right only).
+function drawBentArrow(ctx: CanvasRenderingContext2D, color: string, dir: 'straight' | 'left' | 'right'): void {
+  if (dir === 'straight') { drawArrowShaft(ctx, 128, 220, 128, 50, color); return; }
+  const sign = dir === 'left' ? -1 : 1;
+  ctx.strokeStyle = color; ctx.lineWidth = 24; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(128, 220); ctx.lineTo(128, 120); ctx.quadraticCurveTo(128, 80, 128 + sign * 40, 80); ctx.stroke();
+  drawArrowShaft(ctx, 128 + sign * 15, 80, 128 + sign * 70, 80, color);
+}
+
+// R-5 "Giro solamente a la izquierda": blue disc, white left-bending arrow.
+export function buildLeftTurnOnlyPlate(): THREE.Group {
+  return buildPlate({
+    key: 'turn-left-only', size: 0.75, outline: blueDiscOutline,
+    paint(ctx) { fillBlueDisc(ctx); drawBentArrow(ctx, '#ffffff', 'left'); },
+  });
+}
+
+// R-7 "Giro solamente a la derecha": blue disc, white right-bending arrow.
+export function buildRightTurnOnlyPlate(): THREE.Group {
+  return buildPlate({
+    key: 'turn-right-only', size: 0.75, outline: blueDiscOutline,
+    paint(ctx) { fillBlueDisc(ctx); drawBentArrow(ctx, '#ffffff', 'right'); },
+  });
+}
+
+// R-3 "Dirección obligada": blue disc, white straight-ahead arrow.
+export function buildMandatoryDirectionPlate(): THREE.Group {
+  return buildPlate({
+    key: 'mandatory-straight', size: 0.75, outline: blueDiscOutline,
+    paint(ctx) { fillBlueDisc(ctx); drawBentArrow(ctx, '#ffffff', 'straight'); },
+  });
+}
+
+// R-7-2 "Carril permitido para volteo (derecha) y para seguir": blue disc, one arrow straight
+// ahead and a second branching right off the same shaft — a merge lane that may turn or continue.
+export function buildRightTurnOrContinuePlate(): THREE.Group {
+  return buildPlate({
+    key: 'turn-right-or-continue', size: 0.75, outline: blueDiscOutline,
+    paint(ctx) {
+      fillBlueDisc(ctx);
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 20; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.beginPath(); ctx.moveTo(128, 220); ctx.lineTo(128, 130); ctx.stroke();
+      drawArrowShaft(ctx, 128, 130, 128, 55, '#ffffff', 20);
+      ctx.beginPath(); ctx.moveTo(128, 170); ctx.quadraticCurveTo(128, 130, 175, 130); ctx.stroke();
+      drawArrowShaft(ctx, 145, 130, 200, 130, '#ffffff', 20);
+    },
+  });
+}
+
+function yellowDiamondOutline(ctx: CanvasRenderingContext2D): void {
+  ctx.beginPath(); ctx.moveTo(128, 8); ctx.lineTo(248, 128); ctx.lineTo(128, 248); ctx.lineTo(8, 128); ctx.closePath();
+}
+
+function fillYellowDiamond(ctx: CanvasRenderingContext2D): void {
+  ctx.fillStyle = '#f5d90a'; ctx.fillRect(0, 0, 256, 256);
+  ctx.save();
+  ctx.translate(128, 128); ctx.scale(0.86, 0.86); ctx.translate(-128, -128);
+  yellowDiamondOutline(ctx);
+  ctx.strokeStyle = '#111'; ctx.lineWidth = 10; ctx.lineJoin = 'round'; ctx.stroke();
+  ctx.restore();
+}
+
+// P-15 "Intersección rotatoria": yellow diamond, three arrows circling — warns of the óvalo ahead.
+export function buildRoundaboutAheadPlate(): THREE.Group {
+  return buildPlate({
+    key: 'roundabout-ahead', size: 0.85, outline: yellowDiamondOutline,
+    paint(ctx) {
+      fillYellowDiamond(ctx);
+      ctx.strokeStyle = '#111'; ctx.lineWidth = 16; ctx.lineCap = 'round';
+      for (let i = 0; i < 3; i++) {
+        const a0 = (i / 3) * Math.PI * 2, a1 = a0 + Math.PI * 2 / 3 - 0.35;
+        ctx.beginPath(); ctx.arc(128, 128, 52, a0, a1); ctx.stroke();
+        const ex = 128 + 52 * Math.cos(a1), ey = 128 + 52 * Math.sin(a1);
+        const tang = a1 + Math.PI / 2;
+        drawArrowShaft(ctx, ex - Math.cos(tang) * 14, ey - Math.sin(tang) * 14, ex + Math.cos(tang) * 4, ey + Math.sin(tang) * 4, '#111', 16);
+      }
+    },
+  });
+}
+
+// P-25 "Doble circulación": yellow diamond, two opposed vertical arrows — two-way traffic ahead.
+export function buildTwoWayTrafficPlate(): THREE.Group {
+  return buildPlate({
+    key: 'two-way-traffic', size: 0.85, outline: yellowDiamondOutline,
+    paint(ctx) {
+      fillYellowDiamond(ctx);
+      drawArrowShaft(ctx, 108, 210, 108, 60, '#111', 18);
+      drawArrowShaft(ctx, 148, 60, 148, 210, '#111', 18);
+    },
+  });
+}
+
+// P-33 "Resalto": yellow diamond, a black hump-profile pictogram — speed bump ahead.
+export function buildSpeedBumpAheadPlate(): THREE.Group {
+  return buildPlate({
+    key: 'speed-bump-ahead', size: 0.85, outline: yellowDiamondOutline,
+    paint(ctx) {
+      fillYellowDiamond(ctx);
+      ctx.strokeStyle = '#111'; ctx.lineWidth = 14; ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(58, 168); ctx.lineTo(88, 168);
+      ctx.bezierCurveTo(108, 168, 108, 108, 128, 108);
+      ctx.bezierCurveTo(148, 108, 148, 168, 168, 168);
+      ctx.lineTo(198, 168);
+      ctx.stroke();
+    },
+  });
+}
+
+// P-10-A "Empalme en ángulo agudo con vía lateral derecha": yellow diamond, a straight main line
+// with a side road merging in from the right at a shallow angle.
+export function buildAcuteMergeRightPlate(): THREE.Group {
+  return buildPlate({
+    key: 'acute-merge-right', size: 0.85, outline: yellowDiamondOutline,
+    paint(ctx) {
+      fillYellowDiamond(ctx);
+      ctx.strokeStyle = '#111'; ctx.lineWidth = 14; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(90, 210); ctx.lineTo(90, 46); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(90, 140); ctx.lineTo(206, 60); ctx.stroke();
     },
   });
 }
